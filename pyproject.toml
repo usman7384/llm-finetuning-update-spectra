@@ -1,0 +1,68 @@
+[project]
+name = "align-geometry"
+version = "0.1.0"
+description = "Does alignment training change what a model knows, or just how it talks? SVD of SFT/DPO weight deltas on Qwen2.5-0.5B."
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "torch>=2.4",
+    "transformers>=4.44",
+    "datasets>=2.20",
+    "accelerate>=0.33",
+    "peft>=0.12",
+    "trl>=0.9",
+    "numpy>=1.26",
+    "scipy>=1.13",
+    "pandas>=2.2",
+    "matplotlib>=3.9",
+    "seaborn>=0.13",
+    "pyyaml>=6.0",
+    "tqdm>=4.66",
+    "tensorboard>=2.17",
+    "safetensors>=0.4",
+]
+
+[project.optional-dependencies]
+# evals. IFEval needs langdetect and immutabledict but lm-eval doesn't list them
+eval = [
+    "lm-eval>=0.4.3",
+    "langdetect>=1.0.9",
+    "immutabledict>=4.3.1",
+]
+# 8-bit AdamW, needed for full fine-tuning to fit in 6GB
+quant = [
+    "bitsandbytes>=0.43.1",
+]
+dev = [
+    "pytest>=8.0",
+    "ruff>=0.6",
+    "ipykernel>=6.29",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+# The default Windows torch wheel on PyPI is CPU-only, so pull the CUDA 13.0
+# build from PyTorch's index instead. Change the URL to match your own driver
+# (https://pytorch.org/get-started/locally/).
+[tool.uv.sources]
+torch = [{ index = "pytorch-cu130" }]
+
+[[tool.uv.index]]
+name = "pytorch-cu130"
+url = "https://download.pytorch.org/whl/cu130"
+explicit = true
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/align_geometry"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
