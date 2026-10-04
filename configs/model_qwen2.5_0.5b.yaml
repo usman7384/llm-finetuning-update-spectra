@@ -1,0 +1,15 @@
+# The model everything here runs on. The memory section is what lets a full
+# fine-tune fit on a 6GB laptop GPU. Take any of it out and it OOMs.
+model:
+  name_or_path: "Qwen/Qwen2.5-0.5B"     # base, not -Instruct. we want to do the aligning ourselves
+  revision: null
+  dtype: "bfloat16"
+  attn_implementation: "sdpa"           # flash-attn is a pain on native Windows
+  trust_remote_code: false
+  max_seq_len: 1024                     # kept short for VRAM
+
+memory:
+  gradient_checkpointing: true
+  optimizer: "adamw_bnb_8bit"           # needs the `quant` extra (bitsandbytes)
+  per_device_train_batch_size: 1
+  gradient_accumulation_steps: 16       # effective batch of 16

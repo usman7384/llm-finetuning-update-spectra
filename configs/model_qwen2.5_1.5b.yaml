@@ -1,0 +1,16 @@
+# Never actually run. Full fine-tuning at 1.5B wants 20GB+ for the optimizer
+# states alone, so this is for a rented 24GB+ card if the experiment ever gets
+# repeated at a second scale.
+model:
+  name_or_path: "Qwen/Qwen2.5-1.5B"
+  revision: null
+  dtype: "bfloat16"
+  attn_implementation: "sdpa"
+  trust_remote_code: false
+  max_seq_len: 1024
+
+memory:
+  gradient_checkpointing: true
+  optimizer: "adamw_torch"              # no need for 8-bit with real VRAM
+  per_device_train_batch_size: 4
+  gradient_accumulation_steps: 4
