@@ -1,0 +1,22 @@
+{
+  "phase": "control_lm",
+  "data_format": "text",
+  "config_path": "configs\\control_lm.yaml",
+  "config_hash": "81567961abe2c556",
+  "model_config_path": "configs\\model_qwen2.5_0.5b.yaml",
+  "model_config_hash": "4d0170f5f4d5ecdc",
+  "git_commit": null,
+  "seed": 42,
+  "resumed_from_checkpoint": "checkpoints\\control_lm\\checkpoint-800",
+  "data_subsample_indices_file": "data\\processed\\control_lm_indices.json",
+  "expected_train_tokens": 1714520,
+  "observed_train_loss": 1.4493381147474331,
+  "observed_train_runtime_sec": 4070.3898,
+  "observed_train_samples_per_second": 7.515,
+  "timestamp_utc": "2026-09-21T05:36:18.207216+00:00",
+  "package_versions": {
+    "torch": "2.14.0+cu130",
+    "transformers": "5.16.1",
+    "trl": "1.12.0"
+  }
+}
