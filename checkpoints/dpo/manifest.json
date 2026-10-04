@@ -1,0 +1,23 @@
+{
+  "phase": "dpo",
+  "init_from": "checkpoints/sft",
+  "config_path": "configs\\dpo.yaml",
+  "config_hash": "b28b5f7284570b08",
+  "model_config_path": "configs\\model_qwen2.5_0.5b.yaml",
+  "model_config_hash": "4d0170f5f4d5ecdc",
+  "git_commit": null,
+  "seed": 42,
+  "beta": 0.1,
+  "resumed_from_checkpoint": null,
+  "data_subsample_indices_file": "data\\processed\\dpo_indices.json",
+  "observed_train_loss": 0.6228849171007986,
+  "observed_eval_loss": 0.6154101490974426,
+  "observed_train_runtime_sec": 44335.2136,
+  "observed_train_samples_per_second": 0.217,
+  "timestamp_utc": "2026-09-20T12:55:29.686721+00:00",
+  "package_versions": {
+    "torch": "2.14.0+cu130",
+    "transformers": "5.16.1",
+    "trl": "1.12.0"
+  }
+}
