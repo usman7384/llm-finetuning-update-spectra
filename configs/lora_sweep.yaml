@@ -1,0 +1,27 @@
+# LoRA at 8 ranks x 3 learning rates, all on exactly the same data and epochs
+# as sft.yaml so they can be compared with the full fine-tune directly.
+seed: 42
+
+data:
+  dataset: "yahma/alpaca-cleaned"
+  n_examples: 10000
+  subsample_seed: 42           # same rows as sft.yaml
+  val_fraction: 0.02
+
+sweep:
+  ranks: [1, 2, 4, 8, 16, 32, 64, 128]
+  alpha_to_rank_ratio: 2.0     # lora_alpha = 2r everywhere
+  target_modules: ["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"]
+  # Swept per rank because Biderman et al. found LoRA vs full-FT comparisons
+  # are sensitive to LR. In hindsight the grid should have gone lower: 1e-4
+  # won at every single rank, so the best LR is probably below it.
+  learning_rate_candidates: [1.0e-4, 3.0e-4, 1.0e-3]
+
+train:
+  model_config: "configs/model_qwen2.5_0.5b.yaml"
+  lr_scheduler: "cosine"
+  warmup_ratio: 0.03
+  num_epochs: 3
+  max_grad_norm: 1.0
+  save_dir: "checkpoints/lora_sweep"
+  log_dir: "logs/lora_sweep"
