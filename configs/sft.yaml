@@ -1,0 +1,23 @@
+# Main SFT run: full fine-tune of the base model on 10k Alpaca examples.
+# Output goes to checkpoints/sft and is the W_sft everything gets compared to.
+seed: 42
+
+data:
+  dataset: "yahma/alpaca-cleaned"
+  n_examples: 10000
+  subsample_seed: 42
+  val_fraction: 0.02
+
+train:
+  model_config: "configs/model_qwen2.5_0.5b.yaml"
+  learning_rate: 2.0e-5
+  lr_scheduler: "cosine"
+  warmup_ratio: 0.03
+  num_epochs: 3
+  weight_decay: 0.0
+  max_grad_norm: 1.0
+  save_dir: "checkpoints/sft"
+  log_dir: "logs/sft"
+
+# not read by anything; the real count ends up in the run's manifest.json
+expected_train_tokens: null
