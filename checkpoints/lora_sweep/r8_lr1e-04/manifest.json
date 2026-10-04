@@ -1,0 +1,25 @@
+{
+  "phase": "lora",
+  "rank": 8,
+  "learning_rate": 0.0001,
+  "lora_alpha": 16,
+  "config_path": "configs\\lora_sweep.yaml",
+  "config_hash": "ce241bfd3616b453",
+  "model_config_path": "configs\\model_qwen2.5_0.5b.yaml",
+  "model_config_hash": "4d0170f5f4d5ecdc",
+  "git_commit": null,
+  "seed": 42,
+  "resumed_from_checkpoint": null,
+  "data_subsample_indices_file": "data\\processed\\lora_sweep_indices.json",
+  "expected_train_tokens": 1750543,
+  "observed_train_loss": 1.3226275700729395,
+  "observed_eval_loss": 1.376989722251892,
+  "observed_train_runtime_sec": 7787.0063,
+  "observed_train_samples_per_second": 3.776,
+  "timestamp_utc": "2026-09-09T10:57:05.665948+00:00",
+  "package_versions": {
+    "torch": "2.14.0+cu130",
+    "transformers": "5.16.1",
+    "trl": "1.12.0"
+  }
+}
