@@ -1,0 +1,31 @@
+# Control: same model, same settings, same number of tokens as sft.yaml, but
+# trained on plain wikitext instead of instructions. Nothing about following
+# instructions, formatting or preferences in it. If its weight delta looks as
+# concentrated as SFT's, that concentration isn't an alignment thing.
+seed: 42
+phase: control_lm
+
+data:
+  format: "text"               # plain LM: no chat template, nothing masked
+  dataset: "Salesforce/wikitext"
+  config_name: "wikitext-103-raw-v1"
+  split: "train"
+  target_tokens: 1750543       # what the SFT run actually trained on (see its manifest)
+  subsample_seed: 42
+  val_fraction: 0.02
+
+train:
+  model_config: "configs/model_qwen2.5_0.5b.yaml"
+  learning_rate: 2.0e-5        # everything below matches sft.yaml
+  lr_scheduler: "cosine"
+  warmup_ratio: 0.03
+  num_epochs: 3
+  weight_decay: 0.0
+  max_grad_norm: 1.0
+  save_dir: "checkpoints/control_lm"
+  log_dir: "logs/control_lm"
+
+# One difference that isn't the task: SFT only computes loss on the answer
+# tokens, plain LM computes it on everything. Same tokens seen, not the same
+# tokens trained on.
+expected_train_tokens: null

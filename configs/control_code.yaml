@@ -1,0 +1,31 @@
+# Second control, same idea as control_lm.yaml but on Python source. Code is
+# about as far from both Wikipedia prose and Alpaca as it gets, which rules out
+# the first two just happening to agree.
+seed: 42
+phase: control_code
+
+data:
+  format: "text"
+  dataset: "codeparrot/codeparrot-clean-valid"
+  config_name: null
+  split: "train"
+  text_field: "content"        # codeparrot calls the column `content`
+  # Counted after truncating to max_seq_len. Code files are often way longer
+  # than 1024 tokens and the trainer cuts them, so counting the full length
+  # would overstate the budget by ~4x.
+  target_tokens: 1750543
+  subsample_seed: 42
+  val_fraction: 0.02
+
+train:
+  model_config: "configs/model_qwen2.5_0.5b.yaml"
+  learning_rate: 2.0e-5        # matches sft.yaml
+  lr_scheduler: "cosine"
+  warmup_ratio: 0.03
+  num_epochs: 3
+  weight_decay: 0.0
+  max_grad_norm: 1.0
+  save_dir: "checkpoints/control_code"
+  log_dir: "logs/control_code"
+
+expected_train_tokens: null
