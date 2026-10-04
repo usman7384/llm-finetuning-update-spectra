@@ -1,0 +1,28 @@
+# python / tooling
+.venv/
+__pycache__/
+*.pyc
+.ruff_cache/
+.pytest_cache/
+
+# model weights are tens of GB, so checkpoints/ stays out of git except for
+# each run's manifest.json and the sweep summary
+checkpoints/**
+!checkpoints/**/
+!checkpoints/**/manifest.json
+!checkpoints/lora_sweep/sweep_summary.csv
+*.safetensors
+*.bin
+
+# tensorboard runs and eval logs
+logs/
+
+# local HF dataset cache, if it ends up here
+data/raw/
+
+# editor / OS / local tools
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+.env
