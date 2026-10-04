@@ -1,0 +1,353 @@
+# Does alignment training change behavior, or just style?
+
+Results write-up. Everything below was run on Qwen2.5-0.5B (base) on a single
+RTX 3060 Laptop GPU with 6GB of VRAM.
+
+The plan, with predictions written before any training, is in
+[plan.md](plan.md). Prior work is in [related-work.md](related-work.md).
+
+## Short version
+
+I expected alignment training to leave a narrow, low-rank footprint in the
+weights, and expected that footprint to be what makes alignment "superficial".
+The first half held up once I measured it properly. The second half didn't.
+Fine-tuning on Wikipedia text or on Python code leaves the same kind of
+footprint, so it's just what fine-tuning does.
+
+| Prediction | Result |
+|---|---|
+| (a) the SFT weight delta is low-rank, because of alignment | **No**, though not how it first looked. The delta is concentrated (3x lower stable rank than noise), but two fine-tunes with no alignment content are just as concentrated. |
+| (b) LoRA needs more rank for capability than for style, with a crossover rank | **No crossover.** Rank 1 already gets all of the style gain. GSM8K gets steadily *worse* as rank goes up. |
+| (c) DPO's delta is more concentrated than SFT's | **No.** Same concentration, about 15x smaller. |
+| (d) LoRA finds the same directions as full fine-tuning | **Yes.** About 11x above chance at rank 1, above chance at every rank. |
+
+The thing most likely to be useful to someone else: the standard way of
+measuring this got it backwards. Counting singular values above 0.01·σ₁ said
+the SFT delta looked exactly like random noise. Stable rank on the same saved
+spectra said it's three times more concentrated than noise. Same data, opposite
+answer.
+
+## Setup
+
+- **Model:** `Qwen/Qwen2.5-0.5B` base. Picked the base rather than -Instruct so
+  that my SFT run is the first instruction tuning it ever sees.
+- **SFT:** full fine-tune on 10k examples from `yahma/alpaca-cleaned`, 3 epochs,
+  lr 2e-5. bf16, 8-bit AdamW and gradient checkpointing to fit in 6GB.
+- **DPO:** full fine-tune on top of the SFT checkpoint, 10k pairs from
+  `ultrafeedback_binarized`, 1 epoch, β 0.1, lr 5e-6.
+- **LoRA sweep:** ranks 1, 2, 4 ... 128, each at three learning rates (1e-4,
+  3e-4, 1e-3), same data and tokens as the SFT run. Best LR per rank chosen by
+  validation loss. 24 runs.
+- **Controls:** two random initializations of the same architecture, as a noise
+  floor; a plain LM fine-tune on wikitext-103; a plain LM fine-tune on Python
+  code (CodeParrot). The two LM runs match the SFT run's token budget and
+  settings exactly; only the data changes.
+- **Repeat:** SFT run again with both the training seed and the data sample
+  changed (42 → 43), to see how much numbers move between identical runs.
+- **Evals,** the same on every checkpoint: IFEval (541 prompts) and XSTest
+  refusals (450 prompts, safe and unsafe halves kept separate) for style;
+  GSM8K (1319, 5-shot, exact match) and ARC-Challenge (1172) for capability.
+- **SVD:** every attention and MLP weight matrix (`q/k/v/o_proj`,
+  `gate/up/down_proj`), 168 per model, measured both as thresholded effective
+  rank and as stable rank / top-k energy.
+
+## 1. Base vs SFT
+
+| | Base | SFT | Change |
+|---|---|---|---|
+| IFEval, prompt-level strict | 12.01% | 14.97% | +2.96 |
+| IFEval, instruction-level loose | 24.82% | 28.18% | +3.35 |
+| XSTest refusals, safe prompts | 1.2% | 4.4% | +3.2 |
+| XSTest refusals, unsafe prompts | 2.0% | 5.0% | +3.0 |
+| GSM8K | 34.19% ±1.31 | 29.49% ±1.26 | **−4.70** |
+| ARC-Challenge (acc_norm) | 32.34% ±1.37 | 33.62% ±1.38 | +1.28 (noise) |
+
+SFT bought about 3 points of instruction-following and paid for it with almost
+5 points of GSM8K. That drop is about 3.6x its stderr, so it's real. ARC didn't
+move beyond noise. Refusals went up by about the same amount on safe and unsafe
+prompts, which looks like formatting bleeding through more than the model
+learning when to refuse; Alpaca has almost no refusal examples in it.
+
+## 2. Is the SFT weight delta low-rank?
+
+![spectra](../results/svd_sft/spectra.png)
+![effective rank by layer](../results/svd_sft/effective_rank_by_depth.png)
+
+### The planned measurement
+
+Effective rank as a share of the maximum possible, compared against the same
+thing for two random inits:
+
+| | SFT − base | two random inits |
+|---|---|---|
+| threshold 0.01 | 99.07% | 99.62% |
+| threshold 0.1 | 81.04% | 96.37% |
+
+At the planned threshold the SFT delta is indistinguishable from noise. Only at
+0.1 does anything show up, mostly in `q_proj`, `o_proj`, `gate_proj` and
+`up_proj` in the last few layers (layer 23's `up_proj` drops to 22 out of 896).
+Taken at face value, that's prediction (a) failing.
+
+### Measuring it without a threshold
+
+The problem is that counting singular values above some fraction of the biggest
+one tells you nothing about how the energy is spread among the ones you
+counted. Almost any dense matrix comes out near full rank. So I recomputed from
+the same saved spectra, no retraining, with two measures that don't depend on a
+cutoff or on overall scale:
+
+- stable rank = ‖ΔW‖²_F / ‖ΔW‖²₂ = Σσᵢ² / σ₁²
+- energy in the top k = share of Σσᵢ² in the k largest values
+
+![stable rank](../results/stable_rank.png)
+
+| average over 168 matrices | SFT | DPO | random inits |
+|---|---|---|---|
+| stable rank / max rank | 0.145 | 0.144 | 0.436 |
+| energy in top 1 | 5.06% | 5.47% | 0.64% |
+| energy in top 8 | 12.0% | 12.5% | 4.9% |
+| energy in top 32 | 26.0% | 27.2% | 17.5% |
+
+By matrix type (stable rank / max rank):
+
+| | q_proj | o_proj | up_proj | gate_proj | k_proj | down_proj | v_proj |
+|---|---|---|---|---|---|---|---|
+| SFT | 0.068 | 0.080 | 0.096 | 0.103 | 0.135 | 0.217 | 0.316 |
+| random inits | 0.252 | 0.251 | 0.492 | 0.492 | 0.536 | 0.493 | 0.535 |
+| ratio | 3.7x | 3.1x | 5.1x | 4.8x | 4.0x | 2.3x | 1.7x |
+
+So the SFT delta is clearly concentrated: stable rank 3x lower than noise, and
+its top direction carries about 8x the share of energy. It holds for every
+matrix type and is strongest in the MLP projections. It's not *low-rank* in the
+literal sense, though. The spectrum is still dense, which is exactly why the
+threshold count missed it.
+
+## 3. Is that because of alignment?
+
+Showing the delta beats random noise doesn't say anything about alignment.
+Fine-tuning might always look like this. So I fine-tuned the same base model
+again with the same settings and the same number of tokens, on data with no
+instructions, no chat format and no preferences in it.
+
+**wikitext-103** (1,714,520 tokens, vs 1,750,543 for SFT):
+
+| | SFT | wikitext | random inits |
+|---|---|---|---|
+| stable rank / max rank | 0.145 | 0.110 | 0.436 |
+| energy in top 1 | 5.06% | 6.87% | 0.64% |
+| energy in top 8 | 12.0% | 15.1% | 4.9% |
+| energy in top 32 | 26.0% | 29.4% | 17.5% |
+| mean ‖ΔW‖_F | 0.280 | 0.349 | 35.28 |
+
+| | q_proj | o_proj | up_proj | gate_proj | k_proj | down_proj | v_proj |
+|---|---|---|---|---|---|---|---|
+| SFT | 0.068 | 0.080 | 0.096 | 0.103 | 0.135 | 0.217 | 0.316 |
+| wikitext | 0.057 | 0.069 | 0.074 | 0.090 | 0.119 | 0.135 | 0.229 |
+
+The wikitext run is at least as concentrated as SFT, on every matrix type. And
+it isn't a weaker update that happens to look tidier: it moved the weights
+further than SFT did.
+
+**Python code** (1,718,163 tokens). Two tasks agreeing could be a fluke, so I
+added one that's about as unlike both as possible:
+
+| | stable rank / max rank | vs noise | energy top 1 | ‖ΔW‖_F |
+|---|---|---|---|---|
+| wikitext | 0.110 | 4.0x | 6.87% | 0.349 |
+| DPO | 0.144 | 3.0x | 5.47% | 0.019 |
+| SFT | 0.145 | 3.0x | 5.06% | 0.280 |
+| code | 0.154 | 2.8x | 2.97% | 0.127 |
+| random inits | 0.436 | | 0.64% | 35.28 |
+
+Four deltas from two kinds of training objective and three kinds of data all
+land between 0.110 and 0.154, against 0.436 for noise. Their sizes differ 18x
+and their concentration barely moves, so size and concentration are separate
+things, which is why a scale-free measure is needed here.
+
+It's a band, not a constant. Code is the least concentrated and wikitext the
+most, and the top-1 energy differs more than twofold between them. Section 4
+checks whether that spread is real.
+
+**So for prediction (a):** the measurement holds up, the interpretation doesn't.
+Fine-tuning deltas really are concentrated and the threshold count really does
+miss it, but there's nothing alignment-specific about it. The prediction was
+about alignment, so it fails.
+
+## 4. How much is noise?
+
+I repeated the SFT run with a different training seed *and* a different sample
+of 10k Alpaca examples.
+
+| | stable rank / max rank | energy top 1 |
+|---|---|---|
+| SFT, seed 42 | 0.1450 | 5.06% |
+| SFT, seed 43 | 0.1424 | 5.45% |
+| wikitext | 0.1104 | 6.87% |
+| code | 0.1540 | 2.97% |
+
+| | stable rank | energy top 1 |
+|---|---|---|
+| seed 42 vs 43 | 0.0026 | 0.0038 |
+| code vs wikitext | 0.0436 | 0.0390 |
+| ratio | 17x | 10x |
+
+The gap between tasks is about 17 times the gap between two identical runs, so
+the differences between tasks are real. Per matrix type it's just as tight:
+`o_proj` 0.0799 vs 0.0794, `q_proj` 0.0681 vs 0.0694, worst is `v_proj` at
+0.3160 vs 0.3018. Two independent runs agree to about 1.8% on stable rank,
+which is what makes the other numbers in sections 2 and 3 worth anything.
+
+## 5. LoRA rank sweep
+
+![lora sweep](../results/lora_sweep.png)
+
+24 runs. The lowest learning rate, 1e-4, won at every rank. The higher ones
+overfit; rank 32 at 1e-3 got train loss down to 0.06 while eval loss went up to
+1.72.
+
+How much of SFT's IFEval gain each rank gets back:
+
+| rank | 1 | 2 | 4 | 8 | 16 | 32 | 64 | 128 |
+|---|---|---|---|---|---|---|---|---|
+| IFEval (prompt strict) | 137% | 88% | 75% | 125% | 63% | 131% | 275% | 275% |
+
+GSM8K at each rank (base was 34.19%, SFT 29.49%). SFT made GSM8K worse, so
+there's no gain here to get back, just raw scores:
+
+| rank | 1 | 2 | 4 | 8 | 16 | 32 | 64 | 128 |
+|---|---|---|---|---|---|---|---|---|
+| GSM8K | 32.4% | 33.0% | 32.3% | 31.3% | 30.3% | 25.0% | 23.7% | 17.7% |
+
+**Prediction (b) fails in its specific form.** I expected low rank to match
+style but lag on capability until some crossover. Instead, rank 1 already gets
+137% of the style gain, so there's nothing to catch up on and no crossover.
+GSM8K falls steadily from 32.4% to 17.7% as rank goes up. More LoRA capacity
+just overfits the 10k examples, and you can see the same thing in eval loss,
+which climbs from 1.38 at rank 1 to 1.61 at rank 128.
+
+The looser idea, that style and capability are separate, still holds. They just
+don't trade off through a crossover. Past the tiny rank style needs, extra
+capacity only costs you.
+
+The IFEval numbers bounce around a lot between ranks (63% at rank 16, sitting
+between 125% and 131%). With one seed per rank I can't tell how much of that is
+noise. The GSM8K trend is much bigger than that and I trust it more.
+
+One odd thing: ranks 64 and 128 got *exactly* the same IFEval scores (0.201479
+and 0.339329, to six decimals). I checked whether that was a bug. The two
+checkpoints have different hashes and different eval losses (1.488 vs 1.613),
+and they write noticeably different text on a test prompt. My best guess is
+that IFEval's checks are about structure (paragraph counts, keywords, length)
+rather than wording, and both models land on the same pass/fail pattern, but I
+haven't confirmed that per prompt.
+
+## 6. DPO vs SFT
+
+![sft vs dpo](../results/sft_vs_dpo.png)
+
+DPO barely moved the evals compared with SFT: IFEval +0.2, GSM8K −0.5, ARC −0.3.
+
+| | ΔW_sft (vs base) | ΔW_dpo (vs sft) |
+|---|---|---|
+| effective rank @ 0.01 | 99.07% | 98.98% |
+| effective rank @ 0.1 | 81.04% | 81.60% |
+| stable rank / max rank | 0.145 | 0.144 |
+| energy in top 1 | 5.06% | 5.47% |
+| mean ‖ΔW‖_F | 0.280 | 0.019 |
+
+**Prediction (c) fails.** DPO's delta is no more concentrated than SFT's. On
+stable rank they're practically identical (0.145 vs 0.144), matrix type by
+matrix type. What differs is size: DPO's change is about 15x smaller. That fits
+the evals barely moving. DPO here doesn't do anything different from SFT, it
+does much less of the same thing.
+
+## 7. Does LoRA find the same directions?
+
+![lora overlap](../results/lora_overlap.png)
+
+For each rank, I took the top-r singular directions of ΔW_sft and compared them
+with that rank's LoRA adapter (U against B, V against A) using the mean cosine
+of the principal angles, next to what two random subspaces of the same size
+give.
+
+| rank | LoRA vs ΔW_sft | random | ratio |
+|---|---|---|---|
+| 1 | 0.322 | 0.028 | 11.3x |
+| 2 | 0.331 | 0.054 | 6.2x |
+| 8 | 0.287 | 0.105 | 2.7x |
+| 32 | 0.332 | 0.213 | 1.6x |
+| 128 | 0.526 | 0.465 | 1.1x |
+
+These are output-side (U vs B). Input-side follows the same pattern at about
+half the size; everything's in `results/lora_overlap.csv`.
+
+**Prediction (d) holds.** LoRA beats the random baseline at every rank, by far
+the most at low rank. So the rank-1 adapter isn't just finding some cheap trick
+that happens to score well on IFEval; it's pointing the same way full
+fine-tuning did. The ratio shrinks at high rank because random subspaces overlap
+more as they get bigger, not because LoRA gets worse.
+
+## 8. Putting it together
+
+Separately, (a) through (d) are a mix of yes and no. Together:
+
+1. **Fine-tuning changes are concentrated, and alignment isn't special.** About 3x
+   lower stable rank than noise, 8x more energy in the top direction, the same
+   for instructions, preferences, prose and code. It took two corrections to get
+   here: the first pass used the wrong measurement, and the second pass didn't
+   have a control to interpret it against.
+2. **That fits how cheap style is.** A rank-1 adapter recovers the whole IFEval
+   gain, and it does it by pointing roughly where full fine-tuning points.
+3. **Capability only ever goes down.** Full SFT cost GSM8K points, and every bit
+   of extra LoRA rank cost more. No rank tried made the model better at
+   reasoning.
+4. **DPO is a smaller dose of the same thing.** Same shape, 15x smaller, small
+   eval changes.
+
+So "is alignment superficial?" turns out to be too vague a question. On this
+model: the weight change is concentrated but not literally low-rank, the style
+part of it can be captured at rank 1, and extra capacity never helped
+capability.
+
+## 9. Limitations
+
+- **One model, one size.** Everything is 0.5B. The 1.5B repeat needs more VRAM
+  than I have and wasn't done. None of this says anything about large models.
+- **Mostly one seed.** Only SFT was repeated. That bounds the noise on the
+  spectral numbers (about 0.0026 stable rank) but not on the evals, and the LoRA
+  sweep wasn't repeated at all.
+- **The LoRA learning-rate grid was too high.** 1e-4 was the lowest value tried
+  and it won at every rank, so the real best LR is probably lower and every rank
+  may be off by a different amount. That's a real doubt about the
+  rank-vs-GSM8K trend.
+- **Loss masking differs between SFT and the controls.** SFT only computes loss
+  on answer tokens; the plain-LM runs compute it on everything. Tokens seen are
+  matched, tokens trained on aren't.
+- **XSTest is noisy at this size.** Changes of a few points on a few hundred
+  prompts are close to sampling noise; treat them as direction, not magnitude.
+- **The rank 64/128 IFEval tie** isn't fully explained.
+- **Provenance.** The run manifests were written before the repo had any
+  commits, so their `git_commit` field is null. Their config hashes are also
+  from before a comment-only cleanup of the config files; the values in the
+  configs didn't change.
+
+## 10. What I'd do next
+
+1. Rerun the LoRA sweep with lower learning rates (3e-5, 1e-5) to see if the
+   GSM8K trend survives proper tuning.
+2. Repeat at 1.5B on a rented GPU.
+3. A second seed for the LoRA sweep and the evals.
+4. Work out *why* the band sits where it does and why code is less concentrated
+   than prose. Sequence length, overlap with the pretraining data, and gradient
+   noise are all candidates.
+5. A per-prompt IFEval comparison for ranks 64 and 128.
+
+## Notes from the process
+
+**A budget bug that nearly got in.** The token matcher for the control runs
+first counted every document at full length, but the trainer cuts everything
+to 1024 tokens. Harmless for wikitext, where nothing selected went over 1024.
+For code it would have been badly wrong: code averages ~776 tokens per example
+after truncation against ~170 for wikitext, so the code run would have trained
+on far less than SFT while looking matched. Fixed before the run, and the
+wikitext run was rechecked rather than assumed fine.
