@@ -1,0 +1,21 @@
+{
+  "phase": "sft",
+  "config_path": "configs\\sft.yaml",
+  "config_hash": "259ea8383c150409",
+  "model_config_path": "configs\\model_qwen2.5_0.5b.yaml",
+  "model_config_hash": "4d0170f5f4d5ecdc",
+  "git_commit": null,
+  "seed": 42,
+  "resumed_from_checkpoint": null,
+  "data_subsample_indices_file": "data\\processed\\sft_indices.json",
+  "expected_train_tokens": 1750543,
+  "observed_train_loss": 1.1866825014563473,
+  "observed_train_runtime_sec": 8732.4894,
+  "observed_train_samples_per_second": 3.367,
+  "timestamp_utc": "2026-09-05T19:50:36.604929+00:00",
+  "package_versions": {
+    "torch": "2.14.0+cu130",
+    "transformers": "5.16.1",
+    "trl": "1.12.0"
+  }
+}

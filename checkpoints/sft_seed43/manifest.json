@@ -1,0 +1,22 @@
+{
+  "phase": "sft",
+  "data_format": "conversational",
+  "config_path": "configs\\sft_seed43.yaml",
+  "config_hash": "96c925c352413927",
+  "model_config_path": "configs\\model_qwen2.5_0.5b.yaml",
+  "model_config_hash": "4d0170f5f4d5ecdc",
+  "git_commit": null,
+  "seed": 43,
+  "resumed_from_checkpoint": null,
+  "data_subsample_indices_file": "data\\processed\\sft_seed43_indices.json",
+  "expected_train_tokens": 1754703,
+  "observed_train_loss": 1.1807956410335938,
+  "observed_train_runtime_sec": 7801.4454,
+  "observed_train_samples_per_second": 3.769,
+  "timestamp_utc": "2026-09-21T10:24:10.841332+00:00",
+  "package_versions": {
+    "torch": "2.14.0+cu130",
+    "transformers": "5.16.1",
+    "trl": "1.12.0"
+  }
+}
