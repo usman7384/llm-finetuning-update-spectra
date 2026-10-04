@@ -1,0 +1,23 @@
+# DPO on top of the SFT model (not the base). Output is W_dpo.
+seed: 42
+
+data:
+  dataset: "HuggingFaceH4/ultrafeedback_binarized"
+  split: "train_prefs"
+  n_examples: 10000
+  subsample_seed: 42
+  val_fraction: 0.02
+
+train:
+  model_config: "configs/model_qwen2.5_0.5b.yaml"
+  init_from: "checkpoints/sft"
+  beta: 0.1                    # the usual default
+  learning_rate: 5.0e-6        # lower than SFT, as is normal for DPO
+  lr_scheduler: "cosine"
+  warmup_ratio: 0.03
+  num_epochs: 1
+  max_grad_norm: 1.0
+  save_dir: "checkpoints/dpo"
+  log_dir: "logs/dpo"
+
+expected_train_tokens: null
