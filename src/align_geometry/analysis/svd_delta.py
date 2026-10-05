@@ -43,7 +43,8 @@ class MatrixDelta:
     def effective_rank(self, threshold: float = 0.01) -> int:
         """Count of singular values >= threshold * sigma_1.
 
-        Threshold default follows Timber (2025). Worth knowing this measure is
+        The 0.01 threshold is a common convention (Timber uses entropy_rank
+        below instead, not this). Worth knowing this measure is
         weak: it says nothing about how energy is spread among the values it
         counts, and it reports ~99% of max rank for basically any dense matrix.
         See docs/report.md; stable rank is the better instrument.
@@ -69,6 +70,20 @@ def stable_rank(singular_values: torch.Tensor) -> float:
         return 0.0
     energy = singular_values.float() ** 2
     return float(energy.sum() / energy[0])
+
+
+def entropy_rank(singular_values: torch.Tensor, gamma: float = 1.0) -> float:
+    """Roy & Vetterli's effective rank: exp of the entropy of sigma^gamma / sum.
+
+    This is what Timber calls eRank (they use gamma=1). Between 1 and the
+    number of singular values, and like stable rank it ignores scale.
+    """
+    p = singular_values.double().clamp(min=0) ** gamma
+    total = p.sum()
+    if total <= 0:
+        return 0.0
+    p = p[p > 0] / total
+    return float(torch.exp(-(p * p.log()).sum()))
 
 
 def energy_top_k(singular_values: torch.Tensor, k: int) -> float:
