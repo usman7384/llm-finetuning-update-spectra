@@ -79,7 +79,8 @@ count refusals. Nothing harmful gets generated or graded.
    Alpaca. Eval again. Save both as full state dicts, since the SVD needs both
    in full rather than as adapter diffs.
 2. **SVD of the SFT delta.** For every linear layer, SVD of ΔW_sft, effective
-   rank as the count of σᵢ ≥ 0.01·σ₁ (the convention Timber uses; also check
+   rank as the count of σᵢ ≥ 0.01·σ₁ (I thought this was the convention Timber uses; it isn't, they use an
+   entropy-based eRank. See report.md section 6. Also check
    0.05 and 0.1, since the threshold is a choice, not a law). Plot decay
    curves and effective rank by depth. As a sanity check on the tooling, run
    the same thing on two random inits, so the pipeline isn't reporting "low
