@@ -49,10 +49,19 @@ band:
 Two kinds of training objective, three kinds of data, one narrow band. The
 sizes of the changes differ 18x while the concentration barely moves.
 
-**The differences inside that band are real.** Rerunning SFT with a different
-seed and a different data sample moves stable rank by 0.0026. The gap between
-the code and wikitext runs is 0.0436, about 17x bigger. Two independent runs
-agree to around 1.8%.
+**The differences inside that band are real.** Rerunning SFT and both controls
+with a different seed and a different data sample moves stable rank by at most
+0.0026. The gap between the code and wikitext runs is about 0.044, 17x bigger,
+and the order (wikitext < SFT < code) is the same at both seeds.
+
+**It's not a Qwen quirk.** The same SFT and controls on SmolLM2-360M give the
+same picture: every fine-tune 4-8x below its own noise floor, SFT between the
+two controls, same ordering. The threshold count reads 94-98% for all of them.
+
+**The released instruct models show the same measurement problem.** For the
+official base → instruct pairs of Qwen2.5 (0.5B, 1.5B) and SmolLM2 (135M,
+360M, 1.7B), the threshold count reads 96-99%, within a few points of a random
+matrix, while stable rank is 1.6x to 9x below it.
 
 **A rank-1 LoRA adapter points the same way full fine-tuning does.** Comparing
 ΔW_sft's top singular directions with the matching LoRA adapter's A/B matrices,
@@ -162,12 +171,21 @@ uv run python scripts/lora_overlap.py
 uv run python scripts/train_sft.py --config configs/control_lm.yaml
 uv run python scripts/train_sft.py --config configs/control_code.yaml
 uv run python scripts/train_sft.py --config configs/sft_seed43.yaml
+uv run python scripts/train_sft.py --config configs/control_lm_seed43.yaml
+uv run python scripts/train_sft.py --config configs/control_code_seed43.yaml
 # ...then svd_deltas.py on each against checkpoints/base, into results/svd_<name>
 
 # stable rank across everything above, and a check that the report's files exist
 uv run python scripts/stable_rank.py
 uv run python scripts/check_artifacts.py
+
+# released base/instruct pairs (no training, ~17GB of downloads)
+uv run python scripts/released_pairs.py
 ```
+
+The SmolLM2-360M runs and their SVDs are listed in
+[docs/next-runs.md](docs/next-runs.md), ending with
+`scripts/stable_rank.py --family smollm2`.
 
 The `for` loop is bash. In PowerShell it's
 `foreach ($r in 1,2,4,8,16,32,64,128) { ... "r${r}_lr1e-04" ... }`.
@@ -190,6 +208,9 @@ Measured on the machine above:
 | wikitext control | ~2h25m |
 | code control | ~2 h |
 | SFT second seed | 2h10m |
+| control second seeds | 2h28m (wikitext), 1h16m (code) |
+| SmolLM2-360M SFT / wikitext / code | 2h47m / 3h06m / 57m |
+| released pairs, all five | ~1 h, mostly downloading |
 | any SVD or plotting script | seconds to a few minutes |
 
 DPO is slow because every step does four forward passes (the policy and the
