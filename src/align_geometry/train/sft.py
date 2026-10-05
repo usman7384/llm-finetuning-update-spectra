@@ -26,9 +26,11 @@ from align_geometry.train.common import (
     compute_warmup_and_save_steps,
     count_prompt_completion_tokens,
     count_text_tokens,
+    ensure_chat_template,
     file_hash,
     find_latest_checkpoint,
     git_commit_hash,
+    resolve_target_tokens,
 )
 
 
@@ -62,6 +64,7 @@ def train_sft(config_path: str | Path, force: bool = False) -> Path:
     tokenizer = AutoTokenizer.from_pretrained(model_id, revision=revision)
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
+    ensure_chat_template(tokenizer, model_cfg["model"].get("chat_template_from"))
 
     model = AutoModelForCausalLM.from_pretrained(
         model_id,
@@ -88,7 +91,7 @@ def train_sft(config_path: str | Path, force: bool = False) -> Path:
             dataset_name=cfg["data"]["dataset"],
             config_name=cfg["data"].get("config_name"),
             split=cfg["data"].get("split", "train"),
-            target_tokens=cfg["data"]["target_tokens"],
+            target_tokens=resolve_target_tokens(cfg["data"]),
             tokenizer=tokenizer,
             subsample_seed=cfg["data"]["subsample_seed"],
             val_fraction=cfg["data"]["val_fraction"],
