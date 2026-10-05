@@ -1,0 +1,26 @@
+# control_lm.yaml with both seeds changed, same as sft_seed43.yaml does for
+# SFT. Gives the controls their own error bars.
+seed: 43
+phase: control_lm
+
+data:
+  format: "text"
+  dataset: "Salesforce/wikitext"
+  config_name: "wikitext-103-raw-v1"
+  split: "train"
+  target_tokens: 1750543
+  subsample_seed: 43
+  val_fraction: 0.02
+
+train:
+  model_config: "configs/model_qwen2.5_0.5b.yaml"
+  learning_rate: 2.0e-5
+  lr_scheduler: "cosine"
+  warmup_ratio: 0.03
+  num_epochs: 3
+  weight_decay: 0.0
+  max_grad_norm: 1.0
+  save_dir: "checkpoints/control_lm_seed43"
+  log_dir: "logs/control_lm_seed43"
+
+expected_train_tokens: null
