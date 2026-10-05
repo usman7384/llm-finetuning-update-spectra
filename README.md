@@ -63,6 +63,14 @@ official base → instruct pairs of Qwen2.5 (0.5B, 1.5B) and SmolLM2 (135M,
 360M, 1.7B), the threshold count reads 96-99%, within a few points of a random
 matrix, while stable rank is 1.6x to 9x below it.
 
+**The entropy effective rank used by Timber has the same blind spot, milder.**
+Timber's evidence for superficial post-training is that eRank of each weight
+matrix barely changes between base and instruct. A random perturbation of the
+same size leaves it just as unchanged (every change, real or random, is under
+0.5%). And eRank of ΔW sits within 3-18% of a random matrix, where stable rank
+is 1.6-9x away. Checked on Qwen3-0.6B, one of their own pairs, where my
+eRank(ΔW) matches theirs (83% vs their ~85%).
+
 **A rank-1 LoRA adapter points the same way full fine-tuning does.** Comparing
 ΔW_sft's top singular directions with the matching LoRA adapter's A/B matrices,
 the overlap is about 11x what random subspaces give at rank 1, and stays above
@@ -181,6 +189,9 @@ uv run python scripts/check_artifacts.py
 
 # released base/instruct pairs (no training, ~17GB of downloads)
 uv run python scripts/released_pairs.py
+
+# Timber's entropy eRank on all of the above, with same-size random perturbations
+uv run python scripts/timber_check.py
 ```
 
 The SmolLM2-360M runs and their SVDs are listed in
@@ -303,7 +314,7 @@ The hypothesis being tested
 
 Low-rank structure in fine-tuning
 - Aghajanyan et al. 2021. Intrinsic Dimensionality Explains the Effectiveness of Language Model Fine-Tuning. <https://aclanthology.org/2021.acl-long.568/>
-- Timber 2025. Training-free Instruct Model Refining with Base via Effective Rank. <https://arxiv.org/html/2509.23595> (closest to the SVD part, and where the effective-rank convention I started with came from)
+- Timber 2025. Training-free Instruct Model Refining with Base via Effective Rank. <https://arxiv.org/html/2509.23595> (closest to the SVD part; uses Roy & Vetterli's entropy effective rank, checked in `scripts/timber_check.py`)
 - Kalajdzievski 2023. Efficient Storage of Fine-Tuned Models via Low-Rank Approximation of Weight Residuals. <https://arxiv.org/pdf/2305.18425>
 
 Where alignment sits in the network
