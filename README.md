@@ -8,12 +8,16 @@ during pretraining, and alignment just picks the style to answer in. If that's
 right, the weight change should be small and structured rather than spread out
 everywhere.
 
-This repo tests that on a 0.5B model on one laptop GPU, with controls.
+This repo tests that on one laptop GPU: full SFT, DPO and a LoRA sweep on
+Qwen2.5-0.5B, token-matched non-alignment controls, a second model family
+(SmolLM2-360M), and six publicly released base/instruct pairs.
 
 Short answer: the weight change *is* structured, but there's nothing
-alignment-specific about it. Fine-tuning on Python code produces the same
-structure. Most of what's interesting is in how that got established, including
-one measurement mistake that pointed the wrong way for a while.
+alignment-specific about it. Fine-tuning on Wikipedia or Python code produces
+the same structure. The more useful finding turned out to be about measurement:
+the rank measures used in this area, including the one behind a 2025 claim that
+post-training is superficial, can't tell a fine-tuning update from random
+noise. Stable rank can.
 
 ![stable rank across runs](results/stable_rank.png)
 
@@ -25,13 +29,15 @@ one measurement mistake that pointed the wrong way for a while.
 
 Roughly in order of how much I trust each one.
 
-**The usual way of measuring "is this update low-rank" gave the wrong answer.**
-The common approach counts singular values above some fraction of the biggest
-(0.01·σ₁ is typical). By that count the SFT weight delta is at 99.07% of max
-rank, and two random initializations are at 99.62%. No difference. Stable rank
-(‖ΔW‖²_F / ‖ΔW‖²₂) on the same saved spectra says the SFT delta is 3x more
-concentrated than the random pair, with 8x more energy in its top direction.
-Same data, opposite answer. This held for every fine-tuning run I tried.
+**The usual ways of measuring "is this update low-rank" can't see the answer.**
+Counting singular values above 0.01·σ₁ puts the SFT weight delta at 99.07% of
+max rank and two random initializations at 99.62%. The rank needed for 90% of
+the energy gives 0.66 vs 0.72. Stable rank (‖ΔW‖²_F / ‖ΔW‖²₂) on the same saved
+spectra says the SFT delta is 3x more concentrated than the random pair, with
+8x more energy in its top direction. Both are true at once: ΔW has a long,
+noise-like tail (so counting measures call it high rank) and a top few
+directions that carry far more energy than noise would. This held for every
+fine-tuning run I tried, on both model families.
 
 **The concentration isn't about alignment.** I expected this one to go the
 other way. A plain language-modeling run on wikitext, and another on Python
@@ -84,6 +90,10 @@ the LoRA rank sweep showed no style/capability crossover because rank 1 already
 captured all of the style gain, GSM8K got steadily worse as rank went up, and
 DPO's change had the same shape as SFT's at about 1/15th the size.
 
+Still open: whether Timber's edit works better with a stable-rank cutoff than
+with its eRank one (`scripts/timber_cutoff.py`, results pending), and whether
+the LoRA GSM8K trend survives lower learning rates.
+
 ## The machine
 
 Everything ran locally, no cloud. The specs matter here because the 6GB of VRAM
@@ -122,7 +132,8 @@ is quicker than a full fine-tuning step even though the forward pass is the
 same.
 
 Qwen2.5-1.5B doesn't fit for full fine-tuning at all (the optimizer states alone
-want 20GB+). That's why everything here is at one model size.
+want 20GB+). That's why my own training runs stop at 0.5B; the released pairs
+go up to 1.7B because measuring them needs no training.
 
 ## Setup
 
@@ -198,6 +209,9 @@ uv run python scripts/timber_check.py
 
 # 95% intervals (layer bootstrap) for all of the spectral numbers
 uv run python scripts/error_bars.py
+
+# Timber's edit with an eRank vs a stable-rank cutoff, pass@k on GSM8K (~9.5 h)
+uv run python scripts/timber_cutoff.py --limit 300
 ```
 
 The SmolLM2-360M runs and their SVDs are listed in
@@ -228,6 +242,8 @@ Measured on the machine above:
 | control second seeds | 2h28m (wikitext), 1h16m (code) |
 | SmolLM2-360M SFT / wikitext / code | 2h47m / 3h06m / 57m |
 | released pairs, all five | ~1 h, mostly downloading |
+| `timber_check.py`, all 13 | ~1.5 h (SVDs of full W, mostly CPU-bound loading) |
+| `timber_cutoff.py`, 300 problems × 5 variants | ~9.5 h (~90 s per 4 problems × 8 samples) |
 | any SVD or plotting script | seconds to a few minutes |
 
 DPO is slow because every step does four forward passes (the policy and the
