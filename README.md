@@ -90,9 +90,15 @@ the LoRA rank sweep showed no style/capability crossover because rank 1 already
 captured all of the style gain, GSM8K got steadily worse as rank went up, and
 DPO's change had the same shape as SFT's at about 1/15th the size.
 
-Still open: whether Timber's edit works better with a stable-rank cutoff than
-with its eRank one (`scripts/timber_cutoff.py`, results pending), and whether
-the LoRA GSM8K trend survives lower learning rates.
+**Timber's edit doesn't depend on its cutoff.** On Qwen3-0.6B, GSM8K, 300
+problems × 8 samples: their eRank cutoff keeps 99% of ΔW's energy, and halving
+the tail past it raises pass@8 by about 3 points (interval +0.3 to +6.3), in
+line with their paper. A stable-rank cutoff that halves 59% of the update gets
+the same result. Dropping that 59% outright costs 4 points of pass@1, so the
+noise-like tail of ΔW still matters to the model.
+
+Still open: whether the pass@8 gain holds on the full 1,319 problems, and
+whether the LoRA GSM8K trend survives lower learning rates.
 
 ## The machine
 
@@ -243,7 +249,7 @@ Measured on the machine above:
 | SmolLM2-360M SFT / wikitext / code | 2h47m / 3h06m / 57m |
 | released pairs, all five | ~1 h, mostly downloading |
 | `timber_check.py`, all 13 | ~1.5 h (SVDs of full W, mostly CPU-bound loading) |
-| `timber_cutoff.py`, 300 problems × 5 variants | ~9.5 h (~90 s per 4 problems × 8 samples) |
+| `timber_cutoff.py`, 300 problems × 5 variants | ~7.5 h (~75 s per 4 problems × 8 samples) |
 | any SVD or plotting script | seconds to a few minutes |
 
 DPO is slow because every step does four forward passes (the policy and the
