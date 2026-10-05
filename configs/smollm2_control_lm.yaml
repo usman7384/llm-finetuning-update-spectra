@@ -1,0 +1,27 @@
+# control_lm.yaml on SmolLM2-360M. The token budget is read from the SmolLM2
+# SFT run's manifest, since a different tokenizer gives a different count for
+# the same 10k Alpaca examples. Run smollm2_sft.yaml first.
+seed: 42
+phase: control_lm
+
+data:
+  format: "text"
+  dataset: "Salesforce/wikitext"
+  config_name: "wikitext-103-raw-v1"
+  split: "train"
+  target_tokens_from: "checkpoints/smollm2_sft/manifest.json"
+  subsample_seed: 42
+  val_fraction: 0.02
+
+train:
+  model_config: "configs/model_smollm2_360m.yaml"
+  learning_rate: 2.0e-5
+  lr_scheduler: "cosine"
+  warmup_ratio: 0.03
+  num_epochs: 3
+  weight_decay: 0.0
+  max_grad_norm: 1.0
+  save_dir: "checkpoints/smollm2_control_lm"
+  log_dir: "logs/smollm2_control_lm"
+
+expected_train_tokens: null
