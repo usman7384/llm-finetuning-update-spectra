@@ -34,6 +34,7 @@ import sys
 import time
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 import torch
 from datasets import load_dataset
@@ -203,21 +204,41 @@ def run_variant(name: str, problems, args, device: str) -> None:
 
 def summarize(n_problems: int) -> None:
     rows = []
+    per_problem = {}  # variant -> {k: per-problem pass@k}, for the paired comparison
     for path in sorted(OUT_DIR.glob("*.jsonl")):
         recs = [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines()]
-        recs = [r for r in recs if r["idx"] < n_problems]
+        recs = sorted((r for r in recs if r["idx"] < n_problems), key=lambda r: r["idx"])
         if not recs:
             continue
         n = len(recs[0]["correct"])
         row = {"variant": path.stem, "problems": len(recs), "samples": n}
+        per_problem[path.stem] = {}
         for k in [1, 2, 4, 8, 16]:
             if k <= n:
-                row[f"pass@{k}"] = sum(pass_at_k(n, sum(r["correct"]), k) for r in recs) / len(recs)
+                vals = np.array([pass_at_k(n, sum(r["correct"]), k) for r in recs])
+                per_problem[path.stem][k] = vals
+                row[f"pass@{k}"] = vals.mean()
+        row["boxed"] = sum(sum(r["boxed"]) for r in recs) / (n * len(recs))
         edit = path.with_suffix(".edit.json")
         if edit.exists():
             e = json.loads(edit.read_text())
             row.update(kept_dirs_frac=e["kept_dirs_frac"], kept_energy_frac=e["kept_energy_frac"])
         rows.append(row)
+
+    # every variant saw the same problems with the same seeds, so compare per problem
+    ref = per_problem.get("instruct")
+    rng = np.random.default_rng(0)
+    for row in rows:
+        if ref is None or row["variant"] == "instruct" or row["problems"] != len(ref[1]):
+            continue
+        idx = rng.integers(0, row["problems"], size=(5000, row["problems"]))
+        for k in (1, 8):
+            if k in ref and k in per_problem[row["variant"]]:
+                d = per_problem[row["variant"]][k] - ref[k]
+                boot = d[idx].mean(axis=1)
+                row[f"d_pass@{k}"] = d.mean()
+                row[f"d_pass@{k}_lo"] = np.percentile(boot, 2.5)
+                row[f"d_pass@{k}_hi"] = np.percentile(boot, 97.5)
     if rows:
         s = pd.DataFrame(rows)
         s.to_csv("results/timber_cutoff.csv", index=False)
