@@ -15,12 +15,14 @@ Frobenius norm ~126x bigger than the SFT delta.
 Only reads the spectra svd_deltas.py already saved, so no GPU needed.
 
     uv run python scripts/stable_rank.py
+    uv run python scripts/stable_rank.py --family smollm2
 
-Writes results/stable_rank.csv and results/stable_rank.png.
+Writes results/stable_rank.{csv,png}, or stable_rank_smollm2.{csv,png}.
 """
 
 from __future__ import annotations
 
+import argparse
 import sys
 from pathlib import Path
 
@@ -32,19 +34,38 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 from align_geometry.analysis.svd_delta import parse_layer_idx, parse_matrix_type  # noqa: E402
 
-RUNS = {
-    "sft (vs base)": "results/svd_sft/spectra",
-    "sft seed 43 (vs base)": "results/svd_sft_seed43/spectra",  # run-to-run noise
-    "dpo (vs sft)": "results/svd_dpo/spectra",
-    "wikitext LM (vs base)": "results/svd_control_lm/spectra",  # no alignment content
-    "python code LM (vs base)": "results/svd_control_code/spectra",  # ditto, different data
-    "random init pair": "results/svd_control_random/spectra",  # noise floor
+FAMILIES = {
+    "qwen": {
+        "sft (vs base)": "results/svd_sft/spectra",
+        "sft seed 43 (vs base)": "results/svd_sft_seed43/spectra",  # run-to-run noise
+        "dpo (vs sft)": "results/svd_dpo/spectra",
+        "wikitext LM (vs base)": "results/svd_control_lm/spectra",  # no alignment content
+        "wikitext LM seed 43": "results/svd_control_lm_seed43/spectra",
+        "python code LM (vs base)": "results/svd_control_code/spectra",  # ditto, different data
+        "python code LM seed 43": "results/svd_control_code_seed43/spectra",
+        "random init pair": "results/svd_control_random/spectra",  # noise floor
+    },
+    # different architecture, so it gets its own noise floor and its own plot
+    "smollm2": {
+        "sft (vs base)": "results/svd_smollm2_sft/spectra",
+        "wikitext LM (vs base)": "results/svd_smollm2_control_lm/spectra",
+        "python code LM (vs base)": "results/svd_smollm2_control_code/spectra",
+        "random init pair": "results/svd_smollm2_random/spectra",
+    },
 }
 TOP_K = [1, 2, 4, 8, 16, 32, 64, 128]
 ENERGY_TARGETS = [0.5, 0.9, 0.99]
 
 
 def main() -> int:
+    parser = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
+    parser.add_argument("--family", choices=list(FAMILIES), default="qwen")
+    args = parser.parse_args()
+
+    RUNS = FAMILIES[args.family]
+    out = "results/stable_rank" if args.family == "qwen" else f"results/stable_rank_{args.family}"
     rows = []
     for run, spectra_dir in RUNS.items():
         paths = sorted(Path(spectra_dir).glob("*.pt"))
@@ -78,8 +99,12 @@ def main() -> int:
                 row[f"k_for_{int(target * 100)}pct_frac"] = k / max_rank
             rows.append(row)
 
+    if not rows:
+        print(f"no spectra found for {args.family}. run svd_deltas.py on those checkpoints first")
+        return 1
+
     df = pd.DataFrame(rows)
-    df.to_csv("results/stable_rank.csv", index=False)
+    df.to_csv(f"{out}.csv", index=False)
 
     cols = ["stable_rank_frac", "energy_top1", "energy_top8", "energy_top32", "k_for_50pct_frac"]
     print(df.groupby("source")[cols].mean().to_string())
@@ -123,9 +148,9 @@ def main() -> int:
     ax.grid(alpha=0.3)
 
     fig.tight_layout()
-    fig.savefig("results/stable_rank.png", dpi=150)
+    fig.savefig(f"{out}.png", dpi=150)
     plt.close(fig)
-    print("\nwrote results/stable_rank.csv and results/stable_rank.png")
+    print(f"\nwrote {out}.csv and {out}.png")
     return 0
 
 
