@@ -102,3 +102,37 @@ them.
 - Task 3: is the gap between the two seeds of each control small next to the
   gap between wikitext and code? If yes, the task differences have proper
   error bars.
+
+## 4. Does Timber's cutoff matter? (~9 to 10 hours of GPU for the first pass)
+
+Timber edits Qwen3-0.6B by keeping the top K singular directions of dW and
+scaling the rest by lambda, with K = ceil(eRank(dW)). That cutoff keeps ~83% of
+the directions and ~99% of dW's energy, so Timber-L removes only ~1% of the
+update. ceil(stable rank) keeps ~12% of the directions and ~41% of the energy.
+Same edit, both cutoffs, scored by pass@k on GSM8K (8 samples per problem,
+non-thinking mode).
+
+First pass, 300 problems, five variants (instruct, erank_l0.0, erank_l0.5,
+stable_l0.0, stable_l0.5):
+
+```
+uv run python scripts/timber_cutoff.py --limit 300
+```
+
+About 90 seconds per 4 problems, so ~1.9 h per variant. Keep `--batch-seqs` at
+32: 64 sequences already need ~5GB of KV cache and spill into shared memory,
+which is far slower, not faster.
+
+It's resumable, and the problems are always the first N of the test set, so a
+variant worth a closer look can be extended to the full 1319 later without
+redoing anything:
+
+```
+uv run python scripts/timber_cutoff.py --limit 1319 --variants instruct stable_l0.5
+```
+
+Worth knowing before reading the results: Timber's gains were 0.2-1.7 points.
+With 300 problems the standard error on pass@1 is ~2.8 points, so a small
+difference won't be visible. Every variant uses the same sampling seed per
+problem, so comparisons between variants are paired and tighter than that,
+but a Timber-sized effect still needs the full set.
