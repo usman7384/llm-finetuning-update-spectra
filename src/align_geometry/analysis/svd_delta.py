@@ -62,6 +62,22 @@ class MatrixDelta:
         return self.singular_values / self.singular_values[0]
 
 
+def stable_rank(singular_values: torch.Tensor) -> float:
+    """sum(sigma_i^2) / sigma_1^2. Roughly how many directions the energy is
+    spread over. Unlike effective_rank it has no threshold and ignores scale."""
+    if singular_values.numel() == 0 or singular_values[0] <= 0:
+        return 0.0
+    energy = singular_values.float() ** 2
+    return float(energy.sum() / energy[0])
+
+
+def energy_top_k(singular_values: torch.Tensor, k: int) -> float:
+    """Share of sum(sigma_i^2) sitting in the k largest singular values."""
+    energy = singular_values.float() ** 2
+    total = float(energy.sum())
+    return float(energy[:k].sum()) / total if total > 0 else 0.0
+
+
 def is_analyzable_matrix(key: str) -> bool:
     """True for the 2-D attention/MLP projections. Excludes embeddings,
     lm_head and anything 1-D."""
