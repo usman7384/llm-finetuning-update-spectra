@@ -205,12 +205,48 @@ token-matched slice of wikitext and of CodeParrot).
 
 Averaged over both seeds: wikitext 0.109, SFT 0.144, code 0.153. The code vs
 wikitext gap (0.044) is about 17 times the largest seed-to-seed difference
-(0.0026), and the ordering wikitext < SFT < code is the same at both seeds. So
-the differences between tasks are real. Per matrix type the SFT repeat is just
-as tight: `o_proj` 0.0799 vs 0.0794, `q_proj` 0.0681 vs 0.0694, worst is
-`v_proj` at 0.3160 vs 0.3018. Two independent runs agree to within about 2% on
-stable rank, which is what makes the other numbers in sections 2 and 3 worth
-anything.
+(0.0026), and the order of the three is the same at both seeds. Per matrix
+type the SFT repeat is just as tight: `o_proj` 0.0799 vs 0.0794, `q_proj`
+0.0681 vs 0.0694, worst is `v_proj` at 0.3160 vs 0.3018. Two independent runs
+agree to within about 2% on stable rank, which is what makes the other numbers
+in sections 2 and 3 worth anything.
+
+### Error bars across matrices
+
+Seeds are one source of noise. The other is which matrices go into the
+average: every number here is a mean over 168 (or 224) matrices, and layers
+differ a lot. `scripts/error_bars.py` resamples whole layers (matrices in the
+same layer aren't independent) 5,000 times and gives 95% intervals. For
+comparing two runs it uses the *paired* difference, since both runs have the
+same matrices.
+
+| Qwen2.5-0.5B, stable rank / max rank | mean | 95% interval |
+|---|---|---|
+| SFT | 0.145 | 0.129 - 0.161 |
+| wikitext | 0.110 | 0.096 - 0.124 |
+| code | 0.154 | 0.142 - 0.165 |
+| random inits | 0.436 | 0.435 - 0.437 |
+| SFT, noise / real | 3.0x | 2.7 - 3.4x |
+| wikitext, noise / real | 3.9x | 3.5 - 4.5x |
+| code, noise / real | 2.8x | 2.6 - 3.1x |
+
+| paired difference in stable rank | Qwen | SmolLM2 |
+|---|---|---|
+| code − wikitext | +0.044 (0.033 - 0.054) | +0.044 (0.036 - 0.052) |
+| SFT − wikitext | +0.035 (0.025 - 0.045) | +0.007 (0.003 - 0.011) |
+| code − SFT | +0.009 (−0.003 - 0.020) | +0.037 (0.029 - 0.045) |
+| seed 43 − seed 42, SFT | −0.003 (−0.010 - 0.003) | |
+| seed 43 − seed 42, wikitext | −0.002 (−0.007 - 0.002) | |
+| seed 43 − seed 42, code | −0.002 (−0.008 - 0.004) | |
+
+This corrects something I'd have said otherwise. Every fine-tune is well below
+noise, with intervals nowhere near overlapping, and wikitext is more
+concentrated than code on both models. But SFT's place in between isn't the
+same on both. On Qwen, SFT and code can't be told apart (the interval crosses
+zero); on SmolLM2, SFT sits close to wikitext. So the safe statement is that
+SFT lands inside the range the two non-alignment controls span, not at any
+consistent spot within it. The seed differences all straddle zero, as they
+should.
 
 ## 5. Does it hold on another model?
 
@@ -230,10 +266,12 @@ the Qwen runs, plus a SmolLM2 random-init pair as its own noise floor.
 
 Same picture as Qwen. The threshold count puts everything in the mid-to-high
 90s next to noise at 99.6%; stable rank puts every fine-tune 4-8x below noise.
-SFT again sits between the two non-alignment controls, and the order is the
-same as on Qwen: wikitext most concentrated, code least. SmolLM2's deltas are
-more concentrated than Qwen's across the board (0.05 vs 0.14 for SFT), so the
-*level* depends on the model, but the comparison between tasks doesn't.
+SFT again lands inside the range of the two non-alignment controls, and as on
+Qwen, wikitext is the most concentrated and code the least (paired intervals
+in section 4). Where SFT falls inside that range differs: close to wikitext
+here, close to code on Qwen. SmolLM2's deltas are more concentrated than
+Qwen's across the board (0.05 vs 0.14 for SFT), so the *level* depends on the
+model, but the main comparison (alignment SFT is not special) doesn't.
 
 ## 6. Released base/instruct pairs
 
@@ -263,6 +301,10 @@ is what it said about my runs too. Stable rank says every one of them is more
 concentrated than noise, by 1.6x to 9x. So the measurement problem isn't
 something about my small runs; it applies directly to the setting the prior
 work measured.
+
+With layer-bootstrap 95% intervals on the noise / real ratio: Qwen2.5-0.5B
+1.45-1.69x, Qwen2.5-1.5B 7.7-9.2x, SmolLM2-135M 3.5-5.0x, SmolLM2-360M
+8.0-10.6x, SmolLM2-1.7B 4.2-4.9x. None comes near 1.
 
 Qwen2.5-0.5B is the outlier, only 1.6x below noise and less concentrated than
 my own SFT of the same base (0.145). I don't know why. Its instruct model went
@@ -323,7 +365,11 @@ random comparison.
 
 ![timber check](../results/timber_check.png)
 
-eRank with γ=1 puts every delta within 3-18% of a random matrix. Stable rank
+eRank with γ=1 puts every delta within 3-18% of a random matrix. To be
+fair to it, the gap is consistent: the bootstrap intervals on the noise / real
+ratio all stay above 1 (the closest is my code run, 1.023-1.030x). So eRank
+does register the structure, just compressed into a few percent, where stable
+rank shows it as a 1.6-9x difference. Stable rank
 separates the same deltas from noise by 1.6-9x. It's the same blind spot as the
 threshold count, milder but there: weighting σᵢ linearly in an entropy lets the
 long flat tail dominate.
