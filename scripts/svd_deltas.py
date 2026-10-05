@@ -54,7 +54,7 @@ def make_plots(df: pd.DataFrame, spectra: dict[str, torch.Tensor], out_dir: Path
     ax.set_xlabel("singular value index")
     ax.set_ylabel("sigma_i / sigma_1")
     ax.set_yscale("log")
-    ax.set_title("Singular value decay, all 168 matrices")
+    ax.set_title(f"Singular value decay, all {len(spectra)} matrices")
     fig.tight_layout()
     fig.savefig(out_dir / "spectra.png", dpi=150)
     plt.close(fig)
