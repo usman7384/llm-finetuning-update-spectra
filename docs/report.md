@@ -1,7 +1,9 @@
 # Does alignment training change behavior, or just style?
 
-Results write-up. Everything below was run on Qwen2.5-0.5B (base) on a single
-RTX 3060 Laptop GPU with 6GB of VRAM.
+Results write-up. Everything was run on a single RTX 3060 Laptop GPU with 6GB
+of VRAM. The main experiments are on Qwen2.5-0.5B (base); the weight-geometry
+result is then checked on SmolLM2-360M (section 5) and on five publicly
+released base/instruct pairs (section 6).
 
 The plan, with predictions written before any training, is in
 [plan.md](plan.md). Prior work is in [related-work.md](related-work.md).
@@ -25,7 +27,9 @@ The thing most likely to be useful to someone else: the standard way of
 measuring this got it backwards. Counting singular values above 0.01·σ₁ said
 the SFT delta looked exactly like random noise. Stable rank on the same saved
 spectra said it's three times more concentrated than noise. Same data, opposite
-answer.
+answer. The same thing shows up in a second model family and in the official
+base → instruct releases of Qwen2.5 and SmolLM2, where the threshold count reads
+96-99% everywhere while stable rank sits 1.6x to 9x below noise.
 
 ## Setup
 
@@ -42,8 +46,15 @@ answer.
   floor; a plain LM fine-tune on wikitext-103; a plain LM fine-tune on Python
   code (CodeParrot). The two LM runs match the SFT run's token budget and
   settings exactly; only the data changes.
-- **Repeat:** SFT run again with both the training seed and the data sample
-  changed (42 → 43), to see how much numbers move between identical runs.
+- **Repeats:** SFT and both LM controls run again with both the training seed
+  and the data sample changed (42 → 43), to see how much numbers move between
+  identical runs.
+- **Second family:** SFT plus the two LM controls on `HuggingFaceTB/SmolLM2-360M`
+  (base), same recipe and memory settings, with its own random-init pair. The
+  base tokenizer has no chat template, so SFT borrows the one from
+  SmolLM2-360M-Instruct. Weight geometry only, no evals.
+- **Released pairs:** Qwen2.5-0.5B/1.5B and SmolLM2-135M/360M/1.7B, base vs the
+  official -Instruct, measured with no training at all.
 - **Evals,** the same on every checkpoint: IFEval (541 prompts) and XSTest
   refusals (450 prompts, safe and unsafe halves kept separate) for style;
   GSM8K (1319, 5-shot, exact match) and ARC-Challenge (1172) for capability.
@@ -175,29 +186,84 @@ about alignment, so it fails.
 
 ## 4. How much is noise?
 
-I repeated the SFT run with a different training seed *and* a different sample
-of 10k Alpaca examples.
+I repeated the SFT run and both LM controls with a different training seed
+*and* a different data sample (a different 10k Alpaca examples, a different
+token-matched slice of wikitext and of CodeParrot).
 
-| | stable rank / max rank | energy top 1 |
-|---|---|---|
-| SFT, seed 42 | 0.1450 | 5.06% |
-| SFT, seed 43 | 0.1424 | 5.45% |
-| wikitext | 0.1104 | 6.87% |
-| code | 0.1540 | 2.97% |
+| | seed 42 | seed 43 | difference | energy top 1 (42 / 43) |
+|---|---|---|---|---|
+| wikitext | 0.1104 | 0.1082 | 0.0022 | 6.87% / 6.63% |
+| SFT | 0.1450 | 0.1424 | 0.0026 | 5.06% / 5.45% |
+| code | 0.1540 | 0.1522 | 0.0018 | 2.97% / 2.93% |
 
-| | stable rank | energy top 1 |
-|---|---|---|
-| seed 42 vs 43 | 0.0026 | 0.0038 |
-| code vs wikitext | 0.0436 | 0.0390 |
-| ratio | 17x | 10x |
+Averaged over both seeds: wikitext 0.109, SFT 0.144, code 0.153. The code vs
+wikitext gap (0.044) is about 17 times the largest seed-to-seed difference
+(0.0026), and the ordering wikitext < SFT < code is the same at both seeds. So
+the differences between tasks are real. Per matrix type the SFT repeat is just
+as tight: `o_proj` 0.0799 vs 0.0794, `q_proj` 0.0681 vs 0.0694, worst is
+`v_proj` at 0.3160 vs 0.3018. Two independent runs agree to within about 2% on
+stable rank, which is what makes the other numbers in sections 2 and 3 worth
+anything.
 
-The gap between tasks is about 17 times the gap between two identical runs, so
-the differences between tasks are real. Per matrix type it's just as tight:
-`o_proj` 0.0799 vs 0.0794, `q_proj` 0.0681 vs 0.0694, worst is `v_proj` at
-0.3160 vs 0.3018. Two independent runs agree to about 1.8% on stable rank,
-which is what makes the other numbers in sections 2 and 3 worth anything.
+## 5. Does it hold on another model?
 
-## 5. LoRA rank sweep
+Everything above is one architecture. So I reran the core of it on
+SmolLM2-360M base: SFT on Alpaca (1,920,060 tokens), the wikitext control
+(1,880,834) and the code control (1,883,657), all with the same settings as
+the Qwen runs, plus a SmolLM2 random-init pair as its own noise floor.
+
+![stable rank, SmolLM2](../results/stable_rank_smollm2.png)
+
+| SmolLM2-360M | threshold 0.01 | threshold 0.1 | stable rank / max rank | vs noise | energy top 1 | ‖ΔW‖_F |
+|---|---|---|---|---|---|---|
+| wikitext | 94.3% | 54.8% | 0.045 | 7.9x | 9.17% | 0.552 |
+| SFT | 95.5% | 61.0% | 0.052 | 6.9x | 7.76% | 0.495 |
+| code | 97.6% | 78.0% | 0.089 | 4.0x | 4.69% | 0.075 |
+| random inits | 99.6% | 96.4% | 0.354 | | 0.45% | 31.24 |
+
+Same picture as Qwen. The threshold count puts everything in the mid-to-high
+90s next to noise at 99.6%; stable rank puts every fine-tune 4-8x below noise.
+SFT again sits between the two non-alignment controls, and the order is the
+same as on Qwen: wikitext most concentrated, code least. SmolLM2's deltas are
+more concentrated than Qwen's across the board (0.05 vs 0.14 for SFT), so the
+*level* depends on the model, but the comparison between tasks doesn't.
+
+## 6. Released base/instruct pairs
+
+My runs are small: 10k examples, a couple of million tokens. The models people
+actually use are post-trained with far more data and mixed objectives
+(SFT, preference tuning, sometimes RL). Prior work on these pairs (Timber,
+see [related-work.md](related-work.md)) used a thresholded effective rank and
+found post-training barely changes it. So I measured the official releases the
+same way as my own runs, with no training: ΔW = W_instruct − W_base for every
+attention and MLP matrix, next to a Gaussian matrix of the same shape. (A
+Gaussian matrix gives the same stable rank as my random-init pair: 0.434 vs
+0.436 for Qwen2.5-0.5B's shapes.)
+
+![released pairs](../results/released_pairs.png)
+
+| pair | threshold 0.01 | noise | stable rank / max rank | noise | noise / real |
+|---|---|---|---|---|---|
+| Qwen2.5-0.5B | 99.0% | 99.6% | 0.280 | 0.434 | 1.6x |
+| Qwen2.5-1.5B | 96.9% | 99.6% | 0.051 | 0.432 | 8.4x |
+| SmolLM2-135M | 97.1% | 99.6% | 0.086 | 0.354 | 4.1x |
+| SmolLM2-360M | 96.4% | 99.6% | 0.039 | 0.356 | 9.1x |
+| SmolLM2-1.7B | 95.9% | 99.3% | 0.075 | 0.336 | 4.5x |
+
+The threshold count says every release is within a few points of noise, which
+is what it said about my runs too. Stable rank says every one of them is more
+concentrated than noise, by 1.6x to 9x. So the measurement problem isn't
+something about my small runs; it applies directly to the setting the prior
+work measured.
+
+Qwen2.5-0.5B is the outlier, only 1.6x below noise and less concentrated than
+my own SFT of the same base (0.145). I don't know why. Its instruct model went
+through a much bigger and more varied post-training pipeline than anything here,
+and the other four pairs don't look like it, so I'd treat it as an open
+question rather than a pattern. Nothing here says *what* the released
+post-training did, only that its weight change isn't noise-like.
+
+## 7. LoRA rank sweep
 
 ![lora sweep](../results/lora_sweep.png)
 
@@ -241,7 +307,7 @@ that IFEval's checks are about structure (paragraph counts, keywords, length)
 rather than wording, and both models land on the same pass/fail pattern, but I
 haven't confirmed that per prompt.
 
-## 6. DPO vs SFT
+## 8. DPO vs SFT
 
 ![sft vs dpo](../results/sft_vs_dpo.png)
 
@@ -261,7 +327,7 @@ matrix type. What differs is size: DPO's change is about 15x smaller. That fits
 the evals barely moving. DPO here doesn't do anything different from SFT, it
 does much less of the same thing.
 
-## 7. Does LoRA find the same directions?
+## 9. Does LoRA find the same directions?
 
 ![lora overlap](../results/lora_overlap.png)
 
@@ -287,13 +353,15 @@ that happens to score well on IFEval; it's pointing the same way full
 fine-tuning did. The ratio shrinks at high rank because random subspaces overlap
 more as they get bigger, not because LoRA gets worse.
 
-## 8. Putting it together
+## 10. Putting it together
 
 Separately, (a) through (d) are a mix of yes and no. Together:
 
 1. **Fine-tuning changes are concentrated, and alignment isn't special.** About 3x
    lower stable rank than noise, 8x more energy in the top direction, the same
-   for instructions, preferences, prose and code. It took two corrections to get
+   for instructions, preferences, prose and code, and the same again on
+   SmolLM2. The official instruct releases are concentrated too, which the
+   threshold count used in prior work can't see. It took two corrections to get
    here: the first pass used the wrong measurement, and the second pass didn't
    have a control to interpret it against.
 2. **That fits how cheap style is.** A rank-1 adapter recovers the whole IFEval
@@ -309,13 +377,20 @@ model: the weight change is concentrated but not literally low-rank, the style
 part of it can be captured at rank 1, and extra capacity never helped
 capability.
 
-## 9. Limitations
+## 11. Limitations
 
-- **One model, one size.** Everything is 0.5B. The 1.5B repeat needs more VRAM
-  than I have and wasn't done. None of this says anything about large models.
-- **Mostly one seed.** Only SFT was repeated. That bounds the noise on the
-  spectral numbers (about 0.0026 stable rank) but not on the evals, and the LoRA
-  sweep wasn't repeated at all.
+- **Small models.** My own training runs are 0.36B and 0.5B. The released pairs
+  go up to 1.7B, but only for the weight measurement. Full fine-tuning at 1.5B
+  needs more VRAM than I have. None of this says anything about large models.
+- **Behavior on one model only.** The evals, the LoRA sweep, DPO and the
+  overlap analysis are all Qwen. SmolLM2 replicates the weight geometry, not
+  the behavioral results.
+- **Seeds cover the spectra, not the evals.** SFT and both controls were
+  repeated, which bounds the noise on the spectral numbers (about 0.0026 stable
+  rank) but not on the evals, and the LoRA sweep wasn't repeated at all.
+- **The released pairs are black boxes.** I don't know their post-training
+  data or recipes, so they can test the measurement but not say anything about
+  alignment specifically.
 - **The LoRA learning-rate grid was too high.** 1e-4 was the lowest value tried
   and it won at every rank, so the real best LR is probably lower and every rank
   may be off by a different amount. That's a real doubt about the
@@ -331,11 +406,11 @@ capability.
   from before a comment-only cleanup of the config files; the values in the
   configs didn't change.
 
-## 10. What I'd do next
+## 12. What I'd do next
 
 1. Rerun the LoRA sweep with lower learning rates (3e-5, 1e-5) to see if the
    GSM8K trend survives proper tuning.
-2. Repeat at 1.5B on a rented GPU.
+2. Repeat at 1.5B on a rented GPU, with evals on the SmolLM2 runs too.
 3. A second seed for the LoRA sweep and the evals.
 4. Work out *why* the band sits where it does and why code is less concentrated
    than prose. Sequence length, overlap with the pretraining data, and gradient
