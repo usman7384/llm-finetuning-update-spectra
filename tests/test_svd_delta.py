@@ -80,3 +80,23 @@ def test_deltas_to_records_shape():
     assert "effective_rank_0.01" in record
     assert "effective_rank_0.1" in record
     assert record["max_rank"] == 16
+
+
+def test_stable_rank_counts_where_the_energy_is():
+    from align_geometry.analysis.svd_delta import energy_top_k, stable_rank
+
+    # the example from the report: one big direction plus 99 small ones.
+    # every value clears a 1% threshold, but stable rank sees ~2 directions
+    concentrated = torch.tensor([10.0] + [1.0] * 99)
+    flat = torch.ones(100)
+
+    assert abs(stable_rank(concentrated) - 1.99) < 1e-6
+    assert stable_rank(flat) == 100.0
+    assert abs(energy_top_k(concentrated, 1) - 100 / 199) < 1e-6
+
+
+def test_stable_rank_ignores_scale():
+    from align_geometry.analysis.svd_delta import stable_rank
+
+    sv = torch.tensor([3.0, 2.0, 1.0])
+    assert abs(stable_rank(sv) - stable_rank(sv * 1000)) < 1e-4
