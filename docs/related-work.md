@@ -127,6 +127,69 @@ or ties it back to the SVD of a full fine-tune.
 Practitioner post arguing LoRA matches full fine-tuning for post-training style
 workloads when rank and LR are set right. Supportive, not a controlled study.
 
+## Measuring the shape of a weight update
+
+Added after the main experiments, once it was clear the measurement itself was
+the interesting part.
+
+**The measures.** Stable rank, ‖A‖²_F / ‖A‖²₂, is from Rudelson & Vershynin
+2007 (they call it numerical rank), introduced precisely because it ignores
+tiny singular values. The entropy effective rank Timber uses is Roy & Vetterli
+2007. Neither is new; the question here is only which one can tell a weight
+update from noise.
+
+**Biderman et al. 2024** also measure the spectrum of full fine-tuning updates
+(Llama-2-7B, continued pretraining on code, 0.25B-20B tokens). Their measure is
+the rank needed to explain 90% of the variance, and they find ΔW needs a rank
+10-100x bigger than typical LoRA ranks, growing with more data. They also note
+that the fine-tuned W has nearly the same spectrum as the base W, and that
+adding small Gaussian noise to W gives a similar spectrum. That second point is
+close to my same-size perturbation check on Timber (report section 6); they
+made it about W, and I make it a per-matrix control and apply it to the
+"superficial" argument. Their 90%-energy rank has the same blind spot as the
+other count-style measures: on my runs it gives 0.66 of max rank for SFT and
+0.72 for noise (Qwen), 0.50 vs 0.66 (SmolLM2), while stable rank gives 3x and 7x.
+So "ΔW is high rank" and "ΔW is concentrated" are both true. The bulk of the
+spectrum is a long tail that looks like noise, and the top few directions hold
+far more energy than noise would. Count-style measures see the first,
+stable rank the second.
+
+**Shuttleworth et al. 2025**, *LoRA vs Full Fine-tuning: An Illusion of
+Equivalence* (NeurIPS 2025, [arXiv:2410.21228](https://arxiv.org/abs/2410.21228)).
+Compare the singular vectors of fine-tuned W with those of the pretrained W.
+LoRA introduces "intruder dimensions", new high-ranking singular vectors with
+low cosine similarity to any pretrained one; full fine-tuning mostly doesn't.
+They note effective-rank-style measures alone don't separate the two. Their
+analysis is of W's singular vectors, not the spectrum of ΔW, and has no
+non-alignment or noise control, but it's the strongest evidence that how
+LoRA and full fine-tuning differ is about direction rather than rank. My
+section 7 (LoRA's top directions overlap full SFT's, 11x above chance at rank
+1) is compatible with it: overlap with ΔW's top directions is a different
+question from whether LoRA adds intruders to W.
+
+**Delta-CoMe** (Ping et al., NeurIPS 2024, [arXiv:2406.08903](https://arxiv.org/abs/2406.08903)).
+Compresses fine-tuning deltas by spending more bits on the top singular
+vectors, motivated by the long-tail distribution of singular values in ΔW.
+Same observation as the "concentrated head, dense tail" picture here, used for
+compression rather than as evidence about alignment, and it finds pure low-rank
+truncation of ΔW hurts, which is a useful caution for any cutoff experiment.
+
+**Paul 2026**, *Spectral Geometry of LoRA Adapters Encodes Training Objective
+and Predicts Harmful Compliance* ([arXiv:2604.08844](https://arxiv.org/abs/2604.08844)).
+Uses stable rank among other shape features of LoRA deltas (rank 8,
+Llama-3.2-3B) to tell DPO objectives apart. Shape features separate
+objectives where magnitude doesn't, which agrees with my finding that size and
+concentration are separate things. LoRA only, one model, no noise baseline.
+
+**What I think is new here,** after this pass: (1) a noise baseline for every
+measure on every matrix, which shows three common measures (threshold count,
+entropy eRank, 90%-energy rank) can't tell a fine-tuning delta from noise while
+stable rank can; (2) applying that to the specific evidence for "superficial
+post-training" in Timber and reproducing their number; (3) token-matched
+non-alignment controls with seeds, showing the concentration isn't about
+alignment; (4) the same across two model families and six released pairs.
+None of the measures are new, and the "dense tail" observation isn't either.
+
 ## Tools that use SVD
 
 PiSSA and LoftQ use SVD of the *base* weights to initialize LoRA; DoRA splits
@@ -175,6 +238,11 @@ isn't alignment-specific. Details in [report.md](report.md).
 - Kalajdzievski 2023. Efficient Storage of Fine-Tuned Models via Low-Rank Approximation of Weight Residuals. <https://arxiv.org/pdf/2305.18425>
 - Qi et al. 2024. Safety Alignment Should Be Made More Than Just a Few Tokens Deep. <https://arxiv.org/pdf/2406.05946>
 - Biderman et al. 2024. LoRA Learns Less and Forgets Less. <https://arxiv.org/abs/2405.09673>
+- Shuttleworth, Andreas, Torralba, Sharma 2025. LoRA vs Full Fine-tuning: An Illusion of Equivalence. NeurIPS 2025. <https://arxiv.org/abs/2410.21228>
+- Ping et al. 2024. Delta-CoMe: Training-Free Delta-Compression with Mixed-Precision for Large Language Models. NeurIPS 2024. <https://arxiv.org/abs/2406.08903>
+- Paul 2026. Spectral Geometry of LoRA Adapters Encodes Training Objective and Predicts Harmful Compliance. <https://arxiv.org/abs/2604.08844>
+- Rudelson & Vershynin 2007. Sampling from Large Matrices: An Approach through Geometric Functional Analysis. Journal of the ACM 54(4). <https://arxiv.org/abs/math/0503442>
+- Roy & Vetterli 2007. The Effective Rank: A Measure of Effective Dimensionality. EUSIPCO 2007.
 - 2024. Planning vs Reasoning: Ablations to Test Capabilities of LoRA Layers. <https://arxiv.org/html/2412.00029>
 - 2025. How Much is Too Much? Exploring LoRA Rank Trade-offs. <https://aclanthology.org/2025.findings-ijcnlp.58.pdf>
 - Thinking Machines Lab. LoRA Without Regret. <https://thinkingmachines.ai/blog/lora/>
