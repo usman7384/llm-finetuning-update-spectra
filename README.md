@@ -52,11 +52,14 @@ sizes of the changes differ 18x while the concentration barely moves.
 **The differences inside that band are real.** Rerunning SFT and both controls
 with a different seed and a different data sample moves stable rank by at most
 0.0026. The gap between the code and wikitext runs is about 0.044, 17x bigger,
-and the order (wikitext < SFT < code) is the same at both seeds.
+with a paired bootstrap interval of 0.033-0.054. SFT lands inside the range
+the two controls span, though where inside it isn't consistent: on Qwen it
+can't be told apart from code.
 
 **It's not a Qwen quirk.** The same SFT and controls on SmolLM2-360M give the
-same picture: every fine-tune 4-8x below its own noise floor, SFT between the
-two controls, same ordering. The threshold count reads 94-98% for all of them.
+same picture: every fine-tune 4-8x below its own noise floor, SFT inside the
+range of the two controls, wikitext again more concentrated than code. The
+threshold count reads 94-98% for all of them.
 
 **The released instruct models show the same measurement problem.** For the
 official base → instruct pairs of Qwen2.5 (0.5B, 1.5B) and SmolLM2 (135M,
@@ -192,6 +195,9 @@ uv run python scripts/released_pairs.py
 
 # Timber's entropy eRank on all of the above, with same-size random perturbations
 uv run python scripts/timber_check.py
+
+# 95% intervals (layer bootstrap) for all of the spectral numbers
+uv run python scripts/error_bars.py
 ```
 
 The SmolLM2-360M runs and their SVDs are listed in
