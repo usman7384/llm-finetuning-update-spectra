@@ -1,0 +1,8 @@
+{
+  "matrices": 196,
+  "kept_dirs_frac": 0.8342733577806123,
+  "kept_energy_frac": 0.9889952546479751,
+  "variant": "erank_l0.0",
+  "cutoff": "erank",
+  "lam": 0.0
+}

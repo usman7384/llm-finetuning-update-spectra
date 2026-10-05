@@ -1,0 +1,8 @@
+{
+  "matrices": 196,
+  "kept_dirs_frac": 0.12450175382653061,
+  "kept_energy_frac": 0.41400383032706317,
+  "variant": "stable_l0.5",
+  "cutoff": "stable",
+  "lam": 0.5
+}
