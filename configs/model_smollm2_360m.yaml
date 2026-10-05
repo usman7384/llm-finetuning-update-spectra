@@ -1,0 +1,18 @@
+# Second model family, to check the Qwen results aren't a Qwen thing.
+# Memory settings are kept identical to the Qwen 0.5B config so the training
+# recipe is the same, even though a 360M model would fit without them.
+model:
+  name_or_path: "HuggingFaceTB/SmolLM2-360M"
+  revision: null
+  dtype: "bfloat16"
+  attn_implementation: "sdpa"
+  trust_remote_code: false
+  max_seq_len: 1024
+  # used only if the base tokenizer has no chat template of its own
+  chat_template_from: "HuggingFaceTB/SmolLM2-360M-Instruct"
+
+memory:
+  gradient_checkpointing: true
+  optimizer: "adamw_bnb_8bit"
+  per_device_train_batch_size: 1
+  gradient_accumulation_steps: 16
