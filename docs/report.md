@@ -133,6 +133,13 @@ matrix type and is strongest in the MLP projections. It's not *low-rank* in the
 literal sense, though. The spectrum is still dense, which is exactly why the
 threshold count missed it.
 
+Another count-style measure, the rank needed to hold 90% of the energy (the one
+Biderman et al. 2024 use), has the same problem in a milder form: 0.66 of max
+rank for SFT against 0.72 for the random pair. Both views are true at once.
+The bulk of ΔW's spectrum is a long tail that looks like noise, so anything
+that counts directions calls it high rank; the top few directions carry far
+more energy than noise would, and that's what stable rank picks up.
+
 ## 3. Is that because of alignment?
 
 Showing the delta beats random noise doesn't say anything about alignment.
