@@ -233,8 +233,9 @@ more concentrated than Qwen's across the board (0.05 vs 0.14 for SFT), so the
 My runs are small: 10k examples, a couple of million tokens. The models people
 actually use are post-trained with far more data and mixed objectives
 (SFT, preference tuning, sometimes RL). Prior work on these pairs (Timber,
-see [related-work.md](related-work.md)) used a thresholded effective rank and
-found post-training barely changes it. So I measured the official releases the
+see [related-work.md](related-work.md)) concluded from effective rank that
+post-training is superficial; their exact measure is checked in the next
+subsection. First, I measured the official releases the
 same way as my own runs, with no training: ΔW = W_instruct − W_base for every
 attention and MLP matrix, next to a Gaussian matrix of the same shape. (A
 Gaussian matrix gives the same stable rank as my random-init pair: 0.434 vs
@@ -262,6 +263,69 @@ through a much bigger and more varied post-training pipeline than anything here,
 and the other four pairs don't look like it, so I'd treat it as an open
 question rather than a pattern. Nothing here says *what* the released
 post-training did, only that its weight change isn't noise-like.
+
+### Timber's own measure
+
+I had assumed Timber used the 0.01·σ₁ threshold count. Going back to the paper,
+they don't. They use Roy & Vetterli's entropy effective rank,
+eRank = exp(−Σ pᵢ log pᵢ) with pᵢ = σᵢ / Σσⱼ, and their evidence for
+superficiality is that eRank(W_base) and eRank(W_instruct), of the *whole*
+weight matrices, are nearly identical layer by layer. They also put
+eRank(ΔW) at about 85% of full rank. So I measured exactly that
+(`scripts/timber_check.py`) on all my runs and all the released pairs, plus
+Qwen3-0.6B, which is one of the pairs in their paper. For Qwen3-0.6B I get
+eRank(ΔW) at 83% of max rank, in line with their ~85%, so this is the same
+measurement.
+
+Two checks they didn't have:
+
+**Does eRank(W) staying put mean anything?** For every matrix I also added a
+Gaussian perturbation with the same Frobenius norm as the real ΔW and measured
+how much eRank moved for that.
+
+| | ‖ΔW‖ / ‖W‖ | eRank(W) change, real | same-size random change |
+|---|---|---|---|
+| my SFT (Qwen) | 1.1% | 0.010% | 0.008% |
+| my wikitext LM (Qwen) | 1.4% | 0.014% | 0.010% |
+| my code LM (Qwen) | 0.5% | 0.002% | 0.002% |
+| my DPO (Qwen) | 0.08% | 0.0001% | 0.0001% |
+| my SFT (SmolLM2) | 0.45% | 0.010% | 0.014% |
+| Qwen3-0.6B release | 12.6% | 0.13% | 0.50% |
+| Qwen2.5-0.5B release | 7.1% | 0.14% | 0.36% |
+| Qwen2.5-1.5B release | 1.2% | 0.004% | 0.006% |
+| SmolLM2-135M release | 8.1% | 0.19% | 0.33% |
+| SmolLM2-360M release | 7.4% | 0.14% | 0.23% |
+| SmolLM2-1.7B release | 6.2% | 0.06% | 0.12% |
+
+Every change, real or random, is under half a percent. eRank of a large dense
+matrix barely moves under any perturbation much smaller than the matrix, so
+"eRank is unchanged" follows from ‖ΔW‖ ≪ ‖W‖ and can't separate superficial
+post-training from any other small update, including fine-tuning on
+Wikipedia. There's one thing in Timber's favour: on the released models the real
+change moves eRank 2-4x *less* than a random one of the same size, so their
+updates are structured relative to W. But that only shows up against the
+random comparison.
+
+**Does eRank(ΔW) separate a real delta from noise?**
+
+| | eRank(ΔW) / max | noise | noise / real | stable rank: noise / real |
+|---|---|---|---|---|
+| my Qwen runs (SFT, DPO, wikitext, code) | 0.88-0.91 | 0.93 | 1.03-1.05x | 2.8-4.0x |
+| my SmolLM2 runs | 0.77-0.84 | 0.91 | 1.08-1.18x | 4.0-7.9x |
+| released pairs (6) | 0.79-0.90 | 0.87-0.93 | 1.03-1.14x | 1.6-9.1x |
+
+![timber check](../results/timber_check.png)
+
+eRank with γ=1 puts every delta within 3-18% of a random matrix. Stable rank
+separates the same deltas from noise by 1.6-9x. It's the same blind spot as the
+threshold count, milder but there: weighting σᵢ linearly in an entropy lets the
+long flat tail dominate.
+
+What this does and doesn't say about Timber: their method (trimming the tail of
+ΔW past the eRank cutoff) isn't touched by any of this. What doesn't hold up
+is the evidence for superficiality. An unchanged eRank is what any small
+update produces, and eRank of the delta is too close to the noise value to say
+much about its structure.
 
 ## 7. LoRA rank sweep
 
@@ -360,8 +424,8 @@ Separately, (a) through (d) are a mix of yes and no. Together:
 1. **Fine-tuning changes are concentrated, and alignment isn't special.** About 3x
    lower stable rank than noise, 8x more energy in the top direction, the same
    for instructions, preferences, prose and code, and the same again on
-   SmolLM2. The official instruct releases are concentrated too, which the
-   threshold count used in prior work can't see. It took two corrections to get
+   SmolLM2. The official instruct releases are concentrated too, which neither
+   the threshold count nor the entropy eRank used in prior work can see. It took two corrections to get
    here: the first pass used the wrong measurement, and the second pass didn't
    have a control to interpret it against.
 2. **That fits how cheap style is.** A rank-1 adapter recovers the whole IFEval
