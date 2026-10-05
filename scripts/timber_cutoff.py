@@ -187,7 +187,7 @@ def run_variant(name: str, problems, args, device: str) -> None:
                     "gold": gold,
                     "preds": preds,
                     "correct": [is_correct(p, gold) for p in preds],
-                    # no oxed{} usually means it ran out of tokens
+                    # no boxed answer usually means it ran out of tokens
                     "boxed": ["\\boxed{" in s for s in samples],
                     "first_sample": samples[0],
                 }
