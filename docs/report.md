@@ -2,8 +2,8 @@
 
 Results write-up. Everything was run on a single RTX 3060 Laptop GPU with 6GB
 of VRAM. The main experiments are on Qwen2.5-0.5B (base); the weight-geometry
-result is then checked on SmolLM2-360M (section 5) and on five publicly
-released base/instruct pairs (section 6).
+result is then checked on SmolLM2-360M (section 5) and on six publicly
+released base/instruct pairs (section 6), including one from the Timber paper.
 
 The plan, with predictions written before any training, is in
 [plan.md](plan.md). Prior work is in [related-work.md](related-work.md).
@@ -30,6 +30,12 @@ spectra said it's three times more concentrated than noise. Same data, opposite
 answer. The same thing shows up in a second model family and in the official
 base → instruct releases of Qwen2.5 and SmolLM2, where the threshold count reads
 96-99% everywhere while stable rank sits 1.6x to 9x below noise.
+
+Two other common measures share the blind spot in milder form: the rank needed
+for 90% of the energy (Biderman et al. 2024) and the entropy effective rank
+Timber uses. Timber's evidence that post-training is superficial, an unchanged
+eRank of each weight matrix, turns out to be what any random perturbation of
+the same size produces (section 6).
 
 ## Setup
 
@@ -518,6 +524,12 @@ capability.
 - **XSTest is noisy at this size.** Changes of a few points on a few hundred
   prompts are close to sampling noise; treat them as direction, not magnitude.
 - **The rank 64/128 IFEval tie** isn't fully explained.
+- **The Timber critique is about evidence, not their method.** Nothing here
+  tests whether trimming ΔW's tail improves pass@k. The cutoff experiment
+  (section 12) is the first step toward that and hasn't finished yet.
+- **Error bars are over layers and seeds, not models.** Two families is enough
+  to say "not a Qwen quirk", not enough to say how the level varies by
+  architecture.
 - **Provenance.** The run manifests were written before the repo had any
   commits, so their `git_commit` field is null. Their config hashes are also
   from before a comment-only cleanup of the config files; the values in the
@@ -525,6 +537,13 @@ capability.
 
 ## 12. What I'd do next
 
+0. **Running now:** Timber's edit on Qwen3-0.6B with their eRank cutoff vs a
+   stable-rank one, pass@k on GSM8K (`scripts/timber_cutoff.py`). The eRank
+   cutoff keeps ~83% of directions and ~99% of ΔW's energy, so Timber-L removes
+   about 1% of the update; the stable-rank cutoff keeps ~12% of directions and
+   ~41% of the energy. If it does as well, the measurement point also gives a
+   better method. If it does worse, the tail matters, which is worth knowing
+   on its own.
 1. Rerun the LoRA sweep with lower learning rates (3e-5, 1e-5) to see if the
    GSM8K trend survives proper tuning.
 2. Repeat at 1.5B on a rented GPU, with evals on the SmolLM2 runs too.
