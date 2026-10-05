@@ -3,6 +3,7 @@ import torch
 from align_geometry.analysis.svd_delta import (
     compute_deltas,
     deltas_to_records,
+    entropy_rank,
     is_analyzable_matrix,
     parse_layer_idx,
     parse_matrix_type,
@@ -100,3 +101,11 @@ def test_stable_rank_ignores_scale():
 
     sv = torch.tensor([3.0, 2.0, 1.0])
     assert abs(stable_rank(sv) - stable_rank(sv * 1000)) < 1e-4
+
+
+def test_entropy_rank_matches_the_easy_cases():
+    # Timber's own examples: one nonzero value gives 1, a flat spectrum gives r
+    assert abs(entropy_rank(torch.tensor([1.0, 0.0, 0.0, 0.0])) - 1.0) < 1e-9
+    assert abs(entropy_rank(torch.ones(8)) - 8.0) < 1e-9
+    sv = torch.tensor([3.0, 2.0, 1.0])
+    assert abs(entropy_rank(sv) - entropy_rank(sv * 50)) < 1e-9
