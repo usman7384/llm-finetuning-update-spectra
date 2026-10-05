@@ -386,6 +386,48 @@ is the evidence for superficiality. An unchanged eRank is what any small
 update produces, and eRank of the delta is too close to the noise value to say
 much about its structure.
 
+### Does the cutoff matter for Timber's edit?
+
+Timber keeps the top K = ⌈eRank(ΔW)⌉ singular directions of ΔW and scales the
+rest by λ. On Qwen3-0.6B that K keeps 83% of the directions and 98.9% of ΔW's
+energy, so the edit only touches about 1% of the update. ⌈stable rank⌉ keeps
+12% of the directions and 41% of the energy. I ran the same edit with both
+cutoffs, λ = 0 (drop the tail, their Timber-L) and λ = 0.5, and scored pass@k
+on the first 300 GSM8K test problems, 8 samples each, in non-thinking mode
+(T 0.7, top-p 0.8, top-k 20). Every variant used the same sampling seed per
+problem, so the comparisons are paired. `scripts/timber_cutoff.py`.
+
+| variant | ΔW energy kept in full | pass@1 | pass@8 | answered (boxed) | pass@1 vs instruct | pass@8 vs instruct |
+|---|---|---|---|---|---|---|
+| instruct (no edit) | 100% | 63.4% | 84.7% | 96.5% | | |
+| eRank cutoff, λ 0 | 98.9% | 63.9% | 87.7% | 96.7% | +0.5 (−1.3 to +2.3) | +3.0 (−0.3 to +6.3) |
+| eRank cutoff, λ 0.5 (Timber) | 98.9% | 64.7% | 88.0% | 96.8% | +1.3 (−0.5 to +3.0) | +3.3 (+0.3 to +6.3) |
+| stable cutoff, λ 0 | 41.4% | 59.3% | 83.0% | 90.6% | **−4.2 (−6.9 to −1.4)** | −1.7 (−5.7 to +2.3) |
+| stable cutoff, λ 0.5 | 41.4% | 64.5% | 87.3% | 95.1% | +1.1 (−1.2 to +3.4) | +2.7 (−1.0 to +6.3) |
+
+Differences are in points with 95% paired bootstrap intervals.
+
+What this says, with 300 problems:
+
+- **Timber's own edit reproduces in direction.** pass@8 goes up about 3
+  points while pass@1 barely moves, which is the pattern they report. The
+  interval only just clears zero, and with eight comparisons in the table one
+  of them clearing zero by that little could be luck. I'd call it suggestive.
+- **Dropping the tail past the stable-rank cutoff hurts.** −4.2 points of
+  pass@1, and the model fails to reach a final answer more often (90.6% vs
+  96.5%). The noise-like 59% of ΔW's energy is not junk; the model needs it.
+  That matches Delta-CoMe's finding that truncating ΔW to low rank hurts.
+- **Halving it instead is fine.** At λ 0.5 the stable cutoff lands where
+  Timber's does. Directly against each other: pass@1 −0.1 (−2.3 to +2.0),
+  pass@8 −0.7 (−4.0 to +2.7). So the edit tolerates halving 59% of the update
+  as well as halving 1% of it.
+
+So the cutoff doesn't matter much at λ 0.5. Whatever Timber's pass@k gain is,
+it isn't tied to eRank picking a special boundary in the spectrum: an edit that
+changes ~40x more of the update gets the same result. The one thing the cutoff
+clearly does is decide how much λ = 0 breaks. Both readings of the gain need
+the full 1,319 problems before I'd lean on them.
+
 ## 7. LoRA rank sweep
 
 ![lora sweep](../results/lora_sweep.png)
@@ -524,9 +566,9 @@ capability.
 - **XSTest is noisy at this size.** Changes of a few points on a few hundred
   prompts are close to sampling noise; treat them as direction, not magnitude.
 - **The rank 64/128 IFEval tie** isn't fully explained.
-- **The Timber critique is about evidence, not their method.** Nothing here
-  tests whether trimming ΔW's tail improves pass@k. The cutoff experiment
-  (section 12) is the first step toward that and hasn't finished yet.
+- **The Timber critique is about evidence, not their method.** The cutoff
+  experiment (section 6) tests their edit on one model, one benchmark and 300
+  problems. It reproduces the direction of their pass@k gain, but only just.
 - **Error bars are over layers and seeds, not models.** Two families is enough
   to say "not a Qwen quirk", not enough to say how the level varies by
   architecture.
@@ -537,13 +579,9 @@ capability.
 
 ## 12. What I'd do next
 
-0. **Running now:** Timber's edit on Qwen3-0.6B with their eRank cutoff vs a
-   stable-rank one, pass@k on GSM8K (`scripts/timber_cutoff.py`). The eRank
-   cutoff keeps ~83% of directions and ~99% of ΔW's energy, so Timber-L removes
-   about 1% of the update; the stable-rank cutoff keeps ~12% of directions and
-   ~41% of the energy. If it does as well, the measurement point also gives a
-   better method. If it does worse, the tail matters, which is worth knowing
-   on its own.
+0. Extend the cutoff experiment to all 1,319 GSM8K problems for instruct,
+   Timber (eRank, λ 0.5) and stable λ 0.5, about 20 h. The 300-problem result
+   is suggestive, not settled.
 1. Rerun the LoRA sweep with lower learning rates (3e-5, 1e-5) to see if the
    GSM8K trend survives proper tuning.
 2. Repeat at 1.5B on a rented GPU, with evals on the SmolLM2 runs too.
