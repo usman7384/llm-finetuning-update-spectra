@@ -48,16 +48,22 @@ That's the confound this project had to deal with (see the end of this page).
 **Timber** (2025), *Training-free Instruct Model Refining with Base via Effective
 Rank* ([arXiv:2509.23595](https://arxiv.org/html/2509.23595)). The closest
 paper to the SVD part of this project. They take ΔW = W_instruct − W_base for
-released Llama and Qwen pairs, SVD every linear layer and measure effective
-rank. Finding: effective rank barely changes between base and instruct, so
-post-training changes what's in the singular subspaces more than their size.
-They use that to trim tail components of ΔW and improve pass@k without
-training. What they don't do: they use whatever checkpoints labs released
-(unknown recipes, SFT and RLHF and DPO mixed together), so they can't separate
-SFT from DPO, and they don't connect the spectrum to style vs capability evals
-or compare against a LoRA run. It did make me more confident Qwen models would
-show something measurable. It's also where the 0.01·σ₁ effective-rank
-convention came from, which turned out to be the weak link (see report.md).
+released Llama and Qwen3 pairs and measure Roy & Vetterli's entropy effective
+rank (eRank, γ=1). Finding: eRank of each whole weight matrix is nearly the
+same in base and instruct, which they read as post-training being superficial;
+eRank(ΔW) sits around 85% of full rank. They use eRank(ΔW) as a cutoff to trim
+tail components of ΔW and improve pass@k without training. What they don't do:
+they use whatever checkpoints labs released (unknown recipes, SFT and RLHF and
+DPO mixed together), so they can't separate SFT from DPO, they don't connect
+the spectrum to style vs capability evals or compare against a LoRA run, and
+there's no noise or same-size-perturbation baseline. It did make me more
+confident Qwen models would show something measurable.
+
+(Hindsight correction: I originally wrote that the 0.01·σ₁ threshold count
+came from Timber. It doesn't; I misread it. Report section 6 checks their
+actual eRank and finds the same problem in a milder form: an unchanged
+eRank(W) is what any small perturbation gives, and eRank(ΔW) sits within a few
+percent of noise.)
 
 **Chaudhury 2025**, *Alignment is Localized: A Causal Probe into Preference
 Layers* ([arXiv:2510.16167](https://arxiv.org/abs/2510.16167)). Closest to the
