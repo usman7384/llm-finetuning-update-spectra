@@ -4,6 +4,7 @@ resume handling."""
 from __future__ import annotations
 
 import hashlib
+import json
 import shutil
 import subprocess
 from pathlib import Path
@@ -43,6 +44,36 @@ def count_text_tokens(
         n = len(tokenizer(ex[text_field], add_special_tokens=False)["input_ids"])
         total += min(n, max_tokens_per_example) if max_tokens_per_example else n
     return total
+
+
+def resolve_target_tokens(data_cfg: dict) -> int:
+    """Token budget for a plain-LM control.
+
+    Either a fixed `target_tokens`, or `target_tokens_from` pointing at another
+    run's manifest.json, so a control can match an SFT run without copying the
+    number by hand (and getting it wrong).
+    """
+    source = data_cfg.get("target_tokens_from")
+    if source is None:
+        return int(data_cfg["target_tokens"])
+    manifest = Path(source)
+    if not manifest.exists():
+        raise FileNotFoundError(f"{manifest} not found. Train the run it points at first.")
+    tokens = json.loads(manifest.read_text())["expected_train_tokens"]
+    if not tokens:
+        raise ValueError(f"{manifest} has no expected_train_tokens")
+    return int(tokens)
+
+
+def ensure_chat_template(tokenizer, borrow_from: str | None) -> None:
+    """Some base models ship without a chat template (SmolLM2 base, for one).
+    If so, borrow the one from `borrow_from`, normally the matching -Instruct
+    repo. A template the tokenizer already has is left alone."""
+    if tokenizer.chat_template is not None or borrow_from is None:
+        return
+    from transformers import AutoTokenizer
+
+    tokenizer.chat_template = AutoTokenizer.from_pretrained(borrow_from).chat_template
 
 
 def is_complete_checkpoint(path: Path) -> bool:
