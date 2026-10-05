@@ -324,7 +324,12 @@ Where alignment sits in the network
 - Qi et al. 2024. Safety Alignment Should Be Made More Than Just a Few Tokens Deep. <https://arxiv.org/pdf/2406.05946>
 
 LoRA rank and capacity
-- Biderman et al. 2024. LoRA Learns Less and Forgets Less. <https://arxiv.org/abs/2405.09673> (why the sweep tries three learning rates per rank)
+- Biderman et al. 2024. LoRA Learns Less and Forgets Less. <https://arxiv.org/abs/2405.09673> (why the sweep tries three learning rates per rank; also measures ΔW's spectrum with a 90%-energy rank)
+- Shuttleworth et al. 2025. LoRA vs Full Fine-tuning: An Illusion of Equivalence. <https://arxiv.org/abs/2410.21228>
+- Ping et al. 2024. Delta-CoMe: Training-Free Delta-Compression with Mixed-Precision for Large Language Models. <https://arxiv.org/abs/2406.08903>
+- Paul 2026. Spectral Geometry of LoRA Adapters Encodes Training Objective and Predicts Harmful Compliance. <https://arxiv.org/abs/2604.08844>
+- Rudelson & Vershynin 2007. Sampling from Large Matrices (stable rank). <https://arxiv.org/abs/math/0503442>
+- Roy & Vetterli 2007. The Effective Rank: A Measure of Effective Dimensionality. EUSIPCO.
 - 2024. Planning vs Reasoning: Ablations to Test Capabilities of LoRA Layers. <https://arxiv.org/html/2412.00029>
 - 2025. How Much is Too Much? Exploring LoRA Rank Trade-offs. <https://aclanthology.org/2025.findings-ijcnlp.58.pdf>
 - Thinking Machines Lab. LoRA Without Regret. <https://thinkingmachines.ai/blog/lora/>
