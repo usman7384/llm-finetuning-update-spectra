@@ -1,9 +1,10 @@
 #!/usr/bin/env python
 """Measure released base -> instruct deltas the same way as our own runs.
 
-Timber (2025) looked at exactly these kinds of pairs with a thresholded
-effective rank and found post-training barely changes it. Our own runs say that
-measure can't tell a real delta from noise. So: take public base/instruct pairs,
+Timber (2025) looked at exactly these kinds of pairs and concluded post-training
+barely changes effective rank. Our own runs say a thresholded rank can't tell a
+real delta from noise (Timber's entropy rank is checked separately in
+timber_check.py). So: take public base/instruct pairs,
 compute dW = W_instruct - W_base for every attention/MLP matrix, and report
 both measures next to a random-matrix baseline of the same shapes.
 
