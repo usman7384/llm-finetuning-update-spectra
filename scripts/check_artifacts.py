@@ -36,6 +36,20 @@ NEEDED = [
     "checkpoints/control_lm/manifest.json",
     "checkpoints/control_code/manifest.json",
     "checkpoints/lora_sweep/sweep_summary.csv",
+    # follow-ups: second family, seeds, public pairs, Timber, error bars
+    "results/stable_rank_smollm2.csv",
+    "results/stable_rank_smollm2.png",
+    "results/svd_control_lm_seed43/matrix_summary.csv",
+    "results/svd_control_code_seed43/matrix_summary.csv",
+    "results/released_pairs.csv",
+    "results/released_pairs.png",
+    "results/released_pairs/qwen3-8b.csv",
+    "results/timber_check.csv",
+    "results/timber_check.png",
+    "results/timber_check/qwen3-8b.csv",
+    "results/timber_cutoff.csv",
+    "results/timber_cutoff_full.csv",
+    "results/error_bars.csv",
 ]
 
 
