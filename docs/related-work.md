@@ -90,7 +90,7 @@ ones driving quality; middle layers matter more even when they change less. A
 useful warning against reading "biggest singular value" as "most important",
 and the reason the eval split matters more than the SVD plots alone.
 
-**Kalajdzievski 2023**, *Efficient Storage of Fine-Tuned Models via Low-Rank
+**Ryu, Seo & Yoo 2023**, *Efficient Storage of Fine-Tuned Models via Low-Rank
 Approximation of Weight Residuals* ([arXiv:2305.18425](https://arxiv.org/pdf/2305.18425)).
 Shows ordinary task fine-tuning deltas are low-rank enough to store as rank-r
 approximations with little loss. Again evidence the low-rank thing is general,
@@ -215,7 +215,7 @@ still an open question rather than a settled one.
 
 ## The confound, and how it was actually handled
 
-Aghajanyan and Kalajdzievski both show low-rank ΔW is a property of fine-tuning
+Aghajanyan and Ryu et al. both show low-rank ΔW is a property of fine-tuning
 in general. So "the alignment delta is low-rank" proves nothing by itself; it
 has to be compared against fine-tuning that isn't alignment.
 
@@ -235,7 +235,7 @@ isn't alignment-specific. Details in [report.md](report.md).
 - Chaudhury 2025. Alignment is Localized: A Causal Probe into Preference Layers. <https://arxiv.org/abs/2510.16167>
 - Zhao et al. 2026. A Layer-wise Analysis of Supervised Fine-Tuning. <https://arxiv.org/abs/2604.11838>
 - 2025. Massive Supervised Fine-tuning Experiments Reveal How Data, Layer, and Training Factors Shape LLM Alignment Quality. <https://arxiv.org/pdf/2506.14681>
-- Kalajdzievski 2023. Efficient Storage of Fine-Tuned Models via Low-Rank Approximation of Weight Residuals. <https://arxiv.org/pdf/2305.18425>
+- Ryu, Seo & Yoo 2023. Efficient Storage of Fine-Tuned Models via Low-Rank Approximation of Weight Residuals. <https://arxiv.org/pdf/2305.18425>
 - Qi et al. 2024. Safety Alignment Should Be Made More Than Just a Few Tokens Deep. <https://arxiv.org/pdf/2406.05946>
 - Biderman et al. 2024. LoRA Learns Less and Forgets Less. <https://arxiv.org/abs/2405.09673>
 - Shuttleworth, Andreas, Torralba, Sharma 2025. LoRA vs Full Fine-tuning: An Illusion of Equivalence. NeurIPS 2025. <https://arxiv.org/abs/2410.21228>
