@@ -35,7 +35,6 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import pandas as pd
 import torch
-from huggingface_hub import snapshot_download
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
@@ -47,6 +46,7 @@ from align_geometry.analysis.svd_delta import (  # noqa: E402
     parse_matrix_type,
     stable_rank,
 )
+from align_geometry.hub import weights_dir  # noqa: E402
 
 # name -> (before, after). local paths are our runs, the rest are hub repos
 RUNS = {
@@ -70,12 +70,6 @@ RUNS = {
 }
 
 
-def resolve(src: str) -> Path:
-    if Path(src).exists():
-        return Path(src)
-    return Path(snapshot_download(src, allow_patterns=["*.safetensors", "*.json"]))
-
-
 def svdvals(m: torch.Tensor, device: str) -> torch.Tensor:
     return torch.linalg.svdvals(m.to(device)).cpu()
 
@@ -83,8 +77,8 @@ def svdvals(m: torch.Tensor, device: str) -> torch.Tensor:
 def measure(name: str, before: str, after: str, device: str, partial: Path) -> pd.DataFrame:
     print(f"\n{name}: {before} -> {after}")
     # one matrix at a time, so an 8B pair fits in RAM
-    w_b = LazyWeights(resolve(before))
-    w_a = LazyWeights(resolve(after))
+    w_b = LazyWeights(weights_dir(before))
+    w_a = LazyWeights(weights_dir(after))
     g = torch.Generator().manual_seed(0)
     todo = [k for k in w_b if k in w_a and is_analyzable_matrix(k)]
     t0 = time.time()
