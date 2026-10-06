@@ -29,6 +29,7 @@ from __future__ import annotations
 
 import argparse
 import sys
+import time
 from pathlib import Path
 
 import matplotlib.pyplot as plt
@@ -85,11 +86,11 @@ def measure(name: str, before: str, after: str, device: str) -> pd.DataFrame:
     w_b = LazyWeights(resolve(before))
     w_a = LazyWeights(resolve(after))
     g = torch.Generator().manual_seed(0)
+    todo = [k for k in w_b if k in w_a and is_analyzable_matrix(k)]
+    t0 = time.time()
 
     rows = []
-    for key in w_b:
-        if key not in w_a or not is_analyzable_matrix(key):
-            continue
+    for i, key in enumerate(todo, 1):
         base = w_b[key].float()
         delta = w_a[key].float() - base
         if delta.ndim != 2 or delta.abs().max() == 0:
@@ -124,6 +125,9 @@ def measure(name: str, before: str, after: str, device: str) -> pd.DataFrame:
                 "noise_stable_frac": stable_rank(sv_n) / r,
             }
         )
+        if i % 10 == 0 or i == len(todo):
+            left = (time.time() - t0) / i * (len(todo) - i) / 60
+            print(f"{name}: {i}/{len(todo)} matrices, ~{left:.0f} min left", flush=True)
     del w_b, w_a
     print(f"{name}: {len(rows)} matrices")
     return pd.DataFrame(rows)
