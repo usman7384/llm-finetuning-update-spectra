@@ -47,6 +47,9 @@ PAIRS = {
     "smollm2-135m": ("HuggingFaceTB/SmolLM2-135M", "HuggingFaceTB/SmolLM2-135M-Instruct"),
     "smollm2-360m": ("HuggingFaceTB/SmolLM2-360M", "HuggingFaceTB/SmolLM2-360M-Instruct"),
     "smollm2-1.7b": ("HuggingFaceTB/SmolLM2-1.7B", "HuggingFaceTB/SmolLM2-1.7B-Instruct"),
+    # both in Timber's table 1. the 8B pair is ~33GB of downloads
+    "qwen3-0.6b": ("Qwen/Qwen3-0.6B-Base", "Qwen/Qwen3-0.6B"),
+    "qwen3-8b": ("Qwen/Qwen3-8B-Base", "Qwen/Qwen3-8B"),
 }
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
