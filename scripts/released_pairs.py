@@ -8,8 +8,10 @@ timber_check.py). So: take public base/instruct pairs,
 compute dW = W_instruct - W_base for every attention/MLP matrix, and report
 both measures next to a random-matrix baseline of the same shapes.
 
-No training, CPU only. The time is mostly downloads (~17GB for all pairs,
-cached by Hugging Face, so a rerun is quick).
+No training. The SVDs use the GPU if there is one. The time is mostly
+downloads: ~17GB for the first five pairs, ~35GB more with the Qwen3 ones
+(cached by Hugging Face, so a rerun is quick). Weights are read one matrix at a
+time, so RAM isn't the limit, disk is. Point HF_HUB_CACHE at a drive with room.
 
     uv run python scripts/released_pairs.py
     uv run python scripts/released_pairs.py --pairs qwen2.5-0.5b smollm2-135m
