@@ -29,7 +29,6 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import pandas as pd
 import torch
-from huggingface_hub import snapshot_download
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
@@ -41,6 +40,7 @@ from align_geometry.analysis.svd_delta import (  # noqa: E402
     parse_matrix_type,
     stable_rank,
 )
+from align_geometry.hub import weights_dir  # noqa: E402
 
 # all ungated. instruct versions were post-trained from these exact bases
 PAIRS = {
@@ -54,10 +54,6 @@ PAIRS = {
     "qwen3-8b": ("Qwen/Qwen3-8B-Base", "Qwen/Qwen3-8B"),
 }
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
-
-
-def fetch(repo: str) -> Path:
-    return Path(snapshot_download(repo, allow_patterns=["*.safetensors", "*.json"]))
 
 
 _noise_cache: dict[tuple[int, int], tuple[float, float]] = {}
@@ -83,8 +79,8 @@ def noise(shape: tuple[int, int]) -> tuple[float, float]:
 def measure(name: str, base_repo: str, instruct_repo: str) -> pd.DataFrame:
     print(f"\n{name}: fetching {base_repo} and {instruct_repo}")
     # one matrix at a time, so an 8B pair fits in RAM
-    base = LazyWeights(fetch(base_repo))
-    instruct = LazyWeights(fetch(instruct_repo))
+    base = LazyWeights(weights_dir(base_repo))
+    instruct = LazyWeights(weights_dir(instruct_repo))
 
     rows = []
     for key in base:
