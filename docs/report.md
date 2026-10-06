@@ -301,16 +301,21 @@ Gaussian matrix gives the same stable rank as my random-init pair: 0.434 vs
 | SmolLM2-135M | 97.1% | 99.6% | 0.086 | 0.354 | 4.1x |
 | SmolLM2-360M | 96.4% | 99.6% | 0.039 | 0.356 | 9.1x |
 | SmolLM2-1.7B | 95.9% | 99.3% | 0.075 | 0.336 | 4.5x |
+| Qwen3-0.6B | 98.9% | 99.6% | 0.124 | 0.342 | 2.8x |
+| Qwen3-8B | 98.0% | 99.6% | 0.082 | 0.373 | 4.5x |
 
 The threshold count says every release is within a few points of noise, which
 is what it said about my runs too. Stable rank says every one of them is more
 concentrated than noise, by 1.6x to 9x. So the measurement problem isn't
 something about my small runs; it applies directly to the setting the prior
-work measured.
+work measured, and it holds at 8B: on Qwen3-8B, one of Timber's own pairs, the
+threshold count reads 98.0% against 99.6% for noise while stable rank is 4.5x
+below it.
 
 With layer-bootstrap 95% intervals on the noise / real ratio: Qwen2.5-0.5B
 1.45-1.69x, Qwen2.5-1.5B 7.7-9.2x, SmolLM2-135M 3.5-5.0x, SmolLM2-360M
-8.0-10.6x, SmolLM2-1.7B 4.2-4.9x. None comes near 1.
+8.0-10.6x, SmolLM2-1.7B 4.2-4.9x, Qwen3-0.6B 2.6-3.0x, Qwen3-8B 4.2-5.0x.
+None comes near 1.
 
 Qwen2.5-0.5B is the outlier, only 1.6x below noise and less concentrated than
 my own SFT of the same base (0.145). I don't know why. Its instruct model went
