@@ -382,8 +382,7 @@ eRank with γ=1 puts every delta within 3-18% of a random matrix. To be
 fair to it, the gap is consistent: the bootstrap intervals on the noise / real
 ratio all stay above 1 (the closest is my code run, 1.023-1.030x). So eRank
 does register the structure, just compressed into a few percent, where stable
-rank shows it as a 1.6-9x difference. Stable rank
-separates the same deltas from noise by 1.6-9x. It's the same blind spot as the
+rank shows it as a 1.6-9x difference. It's the same blind spot as the
 threshold count, milder but there: weighting σᵢ linearly in an entropy lets the
 long flat tail dominate.
 
