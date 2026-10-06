@@ -32,9 +32,9 @@ from huggingface_hub import snapshot_download
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 from align_geometry.analysis.svd_delta import (  # noqa: E402
+    LazyWeights,
     energy_top_k,
     is_analyzable_matrix,
-    load_state_dict,
     parse_layer_idx,
     parse_matrix_type,
     stable_rank,
@@ -76,8 +76,9 @@ def noise(shape: tuple[int, int]) -> tuple[float, float]:
 
 def measure(name: str, base_repo: str, instruct_repo: str) -> pd.DataFrame:
     print(f"\n{name}: fetching {base_repo} and {instruct_repo}")
-    base = load_state_dict(fetch(base_repo))
-    instruct = load_state_dict(fetch(instruct_repo))
+    # one matrix at a time, so an 8B pair fits in RAM
+    base = LazyWeights(fetch(base_repo))
+    instruct = LazyWeights(fetch(instruct_repo))
 
     rows = []
     for key in base:
