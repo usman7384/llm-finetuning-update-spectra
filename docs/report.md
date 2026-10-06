@@ -356,6 +356,7 @@ how much eRank moved for that.
 | SmolLM2-135M release | 8.1% | 0.19% | 0.33% |
 | SmolLM2-360M release | 7.4% | 0.14% | 0.23% |
 | SmolLM2-1.7B release | 6.2% | 0.06% | 0.12% |
+| Qwen3-8B release | 8.3% | 0.06% | 0.14% |
 
 Every change, real or random, is under half a percent. eRank of a large dense
 matrix barely moves under any perturbation much smaller than the matrix, so
@@ -372,7 +373,8 @@ random comparison.
 |---|---|---|---|---|
 | my Qwen runs (SFT, DPO, wikitext, code) | 0.88-0.91 | 0.93 | 1.03-1.05x | 2.8-4.0x |
 | my SmolLM2 runs | 0.77-0.84 | 0.91 | 1.08-1.18x | 4.0-7.9x |
-| released pairs (6) | 0.79-0.90 | 0.87-0.93 | 1.03-1.14x | 1.6-9.1x |
+| released pairs (7, up to 8B) | 0.79-0.90 | 0.87-0.93 | 1.03-1.14x | 1.6-9.1x |
+| of which Qwen3-8B | 0.83 | 0.91 | 1.10x | 4.5x |
 
 ![timber check](../results/timber_check.png)
 
