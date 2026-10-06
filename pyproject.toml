@@ -1,9 +1,17 @@
 [project]
 name = "align-geometry"
 version = "0.1.0"
-description = "Does alignment training change what a model knows, or just how it talks? SVD of SFT/DPO weight deltas on Qwen2.5-0.5B."
+description = "Weight-space geometry of fine-tuning: SFT, DPO and LoRA deltas, noise baselines for rank metrics, and a check of Timber's eRank evidence."
 readme = "README.md"
 requires-python = ">=3.11"
+license = { file = "LICENSE" }
+authors = [{ name = "Muhammad Usman Altaf" }]
+keywords = ["llm", "fine-tuning", "alignment", "sft", "dpo", "lora", "svd", "stable-rank"]
+classifiers = [
+    "Programming Language :: Python :: 3.11",
+    "License :: OSI Approved :: MIT License",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
 dependencies = [
     "torch>=2.4",
     "transformers>=4.44",
