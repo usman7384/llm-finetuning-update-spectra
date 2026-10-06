@@ -523,10 +523,11 @@ DPO barely moved the evals compared with SFT: IFEval +0.2, GSM8K −0.5, ARC −
 | mean ‖ΔW‖_F | 0.280 | 0.019 |
 
 **Prediction (c) fails.** DPO's delta is no more concentrated than SFT's. On
-stable rank they're practically identical (0.145 vs 0.144), matrix type by
-matrix type. What differs is size: DPO's change is about 15x smaller. That fits
-the evals barely moving. DPO here doesn't do anything different from SFT, it
-does much less of the same thing.
+stable rank they're practically identical on average (0.145 vs 0.144), though
+not matrix type by matrix type: DPO is more concentrated in `o_proj` (0.062
+vs 0.080) and less in `k_proj` (0.220 vs 0.135). What clearly differs is
+size: DPO's change is about 15x smaller. That fits the evals barely moving.
+Overall DPO here is a much smaller update of about the same concentration.
 
 ## 9. Does LoRA find the same directions?
 
