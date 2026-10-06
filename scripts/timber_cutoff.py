@@ -48,6 +48,7 @@ from align_geometry.analysis.svd_delta import (  # noqa: E402
     load_state_dict,
     stable_rank,
 )
+from align_geometry.eval.gsm8k import extract, gold_answer, is_correct, pass_at_k  # noqa: E402
 from align_geometry.hub import weights_dir  # noqa: E402
 
 BASE = "Qwen/Qwen3-0.6B-Base"
@@ -93,39 +94,6 @@ def apply_edit(model, cutoff: str, lam: float, device: str) -> dict:
         "kept_dirs_frac": sum(kept_dirs) / len(kept_dirs),
         "kept_energy_frac": sum(kept_energy) / len(kept_energy),
     }
-
-
-def gold_answer(text: str) -> str:
-    return text.split("####")[-1].strip().replace(",", "")
-
-
-def extract(text: str) -> str | None:
-    boxed = re.findall(r"\\boxed\{([^{}]*)\}", text)
-    cand = boxed[-1] if boxed else None
-    if cand is None:
-        nums = re.findall(r"-?\d[\d,]*\.?\d*", text)
-        cand = nums[-1] if nums else None
-    if cand is None:
-        return None
-    cand = cand.replace(",", "").replace("$", "").strip().rstrip(".")
-    m = re.search(r"-?\d+\.?\d*", cand)
-    return m.group(0) if m else cand
-
-
-def is_correct(pred: str | None, gold: str) -> bool:
-    if pred is None:
-        return False
-    try:
-        return abs(float(pred) - float(gold)) < 1e-6
-    except ValueError:
-        return pred == gold
-
-
-def pass_at_k(n: int, c: int, k: int) -> float:
-    """Unbiased estimator from Chen et al. 2021."""
-    if n - c < k:
-        return 1.0
-    return 1.0 - math.comb(n - c, k) / math.comb(n, k)
 
 
 def run_variant(name: str, problems, args, device: str) -> None:
