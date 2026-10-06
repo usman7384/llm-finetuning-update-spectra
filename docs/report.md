@@ -581,8 +581,9 @@ capability.
 ## 11. Limitations
 
 - **Small models.** My own training runs are 0.36B and 0.5B. The released pairs
-  go up to 1.7B, but only for the weight measurement. Full fine-tuning at 1.5B
-  needs more VRAM than I have. None of this says anything about large models.
+  go up to 8B, but only for the weight measurement. Full fine-tuning at 1.5B
+  needs more VRAM than I have. The metric result holds at 8B; nothing here
+  says how training itself behaves at that scale.
 - **Behavior on one model only.** The evals, the LoRA sweep, DPO and the
   overlap analysis are all Qwen. SmolLM2 replicates the weight geometry, not
   the behavioral results.
