@@ -143,7 +143,8 @@ same.
 
 Qwen2.5-1.5B doesn't fit for full fine-tuning at all (the optimizer states alone
 want 20GB+). That's why my own training runs stop at 0.5B; the released pairs
-go up to 1.7B because measuring them needs no training.
+go up to 8B because measuring them needs no training, and the scripts read
+weights one matrix at a time so RAM isn't the limit.
 
 ## Setup
 
@@ -252,8 +253,10 @@ Measured on the machine above:
 | SFT second seed | 2h10m |
 | control second seeds | 2h28m (wikitext), 1h16m (code) |
 | SmolLM2-360M SFT / wikitext / code | 2h47m / 3h06m / 57m |
-| released pairs, all five | ~1 h, mostly downloading |
-| `timber_check.py`, all 13 | ~1.5 h (SVDs of full W, mostly CPU-bound loading) |
+| released pairs, first five | ~1 h, mostly downloading |
+| Qwen3-8B pair | ~2-4 h to download 33GB, then ~45 min (`released_pairs.py`) |
+| `timber_check.py`, first 13 | ~1.5 h (SVDs of full W, mostly CPU-bound loading) |
+| `timber_check.py`, Qwen3-8B | ~3.5 h (three SVDs of each full 4096×12288 W) |
 | `timber_cutoff.py`, 300 problems × 5 variants | ~7.5 h (~75 s per 4 problems × 8 samples) |
 | any SVD or plotting script | seconds to a few minutes |
 
