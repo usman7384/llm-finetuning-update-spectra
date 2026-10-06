@@ -10,7 +10,8 @@ everywhere.
 
 This repo tests that on one laptop GPU: full SFT, DPO and a LoRA sweep on
 Qwen2.5-0.5B, token-matched non-alignment controls, a second model family
-(SmolLM2-360M), and six publicly released base/instruct pairs.
+(SmolLM2-360M), and seven publicly released base/instruct pairs from 135M
+to 8B.
 
 Short answer: the weight change *is* structured, but there's nothing
 alignment-specific about it. Fine-tuning on Wikipedia or Python code produces
