@@ -80,7 +80,7 @@ def svdvals(m: torch.Tensor, device: str) -> torch.Tensor:
     return torch.linalg.svdvals(m.to(device)).cpu()
 
 
-def measure(name: str, before: str, after: str, device: str) -> pd.DataFrame:
+def measure(name: str, before: str, after: str, device: str, partial: Path) -> pd.DataFrame:
     print(f"\n{name}: {before} -> {after}")
     # one matrix at a time, so an 8B pair fits in RAM
     w_b = LazyWeights(resolve(before))
@@ -89,8 +89,17 @@ def measure(name: str, before: str, after: str, device: str) -> pd.DataFrame:
     todo = [k for k in w_b if k in w_a and is_analyzable_matrix(k)]
     t0 = time.time()
 
-    rows = []
+    # an interrupted run left its finished matrices here
+    rows = pd.read_csv(partial).to_dict("records") if partial.exists() else []
+    done = {r["key"] for r in rows}
+    if done:
+        print(f"{name}: resuming, {len(done)} matrices already done")
+    fresh = 0
     for i, key in enumerate(todo, 1):
+        if key in done:
+            # same draw as an uninterrupted run would make, so the noise matches
+            torch.randn(*w_b[key].shape, generator=g)
+            continue
         base = w_b[key].float()
         delta = w_a[key].float() - base
         if delta.ndim != 2 or delta.abs().max() == 0:
@@ -125,8 +134,10 @@ def measure(name: str, before: str, after: str, device: str) -> pd.DataFrame:
                 "noise_stable_frac": stable_rank(sv_n) / r,
             }
         )
+        fresh += 1
         if i % 10 == 0 or i == len(todo):
-            left = (time.time() - t0) / i * (len(todo) - i) / 60
+            pd.DataFrame(rows).to_csv(partial, index=False)
+            left = (time.time() - t0) / fresh * (len(todo) - i) / 60
             print(f"{name}: {i}/{len(todo)} matrices, ~{left:.0f} min left", flush=True)
     del w_b, w_a
     print(f"{name}: {len(rows)} matrices")
@@ -156,8 +167,10 @@ def main() -> int:
         if not Path(before).exists() and before.startswith("checkpoints"):
             print(f"{name}: {before} missing, skipping")
             continue
-        df = measure(name, before, after, device)
+        partial = out_dir / f"{name}.partial.csv"
+        df = measure(name, before, after, device, partial)
         df.to_csv(done, index=False)
+        partial.unlink(missing_ok=True)
         frames.append(df)
 
     df = pd.concat(frames)
