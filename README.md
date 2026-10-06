@@ -354,7 +354,7 @@ The hypothesis being tested
 Low-rank structure in fine-tuning
 - Aghajanyan et al. 2021. Intrinsic Dimensionality Explains the Effectiveness of Language Model Fine-Tuning. <https://aclanthology.org/2021.acl-long.568/>
 - Timber 2025. Training-free Instruct Model Refining with Base via Effective Rank. <https://arxiv.org/html/2509.23595> (closest to the SVD part; uses Roy & Vetterli's entropy effective rank, checked in `scripts/timber_check.py`)
-- Kalajdzievski 2023. Efficient Storage of Fine-Tuned Models via Low-Rank Approximation of Weight Residuals. <https://arxiv.org/pdf/2305.18425>
+- Ryu, Seo & Yoo 2023. Efficient Storage of Fine-Tuned Models via Low-Rank Approximation of Weight Residuals. <https://arxiv.org/pdf/2305.18425>
 
 Where alignment sits in the network
 - Chaudhury 2025. Alignment is Localized: A Causal Probe into Preference Layers. <https://arxiv.org/abs/2510.16167>
