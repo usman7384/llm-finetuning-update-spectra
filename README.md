@@ -90,15 +90,16 @@ the LoRA rank sweep showed no style/capability crossover because rank 1 already
 captured all of the style gain, GSM8K got steadily worse as rank went up, and
 DPO's change had the same shape as SFT's at about 1/15th the size.
 
-**Timber's edit doesn't depend on its cutoff.** On Qwen3-0.6B, GSM8K, 300
-problems × 8 samples: their eRank cutoff keeps 99% of ΔW's energy, and halving
-the tail past it raises pass@8 by about 3 points (interval +0.3 to +6.3), in
-line with their paper. A stable-rank cutoff that halves 59% of the update gets
-the same result. Dropping that 59% outright costs 4 points of pass@1, so the
-noise-like tail of ΔW still matters to the model.
+**Timber's edit doesn't depend on its cutoff, and does little on GSM8K.** On
+Qwen3-0.6B, all 1,319 GSM8K problems × 8 samples: their eRank cutoff keeps
+99% of ΔW's energy, and halving the tail past it changes pass@1 by +0.8 and
+pass@8 by +0.8 points, both within noise. (The first 300 problems had shown
++3.3 on pass@8, which mostly didn't survive the full set.) A stable-rank cutoff
+that halves 59% of the update can't be told apart from it. Dropping that 59%
+outright costs 4 points of pass@1, so the noise-like tail of ΔW still matters
+to the model.
 
-Still open: whether the pass@8 gain holds on the full 1,319 problems, and
-whether the LoRA GSM8K trend survives lower learning rates.
+Still open: whether the LoRA GSM8K trend survives lower learning rates.
 
 ## The machine
 
@@ -218,6 +219,7 @@ uv run python scripts/error_bars.py
 
 # Timber's edit with an eRank vs a stable-rank cutoff, pass@k on GSM8K (~9.5 h)
 uv run python scripts/timber_cutoff.py --limit 300
+uv run python scripts/timber_cutoff.py --limit 1319 --variants instruct erank_l0.5 stable_l0.5  # ~16 h more
 ```
 
 The SmolLM2-360M runs and their SVDs are listed in
