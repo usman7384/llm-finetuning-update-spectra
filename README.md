@@ -275,10 +275,12 @@ docs/           plan, related work, and the results write-up
 src/align_geometry/
   data/         loading: sft_dataset, dpo_dataset, lm_dataset (plain text, for controls)
   train/        sft.py (also runs the controls), lora.py, dpo.py, common.py (manifests, resume)
-  analysis/     svd_delta.py, subspace_overlap.py
-  eval/         lm-eval wrapper and the XSTest refusal scorer
+  analysis/     svd_delta.py (spectra, stable/entropy rank, LazyWeights), subspace_overlap.py
+  eval/         lm-eval wrapper, XSTest refusal scorer, gsm8k.py (answer scoring, pass@k)
+  hub.py        local checkpoint or Hub repo, one place
 scripts/        everything you actually run
-tests/          tests for the linear algebra
+tests/          linear algebra, loaders, training helpers, GSM8K scoring
+.github/        CI: ruff and pytest on CPU torch
 data/processed/ exact rows each run trained on
 results/        eval table, SVD summaries and spectra, plots
 checkpoints/    model weights, not in git (~66 GB); only each run's manifest.json is
