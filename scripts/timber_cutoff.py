@@ -38,7 +38,6 @@ import numpy as np
 import pandas as pd
 import torch
 from datasets import load_dataset
-from huggingface_hub import snapshot_download
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
@@ -49,6 +48,7 @@ from align_geometry.analysis.svd_delta import (  # noqa: E402
     load_state_dict,
     stable_rank,
 )
+from align_geometry.hub import weights_dir  # noqa: E402
 
 BASE = "Qwen/Qwen3-0.6B-Base"
 INSTRUCT = "Qwen/Qwen3-0.6B"
@@ -69,9 +69,7 @@ def parse_variant(name: str) -> tuple[str | None, float]:
 @torch.no_grad()
 def apply_edit(model, cutoff: str, lam: float, device: str) -> dict:
     """Timber's edit in place. Returns how much of dW the cutoff kept."""
-    base = load_state_dict(
-        Path(snapshot_download(BASE, allow_patterns=["*.safetensors", "*.json"]))
-    )
+    base = load_state_dict(weights_dir(BASE))
     params = dict(model.named_parameters())
     kept_dirs, kept_energy = [], []
     for key, w_b in base.items():
