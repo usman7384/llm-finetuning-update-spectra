@@ -381,6 +381,11 @@ Model and benchmarks
 - Clark et al. 2018. ARC. <https://arxiv.org/abs/1803.05457>
 - EleutherAI. LM Evaluation Harness. <https://github.com/EleutherAI/lm-evaluation-harness>
 
+## Citing
+
+If this is useful to you, [CITATION.cff](CITATION.cff) has the details (GitHub
+shows a "Cite this repository" button for it).
+
 ## License
 
 MIT, see [LICENSE](LICENSE).
