@@ -161,7 +161,8 @@ What the extras are for:
 - `eval`: `lm-eval`, plus `langdetect` and `immutabledict`. IFEval needs those
   two but lm-eval doesn't list them, which I found out from a crashed run.
 - `quant`: `bitsandbytes`, for the 8-bit optimizer.
-- `dev`: pytest and ruff. `uv run pytest` runs the tests for the analysis code.
+- `dev`: pytest and ruff. `uv run pytest` runs the tests (no GPU or downloads
+  needed), `uv run ruff check .` the linter. CI runs both on every push.
 
 `pyproject.toml` pulls torch from PyTorch's cu130 index, because the default
 Windows wheel on PyPI is CPU-only. Change that URL to match your own driver.
