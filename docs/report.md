@@ -367,7 +367,7 @@ matrix barely moves under any perturbation much smaller than the matrix, so
 "eRank is unchanged" follows from ‖ΔW‖ ≪ ‖W‖ and can't separate superficial
 post-training from any other small update, including fine-tuning on
 Wikipedia. There's one thing in Timber's favour: on the released models the real
-change moves eRank 2-4x *less* than a random one of the same size, so their
+change moves eRank 1.5-4x *less* than a random one of the same size, so their
 updates are structured relative to W. But that only shows up against the
 random comparison.
 
