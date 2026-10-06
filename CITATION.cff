@@ -1,0 +1,15 @@
+cff-version: 1.2.0
+message: "If you use this code or the results, please cite it as below."
+title: "Does alignment training change behavior, or just style? Weight geometry of fine-tuning with noise baselines"
+authors:
+  - family-names: Altaf
+    given-names: Muhammad Usman
+license: MIT
+date-released: 2026-10-07
+keywords:
+  - fine-tuning
+  - alignment
+  - stable rank
+  - effective rank
+  - LoRA
+  - DPO
