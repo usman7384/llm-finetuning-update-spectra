@@ -1,7 +1,9 @@
 # Follow-up runs for the paper
 
-Three additions that close the main gaps a reviewer would point at. All the
-code and configs are in place; these are just the commands.
+The runs added after the first write-up, to close the gaps a reviewer would
+point at. All of them have been run and the results are in
+[report.md](report.md); this page is kept as the exact commands used, with
+the practical notes that came up along the way.
 
 Before starting anything long, stop Windows from sleeping:
 
