@@ -132,6 +132,36 @@ def load_state_dict(checkpoint_path: str | Path) -> dict[str, torch.Tensor]:
     return load_file(path)
 
 
+class LazyWeights:
+    """Reads one tensor at a time from a checkpoint's safetensors files.
+
+    load_state_dict holds the whole model in RAM, which is fine up to ~2B but
+    not for an 8B pair on a 16GB machine. Same keys, fetched on demand.
+    """
+
+    def __init__(self, checkpoint_path: str | Path):
+        from safetensors import safe_open
+
+        path = Path(checkpoint_path)
+        files = [path] if path.is_file() else sorted(path.glob("*.safetensors"))
+        if not files:
+            raise FileNotFoundError(f"no safetensors files under {path}")
+        self._handles = [safe_open(str(f), framework="pt") for f in files]
+        self._where = {k: h for h in self._handles for k in h.keys()}
+
+    def keys(self):
+        return self._where.keys()
+
+    def __iter__(self):
+        return iter(self._where)
+
+    def __contains__(self, key: str) -> bool:
+        return key in self._where
+
+    def __getitem__(self, key: str) -> torch.Tensor:
+        return self._where[key].get_tensor(key)
+
+
 def compute_deltas(
     before: dict[str, torch.Tensor],
     after: dict[str, torch.Tensor],
