@@ -39,9 +39,9 @@ from huggingface_hub import snapshot_download
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 from align_geometry.analysis.svd_delta import (  # noqa: E402
+    LazyWeights,
     entropy_rank,
     is_analyzable_matrix,
-    load_state_dict,
     parse_layer_idx,
     parse_matrix_type,
     stable_rank,
@@ -80,8 +80,9 @@ def svdvals(m: torch.Tensor, device: str) -> torch.Tensor:
 
 def measure(name: str, before: str, after: str, device: str) -> pd.DataFrame:
     print(f"\n{name}: {before} -> {after}")
-    w_b = load_state_dict(resolve(before))
-    w_a = load_state_dict(resolve(after))
+    # one matrix at a time, so an 8B pair fits in RAM
+    w_b = LazyWeights(resolve(before))
+    w_a = LazyWeights(resolve(after))
     g = torch.Generator().manual_seed(0)
 
     rows = []
