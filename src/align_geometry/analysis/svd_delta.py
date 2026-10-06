@@ -147,7 +147,8 @@ class LazyWeights:
         if not files:
             raise FileNotFoundError(f"no safetensors files under {path}")
         self._handles = [safe_open(str(f), framework="pt") for f in files]
-        self._where = {k: h for h in self._handles for k in h.keys()}
+        # safe_open handles have .keys() but aren't iterable like a dict
+        self._where = {k: h for h in self._handles for k in h.keys()}  # noqa: SIM118
 
     def keys(self):
         return self._where.keys()
