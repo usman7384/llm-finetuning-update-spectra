@@ -60,6 +60,7 @@ RUNS = {
     "smollm2_control_code": ("checkpoints/smollm2_base", "checkpoints/smollm2_control_code"),
     # released. qwen3-0.6b is in Timber's table 1
     "qwen3-0.6b": ("Qwen/Qwen3-0.6B-Base", "Qwen/Qwen3-0.6B"),
+    "qwen3-8b": ("Qwen/Qwen3-8B-Base", "Qwen/Qwen3-8B"),  # also in Timber's table, ~33GB
     "qwen2.5-0.5b": ("Qwen/Qwen2.5-0.5B", "Qwen/Qwen2.5-0.5B-Instruct"),
     "qwen2.5-1.5b": ("Qwen/Qwen2.5-1.5B", "Qwen/Qwen2.5-1.5B-Instruct"),
     "smollm2-135m": ("HuggingFaceTB/SmolLM2-135M", "HuggingFaceTB/SmolLM2-135M-Instruct"),
