@@ -109,3 +109,21 @@ def test_entropy_rank_matches_the_easy_cases():
     assert abs(entropy_rank(torch.ones(8)) - 8.0) < 1e-9
     sv = torch.tensor([3.0, 2.0, 1.0])
     assert abs(entropy_rank(sv) - entropy_rank(sv * 50)) < 1e-9
+
+
+def test_lazy_weights_reads_the_same_tensors(tmp_path):
+    from safetensors.torch import save_file
+
+    from align_geometry.analysis.svd_delta import LazyWeights
+
+    # two shards, like a big checkpoint
+    a = {"model.layers.0.mlp.up_proj.weight": torch.randn(4, 3)}
+    b = {"model.layers.1.mlp.up_proj.weight": torch.randn(4, 3)}
+    save_file(a, tmp_path / "model-00001-of-00002.safetensors")
+    save_file(b, tmp_path / "model-00002-of-00002.safetensors")
+
+    w = LazyWeights(tmp_path)
+    assert sorted(w) == sorted([*a, *b])
+    for key, value in {**a, **b}.items():
+        assert key in w
+        assert torch.equal(w[key], value)
