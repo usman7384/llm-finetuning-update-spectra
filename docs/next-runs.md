@@ -138,3 +138,24 @@ With 300 problems the standard error on pass@1 is ~2.8 points, so a small
 difference won't be visible. Every variant uses the same sampling seed per
 problem, so comparisons between variants are paired and tighter than that,
 but a Timber-sized effect still needs the full set.
+
+## 5. The Qwen3-8B pair (no GPU needed for the download, ~6 hours total)
+
+Same two scripts as the smaller pairs. The weights are read one matrix at a
+time, so 16GB of RAM is enough; disk is the limit (~33GB of downloads), so
+point the Hugging Face cache at a drive with room:
+
+```
+HF_HUB_CACHE=D:/hf-cache uv run python scripts/released_pairs.py --pairs qwen3-8b
+HF_HUB_CACHE=D:/hf-cache uv run python scripts/timber_check.py --runs qwen3-8b
+```
+
+What it took here: 2-4 hours to download depending on the connection, about
+45 minutes for `released_pairs.py` and 3.5 hours for `timber_check.py` (three
+SVDs of every full 4096×12288 weight matrix). `timber_check.py` now prints
+progress and saves finished matrices as it goes, so it can be stopped and
+rerun.
+
+The Hub's Xet downloader does not resume a half-finished file, so switching
+networks mid-download costs whatever was in flight. Finished files are kept.
+Delete the cache afterwards; nothing needs the weights once the CSVs exist.
