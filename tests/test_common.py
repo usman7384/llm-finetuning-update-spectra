@@ -27,3 +27,11 @@ def test_existing_chat_template_is_kept():
     tok = Tok()
     ensure_chat_template(tok, "some/other-repo")  # would need a download if it tried
     assert tok.chat_template == "keep me"
+
+
+def test_weights_dir_keeps_local_paths(tmp_path):
+    from align_geometry.hub import weights_dir
+
+    # an existing directory must never trigger a download
+    assert weights_dir(tmp_path) == tmp_path
+    assert weights_dir(str(tmp_path)) == tmp_path
