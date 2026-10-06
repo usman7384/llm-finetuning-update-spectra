@@ -48,6 +48,7 @@ PAIRS = {
     "smollm2-360m": ("HuggingFaceTB/SmolLM2-360M", "HuggingFaceTB/SmolLM2-360M-Instruct"),
     "smollm2-1.7b": ("HuggingFaceTB/SmolLM2-1.7B", "HuggingFaceTB/SmolLM2-1.7B-Instruct"),
 }
+DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
 
 def fetch(repo: str) -> Path:
@@ -67,7 +68,7 @@ def noise(shape: tuple[int, int]) -> tuple[float, float]:
     """
     if shape not in _noise_cache:
         g = torch.Generator().manual_seed(0)
-        sv = torch.linalg.svdvals(torch.randn(*shape, generator=g))
+        sv = torch.linalg.svdvals(torch.randn(*shape, generator=g).to(DEVICE)).cpu()
         max_rank = min(shape)
         threshold = float((sv >= 0.01 * sv[0]).sum()) / max_rank
         _noise_cache[shape] = (threshold, stable_rank(sv) / max_rank)
@@ -87,7 +88,7 @@ def measure(name: str, base_repo: str, instruct_repo: str) -> pd.DataFrame:
         delta = instruct[key].float() - base[key].float()
         if delta.ndim != 2 or delta.abs().max() == 0:
             continue
-        sv = torch.linalg.svdvals(delta)
+        sv = torch.linalg.svdvals(delta.to(DEVICE)).cpu()
         max_rank = min(delta.shape)
         noise_threshold, noise_stable = noise(tuple(delta.shape))
         rows.append(
