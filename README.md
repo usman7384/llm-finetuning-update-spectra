@@ -69,17 +69,19 @@ range of the two controls, wikitext again more concentrated than code. The
 threshold count reads 94-98% for all of them.
 
 **The released instruct models show the same measurement problem.** For the
-official base → instruct pairs of Qwen2.5 (0.5B, 1.5B) and SmolLM2 (135M,
-360M, 1.7B), the threshold count reads 96-99%, within a few points of a random
-matrix, while stable rank is 1.6x to 9x below it.
+official base → instruct pairs of Qwen2.5 (0.5B, 1.5B), SmolLM2 (135M, 360M,
+1.7B) and Qwen3 (0.6B, 8B), the threshold count reads 96-99%, within a few
+points of a random matrix, while stable rank is 1.6x to 9x below it. That
+includes Qwen3-8B: 98.0% vs 99.6% on the threshold count, 4.5x below noise on
+stable rank.
 
 **The entropy effective rank used by Timber has the same blind spot, milder.**
 Timber's evidence for superficial post-training is that eRank of each weight
 matrix barely changes between base and instruct. A random perturbation of the
 same size leaves it just as unchanged (every change, real or random, is under
 0.5%). And eRank of ΔW sits within 3-18% of a random matrix, where stable rank
-is 1.6-9x away. Checked on Qwen3-0.6B, one of their own pairs, where my
-eRank(ΔW) matches theirs (83% vs their ~85%).
+is 1.6-9x away. Checked on Qwen3-0.6B and Qwen3-8B, two of their own pairs,
+where my eRank(ΔW) matches theirs (83% at both sizes vs their ~85%).
 
 **A rank-1 LoRA adapter points the same way full fine-tuning does.** Comparing
 ΔW_sft's top singular directions with the matching LoRA adapter's A/B matrices,
