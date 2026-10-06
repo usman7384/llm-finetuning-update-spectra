@@ -2,8 +2,9 @@
 
 Results write-up. Everything was run on a single RTX 3060 Laptop GPU with 6GB
 of VRAM. The main experiments are on Qwen2.5-0.5B (base); the weight-geometry
-result is then checked on SmolLM2-360M (section 5) and on six publicly
-released base/instruct pairs (section 6), including one from the Timber paper.
+result is then checked on SmolLM2-360M (section 5) and on seven publicly
+released base/instruct pairs from 135M to 8B (section 6), including two from
+the Timber paper.
 
 The plan, with predictions written before any training, is in
 [plan.md](plan.md). Prior work is in [related-work.md](related-work.md).
@@ -28,8 +29,9 @@ measuring this got it backwards. Counting singular values above 0.01·σ₁ said
 the SFT delta looked exactly like random noise. Stable rank on the same saved
 spectra said it's three times more concentrated than noise. Same data, opposite
 answer. The same thing shows up in a second model family and in the official
-base → instruct releases of Qwen2.5 and SmolLM2, where the threshold count reads
-96-99% everywhere while stable rank sits 1.6x to 9x below noise.
+base → instruct releases of Qwen2.5, Qwen3 and SmolLM2 up to 8B, where the
+threshold count reads 96-99% everywhere while stable rank sits 1.6x to 9x
+below noise.
 
 Two other common measures share the blind spot in milder form: the rank needed
 for 90% of the energy (Biderman et al. 2024) and the entropy effective rank
@@ -59,8 +61,10 @@ the same size produces (section 6).
   (base), same recipe and memory settings, with its own random-init pair. The
   base tokenizer has no chat template, so SFT borrows the one from
   SmolLM2-360M-Instruct. Weight geometry only, no evals.
-- **Released pairs:** Qwen2.5-0.5B/1.5B and SmolLM2-135M/360M/1.7B, base vs the
-  official -Instruct, measured with no training at all.
+- **Released pairs:** Qwen2.5-0.5B/1.5B, SmolLM2-135M/360M/1.7B and
+  Qwen3-0.6B/8B, base vs the official instruct model, measured with no
+  training at all. Weights are read one matrix at a time, so the 8B pair fits
+  in 16GB of RAM.
 - **Evals,** the same on every checkpoint: IFEval (541 prompts) and XSTest
   refusals (450 prompts, safe and unsafe halves kept separate) for style;
   GSM8K (1319, 5-shot, exact match) and ARC-Challenge (1172) for capability.
