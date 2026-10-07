@@ -127,3 +127,45 @@ def test_lazy_weights_reads_the_same_tensors(tmp_path):
     for key, value in {**a, **b}.items():
         assert key in w
         assert torch.equal(w[key], value)
+
+
+def test_renyi_rank_family_matches_the_named_measures():
+    from align_geometry.analysis.svd_delta import (
+        participation_ratio,
+        renyi_rank,
+        stable_rank,
+    )
+
+    sv = torch.tensor([3.0, 2.0, 1.0, 0.0])
+    assert renyi_rank(sv, 0) == 3  # nonzero count
+    assert abs(renyi_rank(sv, float("inf")) - stable_rank(sv)) < 1e-6  # float32 vs 64
+    e = sv**2 / (sv**2).sum()
+    assert abs(participation_ratio(sv) - float(1 / (e**2).sum())) < 1e-9
+    # orders are ordered: counting >= entropy >= participation >= stable
+    vals = [renyi_rank(sv, a) for a in (0, 1, 2, float("inf"))]
+    assert vals == sorted(vals, reverse=True)
+    # a flat spectrum gives r at every order
+    assert all(abs(renyi_rank(torch.ones(5), a) - 5) < 1e-9 for a in (0, 1, 2, float("inf")))
+
+
+def test_stable_rank_without_top_ignores_one_outlier():
+    from align_geometry.analysis.svd_delta import stable_rank, stable_rank_without_top
+
+    flat = torch.ones(10)
+    spiked = flat.clone()
+    spiked[0] = 100.0
+    assert stable_rank(spiked) < 1.1  # the outlier dominates stable rank
+    assert abs(stable_rank_without_top(spiked) - 9) < 1e-9  # the rest is flat
+
+
+def test_noise_edge_counts_planted_directions_not_noise():
+    from align_geometry.analysis.svd_delta import count_above_noise_edge
+
+    g = torch.Generator().manual_seed(0)
+    m, n = 400, 300
+    noise = torch.randn(m, n, generator=g)
+    assert count_above_noise_edge(torch.linalg.svdvals(noise), m, n) == 0
+    u = torch.randn(m, 3, generator=g)
+    v = torch.randn(n, 3, generator=g)
+    planted = noise + 2.0 * u @ v.T  # three strong directions on top of noise
+    assert count_above_noise_edge(torch.linalg.svdvals(planted), m, n) == 3
