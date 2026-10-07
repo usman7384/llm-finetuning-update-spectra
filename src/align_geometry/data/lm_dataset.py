@@ -31,6 +31,7 @@ def load_lm_dataset(
     text_field: str = "text",
     max_tokens_per_example: int | None = None,
     indices_out: str | Path | None = None,
+    shuffle_words: bool = False,
 ) -> tuple[Dataset, Dataset]:
     """Take documents until `target_tokens` is reached, then split (train, val).
 
@@ -42,6 +43,10 @@ def load_lm_dataset(
     document's full length would credit the budget for tokens it never sees.
     Doesn't matter for wikitext (nothing selected went over 1024 tokens) but
     code files blow past it constantly.
+
+    shuffle_words=True scrambles the word order inside each document: same
+    words and frequencies, no structure. Fine-tuning on that separates what
+    the optimizer does to the weights from what the data does.
     """
     full = (
         load_dataset(dataset_name, config_name, split=split)
@@ -57,10 +62,14 @@ def load_lm_dataset(
     selected_texts: list[str] = []
     total_tokens = 0
 
+    word_rng = np.random.default_rng(subsample_seed + 1)
     for i in perm:
         text = texts[int(i)]
         if len(text) < min_chars:
             continue
+        if shuffle_words:
+            words = text.split()
+            text = " ".join(words[j] for j in word_rng.permutation(len(words)))
         n_tokens = len(tokenizer(text, add_special_tokens=False)["input_ids"])
         if max_tokens_per_example is not None:
             # Only count what the trainer will actually see.
@@ -88,6 +97,7 @@ def load_lm_dataset(
                     "min_chars": min_chars,
                     "text_field": text_field,
                     "max_tokens_per_example": max_tokens_per_example,
+                    "shuffle_words": shuffle_words,
                     "target_tokens": target_tokens,
                     "achieved_tokens": total_tokens,
                     "n_source_rows": len(full),
