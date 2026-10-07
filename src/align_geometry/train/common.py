@@ -24,13 +24,17 @@ def file_hash(path: str | Path) -> str:
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()[:16]
 
 
-def count_prompt_completion_tokens(dataset, tokenizer) -> int:
+def count_prompt_completion_tokens(
+    dataset, tokenizer, max_tokens_per_example: int | None = None
+) -> int:
     """Token count via the same chat template SFTTrainer applies, so the LoRA
-    sweep can be matched on tokens rather than steps."""
+    sweep can be matched on tokens rather than steps. Pass the trainer's
+    max_length so examples it truncates aren't counted in full."""
     total = 0
     for ex in dataset:
         text = tokenizer.apply_chat_template(ex["prompt"] + ex["completion"], tokenize=False)
-        total += len(tokenizer(text, add_special_tokens=False)["input_ids"])
+        n = len(tokenizer(text, add_special_tokens=False)["input_ids"])
+        total += min(n, max_tokens_per_example) if max_tokens_per_example else n
     return total
 
 
