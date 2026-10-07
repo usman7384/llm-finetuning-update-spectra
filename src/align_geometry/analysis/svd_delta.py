@@ -220,6 +220,10 @@ class LazyWeights:
     def __getitem__(self, key: str) -> torch.Tensor:
         return self._where[key].get_tensor(key)
 
+    def shape(self, key: str) -> tuple[int, ...]:
+        """From the file header, without reading the tensor."""
+        return tuple(self._where[key].get_slice(key).get_shape())
+
 
 def compute_deltas(
     before: dict[str, torch.Tensor],
