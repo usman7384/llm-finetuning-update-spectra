@@ -1,25 +1,18 @@
 \begin{abstract}
-Claims about what fine-tuning does to a language model's weights often rest on
-the rank of the update $\dW = W_{\text{after}} - W_{\text{before}}$. We measure
-four rank measures on real updates and on random matrices of the same shape.
-Three measures in common use, the number of singular values above
-$0.01\,\sigma_1$, the rank needed for 90\% of the energy, and the entropy
-effective rank, put real updates only 0.4--31\% below the noise value, so that
-read on their own they describe the updates as close to full rank. Stable rank,
-$\|\dW\|_F^2/\|\dW\|_2^2$, puts the same updates 1.6--9$\times$ below noise.
-All four detect structure; only stable rank makes its size visible. We show
-this on full SFT, DPO and token-matched non-alignment fine-tunes of
-Qwen2.5-0.5B and SmolLM2-360M, with seed repeats and layer-bootstrap
-intervals, and on seven publicly released base/instruct pairs from 135M to 8B
-parameters. The updates combine a few dominant directions with a long tail
-that holds most of the energy, and they are at least as concentrated as the
-pretrained weights they are added to. The concentration is not specific to alignment:
-fine-tuning on Wikipedia text or Python code is as concentrated as instruction
-tuning. As a case study we revisit Timber, which cites an unchanged entropy
-effective rank between base and instruct weights as evidence that
-post-training is superficial. A random perturbation of the same norm leaves
-the effective rank just as unchanged. Timber's eRank cutoff for editing $\dW$
-leaves 99\% of the update's energy untouched; a stable-rank cutoff that scales
-53 times more of it gives the same GSM8K pass@$k$, and removing that tail
-outright costs 4 points of pass@1.
+Studies of what fine-tuning does to a language model often summarise the
+weight update $\dW$ by its rank. We show that the rank measures most used for
+this, a threshold count of singular values, the number of directions holding
+90\% of the energy, and the entropy effective rank, give almost the same
+values for real updates as for random matrices of the same shape. Read on
+their own, they make fine-tuning look like noise. Stable rank, compared
+against the same noise baseline, shows that the updates are 1.6--9$\times$
+more concentrated than noise: a few strong directions on top of a long tail.
+This holds for SFT, DPO and token-matched non-alignment fine-tunes of two
+small models, and for seven released base/instruct pairs up to 8B parameters.
+The concentration is a property of fine-tuning in general, not of alignment:
+fine-tuning on Wikipedia or Python code looks the same. Applying the same
+baselines to a recent claim that post-training is superficial because the
+effective rank of the weights barely changes, we find that a random update of
+the same size leaves it just as unchanged. Rank measures of weight updates
+should be reported against a noise baseline.
 \end{abstract}
