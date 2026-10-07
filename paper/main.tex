@@ -1,0 +1,60 @@
+\documentclass[10pt]{article} % For LaTeX2e
+\usepackage{tmlr}
+% If accepted, instead use the following line for the camera-ready submission:
+%\usepackage[accepted]{tmlr}
+% To de-anonymize and remove mentions to TMLR (for example for posting to preprint servers), instead use the following:
+%\usepackage[preprint]{tmlr}
+
+% Optional math commands from https://github.com/goodfeli/dlbook_notation.
+\input{math_commands.tex}
+
+\usepackage{hyperref}
+\usepackage{url}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{amssymb}
+
+% notation used throughout
+\newcommand{\dW}{\Delta W}
+\newcommand{\thresholdrank}{\rho_{0.01}}
+\newcommand{\energyrank}{k_{0.9}}
+\newcommand{\entropyrank}{\mathrm{eRank}}
+\newcommand{\stablerank}{\mathrm{sr}}
+
+\title{Rank Measures Cannot Tell a Fine-Tuning Update from Noise}
+
+% Authors must not appear in the submitted version. They should be hidden
+% as long as the tmlr package is used without the [accepted] or [preprint] options.
+% Non-anonymous submissions will be rejected without review.
+
+\author{\name Muhammad Usman Altaf \email email@example.com \\
+      \addr Independent Researcher}
+% TODO before the preprint: real email, and affiliation if not independent
+
+\def\month{MM}  % Insert correct month for camera-ready version
+\def\year{YYYY} % Insert correct year for camera-ready version
+\def\openreview{\url{https://openreview.net/forum?id=XXXX}} % Insert correct link to OpenReview for camera-ready version
+
+
+\begin{document}
+
+
+\maketitle
+
+\input{sections/abstract}
+\input{sections/introduction}
+\input{sections/background}
+\input{sections/setup}
+\input{sections/results}
+\input{sections/timber}
+\input{sections/behavior}
+\input{sections/related}
+\input{sections/discussion}
+
+\bibliography{main}
+\bibliographystyle{tmlr}
+
+\appendix
+\input{sections/appendix}
+
+\end{document}
