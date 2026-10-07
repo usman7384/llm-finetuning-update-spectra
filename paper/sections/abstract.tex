@@ -1,0 +1,25 @@
+\begin{abstract}
+Claims about what fine-tuning does to a language model's weights often rest on
+the rank of the update $\dW = W_{\text{after}} - W_{\text{before}}$. We show that
+three measures in common use, the number of singular values above
+$0.01\,\sigma_1$, the rank needed for 90\% of the energy, and the entropy
+effective rank, give nearly the same value for a real fine-tuning update as
+for a random Gaussian matrix of the same shape. Stable rank,
+$\|\dW\|_F^2/\|\dW\|_2^2$, separates the two by a factor of 1.6 to 9. We
+establish this with a noise baseline for every weight matrix, on full SFT, DPO
+and token-matched non-alignment fine-tunes of Qwen2.5-0.5B and SmolLM2-360M
+(with seed repeats and layer-bootstrap intervals), and on seven publicly
+released base/instruct pairs from 135M to 8B parameters. Fine-tuning updates
+have a noise-like tail, which is why counting measures call them high rank,
+and a few dominant directions, which is what stable rank detects. The
+concentration is not specific to alignment: fine-tuning on Wikipedia text or
+Python code is at least as concentrated as instruction tuning. As a case study
+we revisit Timber, which cites an unchanged entropy effective rank between
+base and instruct models as evidence that post-training is superficial. We
+reproduce its measurement on two of its own model pairs, and find that a random
+perturbation of the same norm leaves the effective rank just as unchanged.
+Its eRank-based cutoff for editing $\dW$ touches about 1\% of the update's
+energy, and a stable-rank cutoff that touches 59\% gives the same GSM8K
+pass@$k$ within noise, while removing that 59\% outright costs 4 points of
+pass@1.
+\end{abstract}
