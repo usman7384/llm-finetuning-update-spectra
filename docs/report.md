@@ -461,7 +461,7 @@ The full set mostly undoes the first impression:
   that deleting the noise-like part of ΔW costs 4 points.
 
 So for the paper: eRank isn't picking out a meaningful boundary in ΔW's
-spectrum. Halving the update past a cutoff 40x more aggressive gives the same
+spectrum. Halving a tail that holds 53x more of the update's energy gives the same
 result, and the size of the benefit from Timber's edit, on GSM8K at least, is
 within a point of zero. The 300-problem result is also a reminder to treat
 small-subset pass@k gains with suspicion; this one roughly quartered.
