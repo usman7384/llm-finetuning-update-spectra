@@ -169,3 +169,21 @@ def test_noise_edge_counts_planted_directions_not_noise():
     v = torch.randn(n, 3, generator=g)
     planted = noise + 2.0 * u @ v.T  # three strong directions on top of noise
     assert count_above_noise_edge(torch.linalg.svdvals(planted), m, n) == 3
+
+
+def test_bf16_half_ulp_matches_real_rounding():
+    import importlib.util
+    from pathlib import Path
+
+    spec = importlib.util.spec_from_file_location(
+        "released_spectra", Path(__file__).parents[1] / "scripts" / "released_spectra.py"
+    )
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+
+    w = torch.tensor([0.02, -0.3, 1.0, 5e-4])
+    half = mod.bf16_half_ulp(w)
+    # rounding to bf16 never moves a value by more than half a unit
+    assert torch.all((w.bfloat16().float() - w).abs() <= half + 1e-12)
+    # and a nudge of a full unit is always visible
+    assert torch.all((w + 2 * half).bfloat16().float() != w.bfloat16().float())
