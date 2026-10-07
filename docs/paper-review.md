@@ -1,5 +1,14 @@
 # Internal review of the paper draft
 
+> **Superseded (2026-10-07).** This review missed a training bug that
+> invalidates the results from our own fine-tunes. The full fine-tunes ran in
+> pure bf16 with 8-bit AdamW and no fp32 master weights, so any update smaller
+> than bf16's precision at that weight was rounded away: 77.9% of the Qwen SFT
+> update's entries are exactly zero (95.4% for DPO, 96.4% for SmolLM2 SFT), and
+> almost no weight with |W| ≥ 0.0078 changed. The "solid and well controlled"
+> verdict below is withdrawn. The own-run results are being redone with
+> correct precision; see `docs/next-runs.md`.
+
 A reviewer-style pass over `paper/` before submission: every number recomputed
 from the raw results, every citation checked against its source, every figure
 and table inspected. Each point says what was found and what was done.
