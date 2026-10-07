@@ -82,7 +82,8 @@ matrix barely changes between base and instruct. A random perturbation of the
 same size leaves it just as unchanged (every change, real or random, is under
 0.5%). And eRank of ΔW sits within 3-18% of a random matrix, where stable rank
 is 1.6-9x away. Checked on Qwen3-0.6B and Qwen3-8B, two of their own pairs,
-where my eRank(ΔW) matches theirs (83% at both sizes vs their ~85%).
+where the eRank of the base weights matches what they report (0.84 and 0.86
+of full rank vs their ~0.85; that number is about W, not ΔW).
 
 **A rank-1 LoRA adapter points the same way full fine-tuning does.** Comparing
 ΔW_sft's top singular directions with the matching LoRA adapter's A/B matrices,
