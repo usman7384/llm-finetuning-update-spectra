@@ -1,0 +1,61 @@
+\section{Introduction}
+\label{sec:intro}
+
+A recurring question about post-training is whether it teaches a model
+anything or only selects a style it already had. The superficial alignment
+hypothesis \citep{zhou2023lima} takes the second view, and output-level
+evidence such as in-context alignment of base models \citep{lin2024urial}
+supports it. A natural place to look for weight-level evidence is the update
+itself, $\dW = W_{\text{after}} - W_{\text{before}}$: if alignment only picks
+a style, perhaps $\dW$ should be small and structured, ideally low rank.
+
+That question has to be answered with some measure of rank, and full-rank
+dense matrices make the choice of measure matter. Three measures appear in
+recent work: counting singular values above a fraction of the largest,
+counting how many are needed to hold most of the energy
+\citep{biderman2024lora}, and the entropy effective rank of
+\citet{roy2007effective}, used by \citet{wu2025timber} to argue that
+post-training is superficial. All three summarize the spectrum by how many
+directions it spans. None of these uses compares the number against what a
+matrix with no structure at all would give.
+
+We set out to measure the rank of SFT and DPO updates on a small model and ran
+into exactly this problem. By the threshold count, our SFT update was at 99.1\%
+of full rank and the difference between two random initializations was at
+99.6\%. Read at face value, that says the update looks like noise. Stable rank
+\citep{rudelson2007sampling} on the same spectra says the opposite: the update
+is three times more concentrated than the random pair, and its top direction
+carries eight times the share of energy.
+
+This paper is about that gap. Our contributions are:
+
+\begin{itemize}
+  \item \textbf{A noise baseline for every matrix.} We compare four rank
+  measures on real updates against random matrices of the same shape and show
+  that the threshold count, the 90\%-energy rank and the entropy effective
+  rank all land within a few percent of the noise value, while stable rank
+  separates real updates from noise by 1.6--9$\times$
+  (\S\ref{sec:metrics}). The two readings are not in conflict: updates have a
+  noise-like tail and a few dominant directions, and the measures weight these
+  differently (\S\ref{sec:headtail}).
+  \item \textbf{Controls that separate fine-tuning from alignment.}
+  Token-matched fine-tunes on wikitext and Python code, with second seeds and
+  paired layer-bootstrap intervals, are as concentrated as SFT on two model
+  families (\S\ref{sec:controls}). Concentration of $\dW$ is a property of
+  fine-tuning, not evidence about alignment.
+  \item \textbf{Released models up to 8B.} The same pattern holds for seven
+  official base/instruct pairs from 135M to 8B parameters (\S\ref{sec:released}).
+  \item \textbf{A case study of Timber.} We reproduce the entropy effective
+  rank measurement of \citet{wu2025timber} on two of its model pairs and show
+  that its evidence for superficiality, an unchanged eRank of each weight
+  matrix, is also produced by a random perturbation of the same norm. Its
+  eRank cutoff for editing $\dW$ is not special: a cutoff that edits about
+  40$\times$ more of the update gives the same GSM8K pass@$k$, and both effects
+  are within a point of zero on the full test set (\S\ref{sec:timber}).
+\end{itemize}
+
+The training runs use a single 6\,GB GPU, so our own fine-tunes are small
+(0.36B and 0.5B parameters, about two million tokens each). The measurement
+results do not depend on training, and we check them on released models up to
+8B. We report behavioural results from the same runs (LoRA rank sweep, DPO,
+evals) in \S\ref{sec:behavior}, mostly as context.
