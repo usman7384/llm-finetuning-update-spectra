@@ -1,61 +1,55 @@
-\section{Measuring the shape of an update}
+\section{Measuring the rank of an update}
 \label{sec:background}
 
-Let $\dW \in \R^{m\times n}$ be the change in one weight matrix,
-$r = \min(m,n)$, and $\sigma_1 \geq \dots \geq \sigma_r \geq 0$ its singular
-values. We report every measure as a fraction of $r$, so that matrices of
-different shapes can be averaged.
+Let $\dW \in \R^{m\times n}$ be the update to one weight matrix,
+$r = \min(m,n)$, and $\sigma_1 \geq \dots \geq \sigma_r$ its singular values.
+We report every measure as a fraction of $r$, so that matrices of different
+shapes can be averaged, and we use four measures.
 
-\paragraph{Threshold count.} The number of singular values above a fixed
-fraction of the largest,
+\paragraph{Threshold count:} how many singular values are at least 1\% of the
+largest,
 \begin{equation}
-  \thresholdrank(\dW) = \frac{1}{r}\,\bigl|\{\, i : \sigma_i \geq 0.01\,\sigma_1 \,\}\bigr| .
+  \thresholdrank = \tfrac{1}{r}\,\bigl|\{\, i : \sigma_i \geq 0.01\,\sigma_1 \,\}\bigr| .
 \end{equation}
-It says nothing about how energy is spread among the values it counts, and a
-dense matrix with a slowly decaying spectrum is counted as nearly full rank.
 
-\paragraph{Energy rank.} The number of directions needed to hold a fixed share
-of the squared Frobenius norm,
+\paragraph{Energy rank:} how many directions are needed to hold 90\% of the
+squared Frobenius norm, the measure used by \citet{biderman2024lora},
 \begin{equation}
-  \energyrank(\dW) = \frac{1}{r}\,\min\Bigl\{ k : \textstyle\sum_{i\leq k}\sigma_i^2 \geq 0.9 \sum_{i}\sigma_i^2 \Bigr\} ,
+  \energyrank = \tfrac{1}{r}\,\min\Bigl\{ k : \textstyle\sum_{i\leq k}\sigma_i^2 \geq 0.9 \sum_{i}\sigma_i^2 \Bigr\} .
 \end{equation}
-the measure behind ``rank needed to explain 90\% of the variance'' in
-\citet{biderman2024lora}.
 
-\paragraph{Entropy effective rank.} With $p_i = \sigma_i^\gamma / \sum_j \sigma_j^\gamma$,
+\paragraph{Entropy effective rank} \citep{roy2007effective}, with
+$p_i = \sigma_i / \sum_j \sigma_j$ as in \citet{wu2025timber},
 \begin{equation}
-  \entropyrank(\dW) = \frac{1}{r}\exp\Bigl(-\textstyle\sum_i p_i \log p_i\Bigr)
+  \entropyrank = \tfrac{1}{r}\exp\Bigl(-\textstyle\sum_i p_i \log p_i\Bigr) .
 \end{equation}
-\citep{roy2007effective}. \citet{wu2025timber} use $\gamma = 1$, and so do we.
 
-\paragraph{Stable rank.}
+\paragraph{Stable rank} \citep{rudelson2007sampling},
 \begin{equation}
-  \stablerank(\dW) = \frac{1}{r}\,\frac{\|\dW\|_F^2}{\|\dW\|_2^2} = \frac{1}{r}\sum_i \frac{\sigma_i^2}{\sigma_1^2}
+  \stablerank = \frac{1}{r}\,\frac{\|\dW\|_F^2}{\|\dW\|_2^2} = \frac{1}{r}\sum_i \frac{\sigma_i^2}{\sigma_1^2} .
 \end{equation}
-\citep{rudelson2007sampling}. It is small when a few directions carry most of
-the energy, and unlike the threshold count it is barely affected by many tiny
-singular values. We also report the share of energy in the top $k$ singular
-values, $\sum_{i\leq k}\sigma_i^2 / \sum_i \sigma_i^2$.
 
-All four measures are invariant to the scale of $\dW$, which matters here:
-the updates we compare differ in Frobenius norm by more than three orders of
-magnitude.
+The first three count directions, in different ways. Stable rank instead asks
+how dominant the top direction is: it is small when a few directions carry
+most of the energy, and many small singular values barely affect it. All four
+ignore the overall scale of $\dW$, which matters because the updates we
+compare differ in size by three orders of magnitude.
 
-\paragraph{Noise baselines.} A measure only says something about structure
-relative to what an unstructured matrix of the same shape would give. We use
-three baselines. (i) The difference between two independent random
-initializations of the same architecture, which is what a delta with no
-learned structure looks like. (ii) A Gaussian matrix of the same shape as
-each $\dW$, used for released models; for the shapes of Qwen2.5-0.5B it gives
-a stable rank of 0.434 against 0.436 for the random-init pair, so the two are
-interchangeable. (iii) For measures of the whole weight matrix $W$ rather than
-the update, a random perturbation with the same Frobenius norm as the real
-one, $W_{\text{before}} + G\,\|\dW\|_F/\|G\|_F$ with $G$ Gaussian.
+\paragraph{The noise baseline.} A value of any of these measures only means
+something next to the value for a matrix with no structure. For our own runs
+we use the difference between two independent random initialisations of the
+same model; for released models, a Gaussian matrix of the same shape as each
+$\dW$. Both follow the Marchenko--Pastur law, under which the stable rank of
+an $m \times n$ Gaussian matrix is close to $mn/(\sqrt{m}+\sqrt{n})^2$, a
+quarter of $r$ for square matrices. Our random-init pairs match this
+prediction to within 0.01 for every matrix shape
+(Appendix~\ref{app:sensitivity}). As a second reference we also measure the
+pretrained weights $W$ themselves.
 
-\paragraph{Why (iii) matters.} By Weyl's inequality
-\citep{horn2012matrix}, each singular value of $W + \dW$ is within
-$\|\dW\|_2$ of the corresponding singular value of $W$. When the update is
-small compared with the weights, any function of the spectrum of $W$,
-including its effective rank, can only move a little, whatever the update
-looks like. An unchanged effective rank of $W$ therefore cannot by itself
-distinguish one small update from another; it needs the same-norm comparison.
+\paragraph{Measures of $W$ rather than $\dW$.} Some studies measure the full
+weight matrix before and after fine-tuning instead of the update. By Weyl's
+inequality \citep{horn2012matrix}, each singular value of $W + \dW$ is within
+$\|\dW\|_2$ of the corresponding one of $W$, so when the update is small
+compared with $W$, no measure of the spectrum of $W$ can move much, whatever
+the update looks like. The right comparison is then a random perturbation of
+the same size, $W + G\,\|\dW\|_F/\|G\|_F$ with $G$ Gaussian.
