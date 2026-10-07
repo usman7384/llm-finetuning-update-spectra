@@ -15,14 +15,16 @@ magnitude, for both checkpoints, which is what storing them in bf16 adds.
     uv run python scripts/released_spectra.py --pairs qwen3-0.6b smollm2-135m
     uv run python scripts/released_spectra.py --device cuda     # when the GPU is free
 
-Writes results/released_spectra/<pair>/{delta,rounding}/<key>.pt. Resumable
-per matrix.
+Writes results/released_spectra/<pair>/{delta,rounding}/<key>.pt and
+<pair>/shapes.json. Resumable per matrix.
 """
 
 from __future__ import annotations
 
 import argparse
+import json
 import sys
+import zlib
 from pathlib import Path
 
 import torch
@@ -78,15 +80,18 @@ def main() -> int:
         base = LazyWeights(weights_dir(base_repo))
         inst = LazyWeights(weights_dir(inst_repo))
         keys = [k for k in base if k in inst and is_analyzable_matrix(k)]
-        g = torch.Generator().manual_seed(0)
+        # shapes, so later analysis needs neither weights nor the Hub cache
+        shapes = {k: list(base.shape(k)) for k in keys}
+        (out / "shapes.json").write_text(json.dumps(shapes, indent=1))
         done = 0
         for i, key in enumerate(keys, 1):
-            # draw the noise even when skipping, so a resumed run matches a full one
-            w_b, w_i = base[key], inst[key]
-            noise = rounding_noise(w_b, w_i, g)
             d_path, r_path = out / "delta" / f"{key}.pt", out / "rounding" / f"{key}.pt"
             if d_path.exists() and r_path.exists():
                 continue
+            w_b, w_i = base[key], inst[key]
+            # seeded per matrix, so a resumed run draws exactly what a full one would
+            g = torch.Generator().manual_seed(zlib.crc32(key.encode()))
+            noise = rounding_noise(w_b, w_i, g)
             delta = w_i.float() - w_b.float()
             if delta.ndim != 2 or delta.abs().max() == 0:
                 continue
