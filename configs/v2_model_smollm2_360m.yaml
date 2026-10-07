@@ -1,0 +1,21 @@
+# SmolLM2-360M base, second round. Same as model_smollm2_360m.yaml except precision:
+# the first round kept the weights in bf16, and with 8-bit AdamW any step
+# smaller than half a bf16 rounding unit was lost (78-96% of entries never
+# moved). Here the weights are fp32 and only the compute is bf16.
+model:
+  name_or_path: "HuggingFaceTB/SmolLM2-360M"
+  revision: null
+  dtype: "float32"                      # master weights
+  compute_dtype: "bfloat16"             # autocast
+  attn_implementation: "sdpa"
+  trust_remote_code: false
+  max_seq_len: 512                      # fp32 weights + 1024 tokens doesn't fit in 6GB
+  chat_template_from: "HuggingFaceTB/SmolLM2-360M-Instruct"
+
+memory:
+  gradient_checkpointing: true
+  optimizer: "adamw_bnb_8bit"
+  per_device_train_batch_size: 1
+  gradient_accumulation_steps: 16
+  freeze_embeddings: true               # tied with lm_head; not part of the analysis
+  max_unchanged_fraction: 0.01          # fail the run if the weights didn't move
