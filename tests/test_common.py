@@ -84,3 +84,24 @@ def test_freeze_input_embeddings_freezes_tied_head():
     assert freeze_input_embeddings(m) == 40  # tied, so counted once
     assert not m.emb.weight.requires_grad and not m.head.weight.requires_grad
     assert m.called
+
+
+def test_shuffle_words_keeps_words_and_breaks_order(monkeypatch):
+    from datasets import Dataset
+
+    import align_geometry.data.lm_dataset as lm
+
+    doc = " ".join(f"w{i}" for i in range(60))
+    monkeypatch.setattr(lm, "load_dataset", lambda *a, **k: Dataset.from_dict({"text": [doc] * 4}))
+
+    class Tok:
+        def __call__(self, text, add_special_tokens=False):
+            return {"input_ids": text.split()}
+
+    train, _ = lm.load_lm_dataset(
+        "x", None, "train", target_tokens=200, tokenizer=Tok(), subsample_seed=0,
+        val_fraction=0.25, min_chars=10, shuffle_words=True,
+    )  # fmt: skip
+    out = train[0]["text"].split()
+    assert sorted(out) == sorted(doc.split())
+    assert out != doc.split()
