@@ -25,6 +25,7 @@ noise. Stable rank can.
 - Full write-up with every number: [docs/report.md](docs/report.md)
 - The plan and predictions, written before training: [docs/plan.md](docs/plan.md)
 - Prior work: [docs/related-work.md](docs/related-work.md)
+- The paper (TMLR format, LaTeX): [paper/](paper/)
 
 ## What came out of it
 
@@ -282,6 +283,7 @@ src/align_geometry/
 scripts/        everything you actually run
 tests/          linear algebra, loaders, training helpers, GSM8K scoring
 .github/        CI: ruff and pytest on CPU torch
+paper/          the TMLR paper: LaTeX sources, figures, bibliography
 data/processed/ exact rows each run trained on
 results/        eval table, SVD summaries and spectra, plots
 checkpoints/    model weights, not in git (~66 GB); only each run's manifest.json is
