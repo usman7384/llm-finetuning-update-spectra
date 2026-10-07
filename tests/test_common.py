@@ -35,3 +35,52 @@ def test_weights_dir_keeps_local_paths(tmp_path):
     # an existing directory must never trigger a download
     assert weights_dir(tmp_path) == tmp_path
     assert weights_dir(str(tmp_path)) == tmp_path
+
+
+def test_unchanged_fraction_counts_untouched_entries():
+    import torch
+
+    from align_geometry.train.common import unchanged_fraction
+
+    before = {"w": torch.zeros(4, 5), "v": torch.ones(2, 2)}
+    after = {"w": before["w"].clone(), "v": before["v"].clone()}
+    after["w"][0] += 1e-3  # 5 of the 24 entries move
+    assert abs(unchanged_fraction(after, before, ["w", "v"]) - 19 / 24) < 1e-12
+
+
+def test_bf16_weights_lose_small_updates():
+    # the bug this check exists for: a 2e-5 step on a weight of 0.02 vanishes in
+    # bf16 but survives in fp32
+    import torch
+
+    w = torch.tensor([0.02])
+    assert (w.bfloat16() + 2e-5).float() == w.bfloat16().float()
+    assert (w + 2e-5) != w
+
+
+def test_freeze_input_embeddings_freezes_tied_head():
+    import torch
+
+    from align_geometry.train.common import freeze_input_embeddings
+
+    class Tiny(torch.nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.emb = torch.nn.Embedding(10, 4)
+            self.head = torch.nn.Linear(4, 10, bias=False)
+            self.head.weight = self.emb.weight  # tied, like Qwen2.5 and SmolLM2
+            self.called = False
+
+        def get_input_embeddings(self):
+            return self.emb
+
+        def get_output_embeddings(self):
+            return self.head
+
+        def enable_input_require_grads(self):
+            self.called = True
+
+    m = Tiny()
+    assert freeze_input_embeddings(m) == 40  # tied, so counted once
+    assert not m.emb.weight.requires_grad and not m.head.weight.requires_grad
+    assert m.called
