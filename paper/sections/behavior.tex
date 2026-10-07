@@ -1,0 +1,60 @@
+\section{What the updates do behaviourally}
+\label{sec:behavior}
+
+The spectral results do not depend on any evaluation, but the same Qwen runs
+were evaluated, and the results give some context for what a concentrated
+update does. We report them briefly; all are single-seed.
+
+\begin{table}[t]
+\caption{Qwen2.5-0.5B before and after SFT. IFEval \citep{zhou2023ifeval} and
+XSTest \citep{rottger2024xstest} for style, GSM8K (5-shot) and ARC-Challenge
+\citep{clark2018arc} for capability, via the LM Evaluation Harness
+\citep{eval-harness} and a refusal scorer for XSTest.}
+\label{tab:evals}
+\begin{center}
+\begin{tabular}{lccc}
+\toprule
+ & base & SFT & change \\
+\midrule
+IFEval, prompt-level strict      & 12.0\% & 15.0\% & $+3.0$ \\
+IFEval, instruction-level loose  & 24.8\% & 28.2\% & $+3.4$ \\
+XSTest refusals, safe prompts    & 1.2\%  & 4.4\%  & $+3.2$ \\
+XSTest refusals, unsafe prompts  & 2.0\%  & 5.0\%  & $+3.0$ \\
+GSM8K                            & 34.2\% $\pm$ 1.3 & 29.5\% $\pm$ 1.3 & $-4.7$ \\
+ARC-Challenge (acc\_norm)        & 32.3\% $\pm$ 1.4 & 33.6\% $\pm$ 1.4 & $+1.3$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+\end{table}
+
+\paragraph{SFT trades capability for style.} SFT gains about three points of
+instruction following and loses 4.7 points of GSM8K, about 3.6 standard
+errors (Table~\ref{tab:evals}). Refusals rise by the same amount on safe and
+unsafe XSTest prompts, which looks like a formatting effect rather than
+learned refusal; Alpaca contains almost no refusals.
+
+\paragraph{A rank-1 adapter recovers the style gain.} In a LoRA sweep over
+ranks 1--128 on the same data and token budget, a rank-1 adapter recovers
+137\% of SFT's IFEval gain, in line with reports that small ranks suffice for
+post-training-style workloads \citep{thinkingmachines2025lora}, and GSM8K
+falls steadily with rank, from 32.4\% at
+rank 1 to 17.7\% at rank 128, alongside rising validation loss (1.38 to 1.61).
+We do not lean on the GSM8K trend: the lowest learning rate tried
+($10^{-4}$) won at every rank, so the grid was probably too high
+(Appendix~\ref{app:lora}).
+
+\paragraph{The adapter points where full fine-tuning points.} Comparing the
+top-$r$ left singular vectors of the full SFT update with the column space of
+each rank-$r$ adapter's $B$ matrix, the mean cosine of the principal angles is
+0.322 at rank 1 against 0.028 for random subspaces (11$\times$), 0.287 against
+0.105 at rank 8 (2.7$\times$) and 0.526 against 0.465 at rank 128. The ratio
+falls with rank because random subspaces overlap more as they grow. This is
+about overlap with the dominant directions of $\dW$, and is compatible with
+\citet{shuttleworth2025lora}, who find that LoRA introduces new singular
+directions into $W$ that full fine-tuning does not.
+
+\paragraph{DPO is a smaller dose of the same shape.} DPO on top of SFT barely
+changes the evaluations (IFEval $+0.2$, GSM8K $-0.5$, ARC $-0.3$). Its update
+has the same average stable rank as SFT's (0.144 against 0.145) at about one
+fifteenth of the size, although the two distribute it differently across
+matrix types (Appendix~\ref{app:pertype}).
