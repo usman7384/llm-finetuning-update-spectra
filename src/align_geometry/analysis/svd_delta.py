@@ -93,6 +93,64 @@ def energy_top_k(singular_values: torch.Tensor, k: int) -> float:
     return float(energy[:k].sum()) / total if total > 0 else 0.0
 
 
+def renyi_rank(singular_values: torch.Tensor, alpha: float) -> float:
+    """Effective rank of order alpha of the energy distribution p_i = s_i^2 / sum s^2.
+
+    exp(H_alpha(p)) with H_alpha the Renyi entropy. One family covers several
+    measures: alpha=0 counts the nonzero singular values, alpha=1 is the
+    entropy rank (of the energy, not of s itself as in entropy_rank),
+    alpha=2 is the participation ratio and alpha=inf is the stable rank.
+    Lower orders count directions; higher orders weight the top ones.
+    """
+    e = singular_values.double().clamp(min=0) ** 2
+    total = e.sum()
+    if total <= 0:
+        return 0.0
+    p = e[e > 0] / total
+    if alpha == 0:
+        return float(p.numel())
+    if alpha == 1:
+        return float(torch.exp(-(p * p.log()).sum()))
+    if alpha == float("inf"):
+        return float(1 / p.max())
+    return float((p**alpha).sum() ** (1 / (1 - alpha)))
+
+
+def participation_ratio(singular_values: torch.Tensor) -> float:
+    """(sum s^2)^2 / sum s^4, the order-2 effective rank of the energy."""
+    return renyi_rank(singular_values, 2)
+
+
+def stable_rank_without_top(singular_values: torch.Tensor) -> float:
+    """Stable rank of everything below the top direction: sum_{i>=2} s_i^2 / s_2^2.
+
+    Stable rank only looks at s_1, so one outlying direction could drive it.
+    This version drops that direction and asks whether the rest is still
+    concentrated.
+    """
+    s = singular_values.double()
+    if s.numel() < 2 or s[1] <= 0:
+        return 0.0
+    return float((s[1:] ** 2).sum() / s[1] ** 2)
+
+
+def count_above_noise_edge(singular_values: torch.Tensor, m: int, n: int) -> int:
+    """Singular values above the largest one a Gaussian matrix of the same
+    shape and Frobenius norm would have.
+
+    For an m x n matrix of iid entries with variance v, the largest singular
+    value approaches sqrt(v) * (sqrt(m) + sqrt(n)) (the Bai-Yin edge). Matching
+    the Frobenius norm sets v = ||A||_F^2 / (m n). Directions above that edge
+    are ones noise of the same size couldn't produce.
+    """
+    s = singular_values.double()
+    frob2 = float((s**2).sum())
+    if frob2 <= 0:
+        return 0
+    edge = (frob2 / (m * n)) ** 0.5 * (m**0.5 + n**0.5)
+    return int((s > edge).sum())
+
+
 def is_analyzable_matrix(key: str) -> bool:
     """True for the 2-D attention/MLP projections. Excludes embeddings,
     lm_head and anything 1-D."""
