@@ -1,61 +1,55 @@
 \section{Introduction}
 \label{sec:intro}
 
-A recurring question about post-training is whether it teaches a model
-anything or only selects a style it already had. The superficial alignment
-hypothesis \citep{zhou2023lima} takes the second view, and output-level
-evidence such as in-context alignment of base models \citep{lin2024urial}
-supports it. A natural place to look for weight-level evidence is the update
-itself, $\dW = W_{\text{after}} - W_{\text{before}}$: if alignment only picks
-a style, perhaps $\dW$ should be small and structured, ideally low rank.
+When a language model is fine-tuned, each weight matrix $W$ changes by some
+update $\dW$. A natural way to ask what fine-tuning did is to ask how many
+independent directions $\dW$ uses, that is, its rank. A low-rank update
+suggests a small, targeted change; a full-rank one suggests a diffuse change.
 
-That question has to be answered with some measure of rank, and full-rank
-dense matrices make the choice of measure matter. Three measures appear in
-recent work: counting singular values above a fraction of the largest,
-counting how many are needed to hold most of the energy
-\citep{biderman2024lora}, and the entropy effective rank of
-\citet{roy2007effective}, used by \citet{wu2025timber} to argue that
-post-training is superficial. All three summarize the spectrum by how many
-directions it spans. None of these uses compares the number against what a
-matrix with no structure at all would give.
+The question matters most for alignment. The superficial alignment hypothesis
+\citep{zhou2023lima} holds that alignment mostly teaches a model which style
+to answer in, and output-level evidence supports it \citep{lin2024urial}. If
+that is true, one might expect alignment to leave a small, structured
+footprint in the weights, and recent work has looked for one in the rank of
+$\dW$ \citep{wu2025timber}.
 
-We set out to measure the rank of SFT and DPO updates on a small model and ran
-into exactly this problem. By the threshold count, our SFT update was at 99.1\%
-of full rank and the difference between two random initializations was at
-99.6\%. Read at face value, that says the update looks like noise. Stable rank
-\citep{rudelson2007sampling} on the same spectra says the opposite: the update
-is three times more concentrated than the random pair, and its top direction
-carries eight times the share of energy.
+Real updates are full rank in the strict sense, so studies use softer
+measures: how many singular values exceed 1\% of the largest, how many
+directions hold 90\% of the energy \citep{biderman2024lora}, or the entropy
+effective rank \citep{roy2007effective, wu2025timber}. We began this project by
+measuring SFT and DPO updates of a small model with the first of these and got
+a puzzling answer. Our SFT update scored 99.1\% of full rank. The difference
+between two random initialisations of the same model, which is pure noise,
+scored 99.6\%. By that measure, fine-tuning looks like noise.
 
-This paper is about that gap. Our contributions are:
+It is not. Stable rank \citep{rudelson2007sampling}, computed from the same
+singular values, says the SFT update is three times more concentrated than
+noise, and its top direction holds eight times as much of the energy. The two
+answers differ because the measures look at different parts of the spectrum,
+and the counting measures had never been compared with what noise gives.
 
-\begin{itemize}
-  \item \textbf{A noise baseline for every matrix.} We compare four rank
-  measures on real updates against random matrices of the same shape and show
-  that the threshold count, the 90\%-energy rank and the entropy effective
-  rank all land within a few percent of the noise value, while stable rank
-  separates real updates from noise by 1.6--9$\times$
-  (\S\ref{sec:metrics}). The two readings are not in conflict: updates have a
-  noise-like tail and a few dominant directions, and the measures weight these
-  differently (\S\ref{sec:headtail}).
-  \item \textbf{Controls that separate fine-tuning from alignment.}
-  Token-matched fine-tunes on wikitext and Python code, with second seeds and
-  paired layer-bootstrap intervals, are as concentrated as SFT on two model
-  families (\S\ref{sec:controls}). Concentration of $\dW$ is a property of
-  fine-tuning, not evidence about alignment.
-  \item \textbf{Released models up to 8B.} The same pattern holds for seven
-  official base/instruct pairs from 135M to 8B parameters (\S\ref{sec:released}).
-  \item \textbf{A case study of Timber.} We reproduce the entropy effective
-  rank measurement of \citet{wu2025timber} on two of its model pairs and show
-  that its evidence for superficiality, an unchanged eRank of each weight
-  matrix, is also produced by a random perturbation of the same norm. Its
-  eRank cutoff for editing $\dW$ is not special: a cutoff that edits about
-  40$\times$ more of the update gives the same GSM8K pass@$k$, and both effects
-  are within a point of zero on the full test set (\S\ref{sec:timber}).
-\end{itemize}
+This paper makes that comparison systematically, on our own fine-tunes of two
+small models and on seven released base/instruct pairs up to 8B parameters.
+We find:
 
-The training runs use a single 6\,GB GPU, so our own fine-tunes are small
-(0.36B and 0.5B parameters, about two million tokens each). The measurement
-results do not depend on training, and we check them on released models up to
-8B. We report behavioural results from the same runs (LoRA rank sweep, DPO,
-evals) in \S\ref{sec:behavior}, mostly as context.
+\begin{enumerate}
+  \item \textbf{Counting measures make updates look like noise.} They put real
+  updates only 0.4--31\% below a random matrix of the same shape, while stable
+  rank puts them 1.6--9$\times$ below (\S\ref{sec:metrics}).
+  \item \textbf{Updates have a few strong directions and a long tail.} Most of
+  the energy sits in a slowly decaying tail, which the counting measures
+  count; the strong directions are what stable rank sees. The pretrained
+  weights have a similar shape (\S\ref{sec:headtail}).
+  \item \textbf{This is about fine-tuning, not alignment.} Fine-tunes on
+  Wikipedia text and Python code, matched in tokens, are as concentrated as
+  instruction tuning (\S\ref{sec:controls}).
+  \item \textbf{It holds for released models up to 8B} (\S\ref{sec:released}).
+  \item \textbf{It changes how earlier evidence reads.} \citet{wu2025timber}
+  take an unchanged effective rank of the weights as evidence that
+  post-training is superficial. A random update of the same size leaves it
+  just as unchanged (\S\ref{sec:timber}).
+\end{enumerate}
+
+The practical message is short: report rank measures of weight updates next to
+the same measure on noise, and test claims about alignment against
+fine-tuning without alignment content.
