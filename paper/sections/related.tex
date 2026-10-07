@@ -1,0 +1,38 @@
+\section{Related work}
+\label{sec:related}
+
+\paragraph{Superficial alignment.} \citet{zhou2023lima} proposed that
+alignment mostly selects a format the pretrained model already supports, and
+\citet{lin2024urial} found that base and aligned models differ mainly on a
+small set of stylistic tokens. \citet{wu2025timber} looked for weight-level
+evidence through the effective rank of released models, which we examine in
+\S\ref{sec:timber}. \citet{chaudhury2025alignment} locate the effect of
+preference tuning in a few middle layers by activation patching, a causal
+question about activations that our analysis of weights does not address.
+
+\paragraph{Structure of fine-tuning updates.} \citet{aghajanyan2021intrinsic}
+showed that fine-tuning can be carried out in a small random subspace, the
+idea that LoRA \citep{hu2022lora} builds on, and \citet{ryu2023efficient}
+store fine-tuned models as low-rank approximations of the weight residual.
+\citet{biderman2024lora} measured full fine-tuning updates with the rank
+needed for 90\% of the variance and found them 10--100$\times$ higher rank
+than typical LoRA ranks; they also noted that adding small Gaussian noise to
+$W$ leaves its spectrum similar, which is close in spirit to our same-norm
+check, applied there to $W$ rather than as a control for a claim about
+alignment. Our results agree with theirs and add the other half of the
+picture: the same updates are also several times more concentrated than noise
+at the top of the spectrum. \citet{shuttleworth2025lora} compare the singular
+vectors of fine-tuned and pretrained $W$ and find that LoRA introduces
+``intruder dimensions'' that full fine-tuning does not. Delta-CoMe
+\citep{ping2024deltacome} compresses $\dW$ with more bits for the top singular
+vectors, motivated by the same long-tailed spectrum, and finds that pure
+low-rank truncation hurts. \citet{paul2026spectral} use stable rank among
+other shape features of LoRA updates to tell training objectives apart. To
+our knowledge none of these compares rank measures of $\dW$ against a noise
+baseline matrix by matrix, or uses non-alignment fine-tunes as a control for
+claims about alignment.
+
+\paragraph{The measures.} Stable rank, also called numerical rank, comes from
+\citet{rudelson2007sampling}, and the entropy effective rank from
+\citet{roy2007effective}. Neither is new; the question here is only which of
+them can tell a weight update from noise.
