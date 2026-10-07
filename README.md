@@ -37,7 +37,7 @@ max rank and two random initializations at 99.62%. The rank needed for 90% of
 the energy gives 0.66 vs 0.72. Stable rank (‖ΔW‖²_F / ‖ΔW‖²₂) on the same saved
 spectra says the SFT delta is 3x more concentrated than the random pair, with
 8x more energy in its top direction. Both are true at once: ΔW has a long,
-noise-like tail (so counting measures call it high rank) and a top few
+slowly decaying tail (so counting measures call it high rank) and a top few
 directions that carry far more energy than noise would. This held for every
 fine-tuning run I tried, on both model families.
 
@@ -101,8 +101,8 @@ Qwen3-0.6B, all 1,319 GSM8K problems × 8 samples: their eRank cutoff keeps
 pass@8 by +0.8 points, both within noise. (The first 300 problems had shown
 +3.3 on pass@8, which mostly didn't survive the full set.) A stable-rank cutoff
 that halves 59% of the update can't be told apart from it. Dropping that 59%
-outright costs 4 points of pass@1, so the noise-like tail of ΔW still matters
-to the model.
+outright costs 4 points of pass@1, so the long tail of ΔW still matters to
+the model.
 
 Still open: whether the LoRA GSM8K trend survives lower learning rates.
 
