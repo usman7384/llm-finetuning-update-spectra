@@ -21,9 +21,11 @@ import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+import torch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
+from align_geometry.analysis.svd_delta import entropy_rank  # noqa: E402
 from align_geometry.eval.gsm8k import pass_at_k  # noqa: E402
 
 matplotlib.rcParams.update(
@@ -66,7 +68,14 @@ def threshold_frac(svd_dir: str) -> float:
     return float((df["effective_rank_0.01"] / df["max_rank"]).mean())
 
 
-def family_rows(runs, stable_csv: str, noise_dir: str, noise_erank_from: str) -> pd.DataFrame:
+def load_spectra(result_dir: str) -> list[torch.Tensor]:
+    return [
+        torch.load(p, weights_only=True).double()
+        for p in sorted(Path(f"results/{result_dir}/spectra").glob("*.pt"))
+    ]
+
+
+def family_rows(runs, stable_csv: str, noise_dir: str) -> pd.DataFrame:
     """The four rank measures for each run plus its noise baseline."""
     sr = pd.read_csv(stable_csv)
     rows = []
@@ -87,10 +96,8 @@ def family_rows(runs, stable_csv: str, noise_dir: str, noise_erank_from: str) ->
             "run": "noise",
             "threshold": threshold_frac(noise_dir),
             "k90": noise["k_for_90pct_frac"].mean(),
-            # same as the random-init pair's own spectra (0.928 / 0.908)
-            "erank": pd.read_csv(f"results/timber_check/{noise_erank_from}.csv")[
-                "noise_erank_frac"
-            ].mean(),
+            # from the random-init pair's own spectra, like every other noise bar
+            "erank": np.mean([entropy_rank(sv) / sv.numel() for sv in load_spectra(noise_dir)]),
             "stable": noise["stable_rank_frac"].mean(),
         }
     )
@@ -100,12 +107,10 @@ def family_rows(runs, stable_csv: str, noise_dir: str, noise_erank_from: str) ->
 def fig_metrics() -> None:
     """Four rank measures, real updates vs noise, both families."""
     fams = [
-        ("Qwen2.5-0.5B", family_rows(QWEN, "results/stable_rank.csv", "svd_control_random", "sft")),
+        ("Qwen2.5-0.5B", family_rows(QWEN, "results/stable_rank.csv", "svd_control_random")),
         (
             "SmolLM2-360M",
-            family_rows(
-                SMOL, "results/stable_rank_smollm2.csv", "svd_smollm2_random", "smollm2_sft"
-            ),
+            family_rows(SMOL, "results/stable_rank_smollm2.csv", "svd_smollm2_random"),
         ),
     ]
     metrics = [
@@ -136,6 +141,48 @@ def fig_metrics() -> None:
     fig.legend(handles, list(colors), loc="lower center", ncol=5, bbox_to_anchor=(0.5, -0.08))
     fig.tight_layout(rect=(0, 0.06, 1, 1))
     fig.savefig(OUT / "metrics_vs_noise.pdf", bbox_inches="tight")
+    plt.close(fig)
+
+
+def mean_curves(result_dir: str, grid: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+    """Cumulative energy share and sigma_i / sigma_1, against i / r, averaged over matrices."""
+    cum, decay = [], []
+    for sv in load_spectra(result_dir):
+        sv = sv.numpy()
+        x = np.arange(1, len(sv) + 1) / len(sv)
+        energy = sv**2
+        cum.append(np.interp(grid, x, np.cumsum(energy) / energy.sum()))
+        decay.append(np.interp(grid, x, sv / sv[0]))
+    return np.mean(cum, axis=0), np.exp(np.mean(np.log(np.maximum(decay, 1e-12)), axis=0))
+
+
+def fig_spectrum() -> None:
+    """Where the energy sits: a concentrated head and a noise-like tail (Qwen2.5-0.5B)."""
+    grid = np.logspace(-3, 0, 300)
+    lines = [
+        ("SFT", "svd_sft", "C0", "-"),
+        ("wikitext", "svd_control_lm", "C2", "-"),
+        ("code", "svd_control_code", "C3", "-"),
+        ("random-init pair", "svd_control_random", NOISE, "-"),
+        ("pretrained $W$", "weights_base", "k", "--"),
+    ]
+    fig, axes = plt.subplots(1, 2, figsize=(6.5, 2.3))
+    for label, d, color, ls in lines:
+        cum, decay = mean_curves(d, grid)
+        axes[0].plot(grid, 100 * cum, color=color, ls=ls, label=label)
+        axes[1].plot(grid, decay, color=color, ls=ls, label=label)
+    axes[0].set_xscale("log")
+    axes[0].set_xlabel("top fraction of singular directions, $i/r$")
+    axes[0].set_ylabel("share of energy, %")
+    axes[0].set_title("cumulative energy")
+    axes[0].legend(fontsize=6, loc="upper left")
+    axes[1].set_xscale("log")
+    axes[1].set_yscale("log")
+    axes[1].set_xlabel("$i/r$")
+    axes[1].set_ylabel("$\\sigma_i / \\sigma_1$ (geometric mean)")
+    axes[1].set_title("singular value decay")
+    fig.tight_layout()
+    fig.savefig(OUT / "spectrum_head_tail.pdf", bbox_inches="tight")
     plt.close(fig)
 
 
@@ -251,6 +298,7 @@ def main() -> int:
         print("results missing, run the analysis scripts first:", missing)
         return 1
     fig_metrics()
+    fig_spectrum()
     fig_released()
     fig_erank_perturbation()
     fig_cutoff()
