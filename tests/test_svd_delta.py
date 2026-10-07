@@ -127,6 +127,7 @@ def test_lazy_weights_reads_the_same_tensors(tmp_path):
     for key, value in {**a, **b}.items():
         assert key in w
         assert torch.equal(w[key], value)
+        assert w.shape(key) == tuple(value.shape)
 
 
 def test_renyi_rank_family_matches_the_named_measures():
