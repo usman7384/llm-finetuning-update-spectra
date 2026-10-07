@@ -62,7 +62,7 @@ def token_counts(indices_file: str, tokenizer, vocab: int) -> np.ndarray:
             if meta.get("config_name")
             else load_dataset(meta["dataset_name"], split=meta["split"])
         )
-        texts = ds.select(meta["train_indices"])[meta["text_field"]]
+        texts = list(ds.select(meta["train_indices"])[meta["text_field"]])
     counts = np.zeros(vocab)
     for ids in tokenizer(texts, add_special_tokens=False)["input_ids"]:
         np.add.at(counts, ids, 1)
