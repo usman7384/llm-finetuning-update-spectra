@@ -1,0 +1,52 @@
+\section{Limitations}
+\label{sec:limitations}
+
+\begin{itemize}
+  \item \textbf{Scale of our own training.} Our fine-tunes are 0.36B and 0.5B
+  parameters with about two million tokens each. The measurement results
+  hold on released models up to 8B, but we say nothing about how training
+  itself behaves at that scale.
+  \item \textbf{Behaviour on one model.} The evaluations, the LoRA sweep, DPO
+  and the overlap analysis are all on Qwen2.5-0.5B and single-seed. SmolLM2
+  replicates the spectral results only.
+  \item \textbf{Released models are black boxes.} We do not know their
+  post-training data or recipes, so they test the measurement but not any
+  claim about alignment specifically.
+  \item \textbf{Loss masking differs.} SFT computes loss on answer tokens only,
+  the controls on every token. Tokens seen are matched; tokens trained on are
+  not.
+  \item \textbf{The cutoff test is narrow.} One model, one benchmark, one
+  sampling mode. Gains reported by \citet{wu2025timber} on other benchmarks
+  are untested here.
+  \item \textbf{LoRA learning rates.} The lowest learning rate in the sweep
+  won at every rank, so the rank-versus-GSM8K trend may partly reflect
+  under-tuned learning rates.
+\end{itemize}
+
+\section{Conclusion}
+\label{sec:conclusion}
+
+Measures that count directions, whether by threshold, by energy share or by
+entropy, describe fine-tuning updates as nearly full rank and put them within
+a few percent of random matrices of the same shape. Stable rank shows the same
+updates to be several times more concentrated than noise. Both descriptions
+are accurate, because the updates combine a noise-like tail with a few
+dominant directions, and the tail matters to the model. The practical lesson
+is simple: a rank measure of a weight update means little without the same
+measure on a matrix with no structure, and a claim about alignment needs a
+fine-tune without alignment content as its control. With both in place, the
+concentration of the update turns out to be a property of fine-tuning in
+general, and an unchanged effective rank after post-training turns out to be
+what any small update produces.
+
+\subsubsection*{Broader Impact Statement}
+This work is about measurement methodology for analysing fine-tuned language
+models. It does not introduce new capabilities or training methods. Its main
+practical consequence is caution about reading weight-space statistics as
+evidence that alignment is shallow or deep; claims of either kind can affect
+how much trust is placed in alignment training, and they should rest on
+measurements with proper baselines.
+
+% Reproducibility: code, configs, exact training rows, result CSVs and the
+% saved singular-value spectra will be released with the camera-ready version
+% (kept out of the anonymous submission).
