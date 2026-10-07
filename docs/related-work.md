@@ -150,7 +150,7 @@ made it about W, and I make it a per-matrix control and apply it to the
 other count-style measures: on my runs it gives 0.66 of max rank for SFT and
 0.72 for noise (Qwen), 0.50 vs 0.66 (SmolLM2), while stable rank gives 3x and 7x.
 So "ΔW is high rank" and "ΔW is concentrated" are both true. The bulk of the
-spectrum is a long tail that looks like noise, and the top few directions hold
+spectrum is a long, slowly decaying tail, and the top few directions hold
 far more energy than noise would. Count-style measures see the first,
 stable rank the second.
 
