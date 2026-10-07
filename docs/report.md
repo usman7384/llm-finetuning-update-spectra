@@ -334,12 +334,14 @@ I had assumed Timber used the 0.01·σ₁ threshold count. Going back to the pap
 they don't. They use Roy & Vetterli's entropy effective rank,
 eRank = exp(−Σ pᵢ log pᵢ) with pᵢ = σᵢ / Σσⱼ, and their evidence for
 superficiality is that eRank(W_base) and eRank(W_instruct), of the *whole*
-weight matrices, are nearly identical layer by layer. They also put
-eRank(ΔW) at about 85% of full rank. So I measured exactly that
-(`scripts/timber_check.py`) on all my runs and all the released pairs, plus
-Qwen3-0.6B, which is one of the pairs in their paper. For Qwen3-0.6B I get
-eRank(ΔW) at 83% of max rank, in line with their ~85%, so this is the same
-measurement.
+weight matrices, are nearly identical layer by layer, with eRank about 85%
+of full rank (interquartile range 0.75-0.95). That 85% is the eRank of the
+weights W, not of the update; I first misread it as eRank(ΔW). So I measured
+exactly that (`scripts/timber_check.py`) on all my runs and all the released
+pairs, plus Qwen3-0.6B and Qwen3-8B, which are in their paper. The base
+weights come out at 0.84 and 0.86 of full rank (interquartile ranges
+0.76-0.91 and 0.76-0.94), so this is the same measurement. eRank(ΔW) itself
+is 0.83 on both.
 
 Two checks they didn't have:
 
