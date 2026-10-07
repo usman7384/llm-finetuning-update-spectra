@@ -119,3 +119,36 @@ def compute_warmup_and_save_steps(
     warmup_steps = round(warmup_ratio * total_optimizer_steps)
     save_steps = max(1, min(100, total_optimizer_steps // 15))
     return warmup_steps, save_steps, total_optimizer_steps
+
+
+def freeze_input_embeddings(model) -> int:
+    """Freeze the token embedding matrix, and the output head if it's tied.
+
+    None of the analysis looks at these matrices, and freezing them is what
+    lets fp32 master weights fit in 6GB for Qwen2.5-0.5B (its tied embedding is
+    136M of 494M parameters). Returns how many parameters were frozen.
+    """
+    frozen = 0
+    for module in (model.get_input_embeddings(), model.get_output_embeddings()):
+        if module is not None and module.weight.requires_grad:
+            module.weight.requires_grad_(False)
+            frozen += module.weight.numel()
+    # gradient checkpointing needs something upstream that requires grad
+    model.enable_input_require_grads()
+    return frozen
+
+
+def unchanged_fraction(after, before, keys) -> float:
+    """Share of entries of the given matrices that are exactly unchanged.
+
+    `after` and `before` map key -> tensor (a state dict, or LazyWeights).
+    A real fine-tune with fp32 master weights moves essentially every entry.
+    Our first runs kept the weights in bf16, where a step smaller than half a
+    bf16 rounding unit is lost, and 78-96% of entries never moved.
+    """
+    same = total = 0
+    for key in keys:
+        a, b = after[key].float().cpu(), before[key].float().cpu()
+        same += int((a == b).sum())
+        total += a.numel()
+    return same / total if total else 0.0
