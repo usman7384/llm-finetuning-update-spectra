@@ -50,6 +50,9 @@ NEEDED = [
     "results/timber_cutoff.csv",
     "results/timber_cutoff_full.csv",
     "results/error_bars.csv",
+    # pretrained weights, the paper's second reference besides noise
+    "results/weights_base/spectra",
+    "results/weights_smollm2_base/spectra",
 ]
 
 
