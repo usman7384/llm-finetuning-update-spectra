@@ -1,0 +1,25 @@
+# second round (fp32 master weights), see v2_model_qwen2.5_0.5b.yaml
+seed: 42
+phase: control_lm
+
+data:
+  format: "text"
+  dataset: "Salesforce/wikitext"
+  config_name: "wikitext-103-raw-v1"
+  split: "train"
+  target_tokens_from: "checkpoints/v2/sft/manifest.json"   # train that first
+  subsample_seed: 42
+  val_fraction: 0.02
+
+train:
+  model_config: "configs/v2_model_qwen2.5_0.5b.yaml"
+  learning_rate: 2.0e-5
+  lr_scheduler: "cosine"
+  warmup_ratio: 0.03
+  num_epochs: 3
+  weight_decay: 0.0
+  max_grad_norm: 1.0
+  save_dir: "checkpoints/v2/control_lm"
+  log_dir: "logs/v2/control_lm"
+
+expected_train_tokens: null

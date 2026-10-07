@@ -1,0 +1,21 @@
+# second round (fp32 master weights), see v2_model_qwen2.5_0.5b.yaml
+seed: 43
+
+data:
+  dataset: "yahma/alpaca-cleaned"
+  n_examples: 10000
+  subsample_seed: 43
+  val_fraction: 0.02
+
+train:
+  model_config: "configs/v2_model_qwen2.5_0.5b.yaml"
+  learning_rate: 2.0e-5
+  lr_scheduler: "cosine"
+  warmup_ratio: 0.03
+  num_epochs: 3
+  weight_decay: 0.0
+  max_grad_norm: 1.0
+  save_dir: "checkpoints/v2/sft_seed43"
+  log_dir: "logs/v2/sft_seed43"
+
+expected_train_tokens: null
