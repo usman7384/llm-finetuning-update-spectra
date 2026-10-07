@@ -93,6 +93,12 @@ def train_sft(config_path: str | Path, force: bool = False) -> Path:
     if model_cfg["memory"].get("freeze_embeddings"):
         n = freeze_input_embeddings(model)
         print(f"froze {n:,} embedding parameters")
+        if model_cfg["model"].get("compute_dtype") == "bfloat16":
+            # frozen, so it needs no fp32 master copy; on Qwen2.5-0.5B this
+            # saves the ~0.3GB that otherwise pushes training out of VRAM
+            model.get_input_embeddings().to(torch.bfloat16)
+            if model.get_output_embeddings() is not None:
+                model.get_output_embeddings().to(torch.bfloat16)
 
     log_dir = Path(cfg["train"]["log_dir"])
     save_dir.mkdir(parents=True, exist_ok=True)
