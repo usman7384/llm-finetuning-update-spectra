@@ -50,8 +50,8 @@ Rank* ([arXiv:2509.23595](https://arxiv.org/html/2509.23595)). The closest
 paper to the SVD part of this project. They take ΔW = W_instruct − W_base for
 released Llama and Qwen3 pairs and measure Roy & Vetterli's entropy effective
 rank (eRank, γ=1). Finding: eRank of each whole weight matrix is nearly the
-same in base and instruct, which they read as post-training being superficial;
-eRank(ΔW) sits around 85% of full rank. They use eRank(ΔW) as a cutoff to trim
+same in base and instruct (about 85% of full rank), which they read as
+post-training being superficial. They use eRank(ΔW) as a cutoff to trim
 tail components of ΔW and improve pass@k without training. What they don't do:
 they use whatever checkpoints labs released (unknown recipes, SFT and RLHF and
 DPO mixed together), so they can't separate SFT from DPO, they don't connect
