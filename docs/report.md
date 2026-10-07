@@ -147,7 +147,7 @@ threshold count missed it.
 Another count-style measure, the rank needed to hold 90% of the energy (the one
 Biderman et al. 2024 use), has the same problem in a milder form: 0.66 of max
 rank for SFT against 0.72 for the random pair. Both views are true at once.
-The bulk of ΔW's spectrum is a long tail that looks like noise, so anything
+The bulk of ΔW's spectrum is a long, slowly decaying tail, so anything
 that counts directions calls it high rank; the top few directions carry far
 more energy than noise would, and that's what stable rank picks up.
 
@@ -426,7 +426,7 @@ What the first 300 problems said:
   the pattern their paper reports. The interval only just cleared zero.
 - Dropping the tail past the stable-rank cutoff hurt: −4.2 points of pass@1,
   and the model failed to reach a final answer more often (90.6% vs 96.5%).
-  The noise-like 59% of ΔW's energy is not junk; the model needs it. That
+  The 59% of ΔW's energy in its tail is not junk; the model needs it. That
   matches Delta-CoMe's finding that truncating ΔW to low rank hurts.
 - Halving it instead was fine: at λ 0.5 the stable cutoff landed where
   Timber's did.
