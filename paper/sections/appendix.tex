@@ -61,6 +61,55 @@ gap is largest in the \texttt{up} and \texttt{gate} projections (about
 (1.7$\times$). The ordering of the non-alignment controls
 (wikitext most concentrated) holds in every column.
 
+\section{Threshold sensitivity and the noise baseline}
+\label{app:sensitivity}
+
+\begin{table}[h]
+\caption{The threshold count at three cut-offs (fraction of maximum rank).
+At $0.01\,\sigma_1$ every update looks like noise; at $0.1\,\sigma_1$ the gap
+is large. The conclusion depends on an arbitrary choice.}
+\label{tab:threshold}
+\begin{center}
+\small
+\begin{tabular}{llccc}
+\toprule
+model & matrix & $0.01\,\sigma_1$ & $0.05\,\sigma_1$ & $0.1\,\sigma_1$ \\
+\midrule
+Qwen2.5-0.5B & SFT update      & 0.991 & 0.937 & 0.810 \\
+             & DPO update      & 0.990 & 0.906 & 0.816 \\
+             & wikitext update & 0.990 & 0.891 & 0.784 \\
+             & code update     & 0.992 & 0.960 & 0.895 \\
+             & noise           & 0.996 & 0.982 & 0.964 \\
+\midrule
+SmolLM2-360M & SFT update      & 0.955 & 0.822 & 0.610 \\
+             & wikitext update & 0.943 & 0.779 & 0.548 \\
+             & code update     & 0.976 & 0.902 & 0.780 \\
+             & noise           & 0.996 & 0.982 & 0.964 \\
+\bottomrule
+\end{tabular}
+\end{center}
+\end{table}
+
+\begin{table}[h]
+\caption{Stable rank of the random-init pair against the Marchenko--Pastur
+prediction $mn/(\sqrt{m}+\sqrt{n})^2/r$ for a Gaussian matrix of the same
+shape, Qwen2.5-0.5B, mean over layers.}
+\label{tab:mp}
+\begin{center}
+\small
+\begin{tabular}{lccc}
+\toprule
+matrix & shape & predicted & random-init pair \\
+\midrule
+\texttt{q}, \texttt{o} & $896 \times 896$  & 0.250 & 0.252, 0.251 \\
+\texttt{k}, \texttt{v} & $128 \times 896$  & 0.527 & 0.536, 0.535 \\
+\texttt{gate}, \texttt{up} & $4864 \times 896$ & 0.490 & 0.492, 0.492 \\
+\texttt{down} & $896 \times 4864$ & 0.490 & 0.493 \\
+\bottomrule
+\end{tabular}
+\end{center}
+\end{table}
+
 \section{Effective rank of the full weight matrix}
 \label{app:erankw}
 
@@ -87,6 +136,38 @@ Qwen3-0.6B                        & 12.6\% & 0.13\%  & 0.50\% \\
 Qwen2.5-1.5B                      & 1.2\%  & 0.004\% & 0.006\% \\
 SmolLM2-1.7B                      & 6.2\%  & 0.06\%  & 0.12\% \\
 Qwen3-8B                          & 8.3\%  & 0.06\%  & 0.14\% \\
+\bottomrule
+\end{tabular}
+\end{center}
+\end{table}
+
+\section{Cutoff experiment details}
+\label{app:cutoff}
+
+The prompt is the GSM8K question followed by ``Please reason step by step, and
+put your final answer within \verb|\boxed{}|.'', in Qwen3's chat template with
+thinking turned off. The answer is the last \verb|\boxed{}| expression, or the
+last number if there is none, compared numerically with the reference. The
+edit is applied to every attention and MLP projection; embeddings, norms and
+biases are left unchanged. pass@$k$ uses the unbiased estimator of
+\citet{chen2021codex} with $n = 8$ samples per problem.
+
+\begin{table}[h]
+\caption{All five variants on the first 300 GSM8K test problems. Differences
+from the unedited model in points, with 95\% paired bootstrap intervals.
+``Answered'' is the share of samples with a final boxed answer.}
+\label{tab:cutoff300}
+\begin{center}
+\small
+\begin{tabular}{lccccc}
+\toprule
+variant & pass@1 & pass@8 & answered & $\Delta$ pass@1 & $\Delta$ pass@8 \\
+\midrule
+no edit                       & 63.4 & 84.7 & 96.5\% & -- & -- \\
+eRank, $\lambda = 0$          & 63.9 & 87.7 & 96.7\% & $+0.5$ ($-1.3$, $+2.3$) & $+3.0$ ($-0.3$, $+6.3$) \\
+eRank, $\lambda = 0.5$        & 64.7 & 88.0 & 96.8\% & $+1.3$ ($-0.5$, $+3.0$) & $+3.3$ ($+0.3$, $+6.3$) \\
+stable rank, $\lambda = 0$    & 59.3 & 83.0 & 90.6\% & $-4.2$ ($-6.9$, $-1.4$) & $-1.7$ ($-5.7$, $+2.3$) \\
+stable rank, $\lambda = 0.5$  & 64.5 & 87.3 & 95.1\% & $+1.1$ ($-1.2$, $+3.4$) & $+2.7$ ($-1.0$, $+6.3$) \\
 \bottomrule
 \end{tabular}
 \end{center}
