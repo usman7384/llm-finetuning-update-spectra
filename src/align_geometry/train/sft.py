@@ -118,6 +118,7 @@ def train_sft(config_path: str | Path, force: bool = False) -> Path:
             text_field=cfg["data"].get("text_field", "text"),
             max_tokens_per_example=model_cfg["model"]["max_seq_len"],
             indices_out=indices_path,
+            shuffle_words=cfg["data"].get("shuffle_words", False),
         )
         expected_train_tokens = count_text_tokens(
             train_ds, tokenizer, max_tokens_per_example=model_cfg["model"]["max_seq_len"]
