@@ -84,7 +84,8 @@ the same size produces (section 6).
 | ARC-Challenge (acc_norm) | 32.34% ±1.37 | 33.62% ±1.38 | +1.28 (noise) |
 
 SFT bought about 3 points of instruction-following and paid for it with almost
-5 points of GSM8K. That drop is about 3.6x its stderr, so it's real. ARC didn't
+5 points of GSM8K. That drop is about 2.6 standard errors of the difference
+(unpaired; a paired test on the same questions would be tighter). ARC didn't
 move beyond noise. Refusals went up by about the same amount on safe and unsafe
 prompts, which looks like formatting bleeding through more than the model
 learning when to refuse; Alpaca has almost no refusal examples in it.
