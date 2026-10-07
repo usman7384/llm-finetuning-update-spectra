@@ -58,21 +58,28 @@ PROMPT = "{q}\nPlease reason step by step, and put your final answer within \\bo
 OUT_DIR = Path("results/timber_cutoff")
 
 
-def parse_variant(name: str) -> tuple[str | None, float]:
+def parse_variant(name: str) -> tuple[str | None, float, bool]:
+    """-> (cutoff, lambda, uniform). "uniform_" variants scale all of dW by one
+    factor per matrix, chosen so the edited update is as large as the matching
+    tail edit: same amount removed, but spread evenly instead of from the tail."""
     if name == "instruct":
-        return None, 1.0
-    m = re.fullmatch(r"(erank|stable)_l([0-9.]+)", name)
+        return None, 1.0, False
+    m = re.fullmatch(r"(uniform_)?(erank|stable)_l([0-9.]+)", name)
     if not m:
-        raise SystemExit(f"bad variant {name!r}, want instruct or erank_l0.5 / stable_l0.0 etc")
-    return m.group(1), float(m.group(2))
+        raise SystemExit(
+            f"bad variant {name!r}, want instruct, erank_l0.5, stable_l0.0, uniform_stable_l0.5 etc"
+        )
+    return m.group(2), float(m.group(3)), m.group(1) is not None
 
 
 @torch.no_grad()
-def apply_edit(model, cutoff: str, lam: float, device: str) -> dict:
-    """Timber's edit in place. Returns how much of dW the cutoff kept."""
+def apply_edit(model, cutoff: str, lam: float, device: str, uniform: bool = False) -> dict:
+    """Timber's edit in place, or its norm-matched uniform version.
+
+    Returns how much of dW the cutoff kept, and the mean uniform factor."""
     base = load_state_dict(weights_dir(BASE))
     params = dict(model.named_parameters())
-    kept_dirs, kept_energy = [], []
+    kept_dirs, kept_energy, alphas, survived = [], [], [], []
     for key, w_b in base.items():
         if key not in params or not is_analyzable_matrix(key):
             continue
@@ -85,7 +92,19 @@ def apply_edit(model, cutoff: str, lam: float, device: str) -> dict:
         k = min(math.ceil(size), len(s))
         scale = torch.full_like(s, lam)
         scale[:k] = 1.0
-        p.data.copy_((w_b + (u * (s * scale)) @ vh).to(p.dtype))
+        if uniform:
+            # one factor for the whole update, matching the tail edit's Frobenius norm
+            alpha = float(((s * scale) ** 2).sum().sqrt() / (s**2).sum().sqrt())
+            edited = w_b + alpha * delta
+            alphas.append(alpha)
+        else:
+            edited = w_b + (u * (s * scale)) @ vh
+        # the model runs in bf16, so check how much of the intended change survives rounding
+        original = p.data.to(torch.float32)
+        p.data.copy_(edited.to(p.dtype))
+        intended = float(torch.linalg.norm(edited - original))
+        if intended > 0:
+            survived.append(float(torch.linalg.norm(p.data.to(torch.float32) - edited)) / intended)
         kept_dirs.append(k / len(s))
         kept_energy.append(float((sv[:k] ** 2).sum() / (sv**2).sum()))
     del base
@@ -93,6 +112,10 @@ def apply_edit(model, cutoff: str, lam: float, device: str) -> dict:
         "matrices": len(kept_dirs),
         "kept_dirs_frac": sum(kept_dirs) / len(kept_dirs),
         "kept_energy_frac": sum(kept_energy) / len(kept_energy),
+        "uniform_alpha_mean": sum(alphas) / len(alphas) if alphas else None,
+        # rounding error / intended change, per matrix; near 0 is good, near 1
+        # means bf16 storage erased the edit
+        "rounding_error_vs_edit": sum(survived) / len(survived) if survived else None,
     }
 
 
@@ -109,10 +132,10 @@ def run_variant(name: str, problems, args, device: str) -> None:
     tok = AutoTokenizer.from_pretrained(INSTRUCT, padding_side="left")
     model = AutoModelForCausalLM.from_pretrained(INSTRUCT, dtype=torch.bfloat16).to(device)
     model.eval()
-    cutoff, lam = parse_variant(name)
+    cutoff, lam, uniform = parse_variant(name)
     if cutoff:
-        stats = apply_edit(model, cutoff, lam, device)
-        stats.update(variant=name, cutoff=cutoff, lam=lam)
+        stats = apply_edit(model, cutoff, lam, device, uniform)
+        stats.update(variant=name, cutoff=cutoff, lam=lam, uniform=uniform)
         (OUT_DIR / f"{name}.edit.json").write_text(json.dumps(stats, indent=2))
         print(f"{name}: kept {stats['kept_dirs_frac']:.1%} of directions, "
               f"{stats['kept_energy_frac']:.1%} of dW energy")  # fmt: skip
