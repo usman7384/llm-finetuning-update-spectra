@@ -1,0 +1,49 @@
+\section{Setup}
+\label{sec:setup}
+
+\paragraph{Our fine-tunes.} The main model is Qwen2.5-0.5B base
+\citep{qwen2.5}. We start from the base rather than the instruct release so
+that our SFT run is the first instruction tuning the model sees.
+\begin{itemize}
+  \item \textbf{SFT}: full fine-tuning on 10k examples from Alpaca-cleaned
+  \citep{taori2023alpaca}, three epochs, loss on answer tokens only,
+  1{,}750{,}543 training tokens.
+  \item \textbf{DPO} \citep{rafailov2023dpo}: on top of the SFT checkpoint,
+  10k UltraFeedback pairs \citep{cui2024ultrafeedback}, one epoch,
+  $\beta = 0.1$. Its update is measured against the SFT weights.
+  \item \textbf{Non-alignment controls}: plain language-model fine-tunes of
+  the same base on wikitext-103 \citep{merity2017pointer} and on Python code
+  from CodeParrot \citep{codeparrot}, with the same optimizer, schedule and
+  sequence length as SFT and the same number of training tokens
+  (1{,}714{,}520 and 1{,}718{,}163), counted after truncation.
+  \item \textbf{Seed repeats}: SFT and both controls repeated with a
+  different training seed and a different data sample.
+  \item \textbf{LoRA sweep} \citep{hu2022lora}: ranks 1 to 128 on the SFT data,
+  three learning rates each, used in \S\ref{sec:behavior}.
+\end{itemize}
+To check that nothing depends on the architecture, SFT and both controls were
+repeated on SmolLM2-360M base \citep{allal2025smollm2}, with token budgets
+again matched to its SFT run. All runs are full fine-tuning in bf16 with 8-bit
+AdamW \citep{dettmers2022optimizers} and gradient checkpointing
+\citep{chen2016checkpointing}, on a single 6\,GB consumer GPU, using TRL
+\citep{vonwerra2020trl}. Appendix~\ref{app:training} lists every
+hyperparameter.
+
+\paragraph{Released pairs.} Seven official base/instruct pairs, measured with
+no training: SmolLM2 135M, 360M and 1.7B; Qwen2.5 0.5B and 1.5B; Qwen3 0.6B
+and 8B \citep{yang2025qwen3}. The two Qwen3 pairs are among those studied by
+\citet{wu2025timber}. Weights are read one matrix at a time, so an 8B pair
+fits in 16\,GB of RAM.
+
+\paragraph{What we measure.} Every attention and MLP projection
+(\texttt{q}, \texttt{k}, \texttt{v}, \texttt{o}, \texttt{gate}, \texttt{up},
+\texttt{down}): 168 matrices for Qwen2.5-0.5B, 224 for SmolLM2-360M, 252 for
+Qwen3-8B. Embeddings and the output head are excluded. Numbers are means over
+matrices of the per-matrix fractions defined in \S\ref{sec:background}.
+
+\paragraph{Uncertainty.} Matrices in the same layer are not independent, so
+95\% intervals come from a block bootstrap that resamples whole layers (5{,}000
+draws). Comparisons between two runs on the same model use the paired
+difference per matrix, and ratios to the noise baseline resample the run and
+its baseline together. Seed repeats measure a separate source of variation,
+run to run.
