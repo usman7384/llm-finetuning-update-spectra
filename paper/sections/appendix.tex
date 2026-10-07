@@ -26,8 +26,8 @@ SmolLM2 code & CodeParrot & 1{,}883{,}657 tok. & as Qwen SFT & token-matched \\
 \end{center}
 \end{table}
 
-The effective batch size is 16 (batch 1 with 16 accumulation steps) for full
-fine-tuning; LoRA runs use batch 4 with plain AdamW. The base tokenizer of
+Training uses TRL \citep{vonwerra2020trl}. The effective batch size is 16
+(batch 1 with 16 accumulation steps) for full fine-tuning; LoRA runs use batch 4 with plain AdamW. The base tokenizer of
 SmolLM2-360M has no chat template, so SFT borrows the one from
 SmolLM2-360M-Instruct. Token budgets for the controls are counted after
 truncation to the sequence length, so they match what each run actually
