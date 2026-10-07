@@ -459,7 +459,7 @@ The full set mostly undoes the first impression:
   instruct, the only interval in the table that clears zero), but with six
   comparisons I wouldn't make anything of that.
 - **The tail matters.** The one clear effect anywhere in this experiment is
-  that deleting the noise-like part of ΔW costs 4 points.
+  that deleting the tail of ΔW costs 4 points.
 
 So for the paper: eRank isn't picking out a meaningful boundary in ΔW's
 spectrum. Halving a tail that holds 53x more of the update's energy gives the same
