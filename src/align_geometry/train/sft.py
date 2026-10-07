@@ -3,8 +3,16 @@
 Also drives configs/control_lm.yaml and configs/control_code.yaml, which set
 data.format: text to switch off the chat template and prompt masking.
 
-The bf16 / gradient checkpointing / 8-bit AdamW settings in the model config
-are what make full fine-tuning fit in 6GB. They aren't tuning knobs.
+The gradient checkpointing / 8-bit AdamW / frozen-embedding settings in the
+model config are what make full fine-tuning fit in 6GB. They aren't tuning
+knobs.
+
+Precision matters more than it looks. With `dtype: bfloat16` the weights
+themselves are bf16 and any step smaller than half a bf16 rounding unit is
+lost, so most weights never move (our first runs left 78-96% of entries
+unchanged). Configs now load fp32 weights (`dtype: float32`) and compute in
+bf16 (`compute_dtype: bfloat16`), and every run checks afterwards how many
+weights stayed exactly the same.
 """
 
 from __future__ import annotations
@@ -20,8 +28,10 @@ import yaml
 from transformers import AutoModelForCausalLM, AutoTokenizer
 from trl import SFTConfig, SFTTrainer
 
+from align_geometry.analysis.svd_delta import LazyWeights, is_analyzable_matrix
 from align_geometry.data.lm_dataset import load_lm_dataset
 from align_geometry.data.sft_dataset import load_sft_dataset
+from align_geometry.hub import weights_dir
 from align_geometry.train.common import (
     compute_warmup_and_save_steps,
     count_prompt_completion_tokens,
@@ -29,8 +39,10 @@ from align_geometry.train.common import (
     ensure_chat_template,
     file_hash,
     find_latest_checkpoint,
+    freeze_input_embeddings,
     git_commit_hash,
     resolve_target_tokens,
+    unchanged_fraction,
 )
 
 
@@ -73,6 +85,14 @@ def train_sft(config_path: str | Path, force: bool = False) -> Path:
         attn_implementation=model_cfg["model"]["attn_implementation"],
         trust_remote_code=model_cfg["model"]["trust_remote_code"],
     )
+    if dtype != torch.float32:
+        print(
+            f"WARNING: training with {dtype} weights. Small updates will round away; "
+            "use dtype: float32 with compute_dtype: bfloat16."
+        )
+    if model_cfg["memory"].get("freeze_embeddings"):
+        n = freeze_input_embeddings(model)
+        print(f"froze {n:,} embedding parameters")
 
     log_dir = Path(cfg["train"]["log_dir"])
     save_dir.mkdir(parents=True, exist_ok=True)
@@ -112,7 +132,9 @@ def train_sft(config_path: str | Path, force: bool = False) -> Path:
             val_fraction=cfg["data"]["val_fraction"],
             indices_out=indices_path,
         )
-        expected_train_tokens = count_prompt_completion_tokens(train_ds, tokenizer)
+        expected_train_tokens = count_prompt_completion_tokens(
+            train_ds, tokenizer, max_tokens_per_example=model_cfg["model"]["max_seq_len"]
+        )
         completion_only_loss = True
 
     memory_cfg = model_cfg["memory"]
@@ -140,7 +162,8 @@ def train_sft(config_path: str | Path, force: bool = False) -> Path:
         gradient_accumulation_steps=memory_cfg["gradient_accumulation_steps"],
         gradient_checkpointing=memory_cfg["gradient_checkpointing"],
         optim=memory_cfg["optimizer"],
-        bf16=(model_cfg["model"]["dtype"] == "bfloat16"),
+        # with fp32 weights this turns on bf16 autocast and keeps fp32 masters
+        bf16=(model_cfg["model"].get("compute_dtype", model_cfg["model"]["dtype"]) == "bfloat16"),
         max_length=model_cfg["model"]["max_seq_len"],
         eval_strategy="epoch",
         save_strategy="steps",
@@ -166,6 +189,13 @@ def train_sft(config_path: str | Path, force: bool = False) -> Path:
     trainer.save_model(str(save_dir))
     tokenizer.save_pretrained(str(save_dir))
 
+    # did the weights actually move? (see the module docstring)
+    base = LazyWeights(weights_dir(model_id))
+    after = trainer.model.state_dict()
+    keys = [k for k in base if is_analyzable_matrix(k) and k in after]
+    unchanged = unchanged_fraction(after, base, keys)
+    print(f"{unchanged:.2%} of attention/MLP weights unchanged")
+
     manifest = {
         "phase": cfg.get("phase", "sft"),
         "data_format": data_format,
@@ -180,6 +210,8 @@ def train_sft(config_path: str | Path, force: bool = False) -> Path:
         else None,
         "data_subsample_indices_file": str(indices_path),
         "expected_train_tokens": expected_train_tokens,
+        "weights_dtype": model_cfg["model"]["dtype"],
+        "unchanged_weight_fraction": unchanged,
         "observed_train_loss": train_result.metrics.get("train_loss"),
         "observed_train_runtime_sec": train_result.metrics.get("train_runtime"),
         "observed_train_samples_per_second": train_result.metrics.get("train_samples_per_second"),
@@ -192,4 +224,10 @@ def train_sft(config_path: str | Path, force: bool = False) -> Path:
     }
     (save_dir / "manifest.json").write_text(json.dumps(manifest, indent=2))
 
+    limit = model_cfg["memory"].get("max_unchanged_fraction", 0.01)
+    if unchanged > limit:
+        raise RuntimeError(
+            f"{unchanged:.1%} of weights never changed (limit {limit:.0%}). "
+            "This update isn't a real fine-tuning update; check the weight dtype."
+        )
     return save_dir
