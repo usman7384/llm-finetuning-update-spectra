@@ -224,6 +224,10 @@ uv run python scripts/timber_check.py
 # 95% intervals (layer bootstrap) for all of the spectral numbers
 uv run python scripts/error_bars.py
 
+# spectra of the pretrained weights, the second reference point besides noise
+uv run python scripts/weight_spectra.py --checkpoint checkpoints/base --out results/weights_base
+uv run python scripts/weight_spectra.py --checkpoint checkpoints/smollm2_base --out results/weights_smollm2_base
+
 # the paper's figures, as vector PDFs in paper/figures
 uv run python scripts/paper_figures.py
 
