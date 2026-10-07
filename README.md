@@ -223,6 +223,9 @@ uv run python scripts/timber_check.py
 # 95% intervals (layer bootstrap) for all of the spectral numbers
 uv run python scripts/error_bars.py
 
+# the paper's figures, as vector PDFs in paper/figures
+uv run python scripts/paper_figures.py
+
 # Timber's edit with an eRank vs a stable-rank cutoff, pass@k on GSM8K (~9.5 h)
 uv run python scripts/timber_cutoff.py --limit 300
 uv run python scripts/timber_cutoff.py --limit 1319 --variants instruct erank_l0.5 stable_l0.5  # ~16 h more
