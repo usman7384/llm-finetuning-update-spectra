@@ -88,7 +88,7 @@ def main() -> int:
     for run, (ckpt, idx) in RUNS.items():
         counts = token_counts(idx, tok, vocab)
         seen = torch.from_numpy(counts > 0)
-        logfreq = torch.from_numpy(np.log(counts[counts > 0]))
+        logfreq = torch.from_numpy(np.log(counts[counts > 0])).float()
         after = LazyWeights(ckpt)
         for key in keys:
             delta = after[key].float() - base[key].float()
