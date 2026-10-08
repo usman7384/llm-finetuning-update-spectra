@@ -1,0 +1,24 @@
+{
+  "phase": "control_shuffled",
+  "data_format": "text",
+  "config_path": "configs\\v2_smollm2_control_shuffled.yaml",
+  "config_hash": "110e93c7f3a0fc1b",
+  "model_config_path": "configs\\v2_model_smollm2_360m.yaml",
+  "model_config_hash": "ac70d7169f186334",
+  "git_commit": "9ed3628956c64dd8ec515d04e1772b7ed46820be",
+  "seed": 42,
+  "resumed_from_checkpoint": null,
+  "data_subsample_indices_file": "data\\processed\\v2_smollm2_control_shuffled_indices.json",
+  "expected_train_tokens": 1872120,
+  "weights_dtype": "float32",
+  "unchanged_weight_fraction": 4.949569702148438e-06,
+  "observed_train_loss": 5.50886526692416,
+  "observed_train_runtime_sec": 13394.2005,
+  "observed_train_samples_per_second": 2.491,
+  "timestamp_utc": "2026-10-08T10:29:10.108562+00:00",
+  "package_versions": {
+    "torch": "2.14.0+cu130",
+    "transformers": "5.16.1",
+    "trl": "1.12.0"
+  }
+}
