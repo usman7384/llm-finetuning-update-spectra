@@ -1,0 +1,24 @@
+{
+  "phase": "control_shuffled",
+  "data_format": "text",
+  "config_path": "configs\\v2_control_shuffled.yaml",
+  "config_hash": "96232c833df2039c",
+  "model_config_path": "configs\\v2_model_qwen2.5_0.5b.yaml",
+  "model_config_hash": "c9fe9857ad78f608",
+  "git_commit": "55117a66d0bbbaaa6f9623231ac8dc4895a88d5e",
+  "seed": 42,
+  "resumed_from_checkpoint": null,
+  "data_subsample_indices_file": "data\\processed\\v2_control_shuffled_indices.json",
+  "expected_train_tokens": 1711717,
+  "weights_dtype": "float32",
+  "unchanged_weight_fraction": 9.250291537889194e-07,
+  "observed_train_loss": 5.399403139135209,
+  "observed_train_runtime_sec": 10456.5355,
+  "observed_train_samples_per_second": 2.94,
+  "timestamp_utc": "2026-10-07T22:06:11.441939+00:00",
+  "package_versions": {
+    "torch": "2.14.0+cu130",
+    "transformers": "5.16.1",
+    "trl": "1.12.0"
+  }
+}
