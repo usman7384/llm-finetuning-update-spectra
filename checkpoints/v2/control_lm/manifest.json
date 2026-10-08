@@ -1,0 +1,24 @@
+{
+  "phase": "control_lm",
+  "data_format": "text",
+  "config_path": "configs\\v2_control_lm.yaml",
+  "config_hash": "31e93a664715abd5",
+  "model_config_path": "configs\\v2_model_qwen2.5_0.5b.yaml",
+  "model_config_hash": "c9fe9857ad78f608",
+  "git_commit": "55117a66d0bbbaaa6f9623231ac8dc4895a88d5e",
+  "seed": 42,
+  "resumed_from_checkpoint": null,
+  "data_subsample_indices_file": "data\\processed\\v2_control_lm_indices.json",
+  "expected_train_tokens": 1711933,
+  "weights_dtype": "float32",
+  "unchanged_weight_fraction": 7.880913032280219e-07,
+  "observed_train_loss": 2.2273869257860173,
+  "observed_train_runtime_sec": 10098.0865,
+  "observed_train_samples_per_second": 3.028,
+  "timestamp_utc": "2026-10-07T17:46:55.802308+00:00",
+  "package_versions": {
+    "torch": "2.14.0+cu130",
+    "transformers": "5.16.1",
+    "trl": "1.12.0"
+  }
+}
