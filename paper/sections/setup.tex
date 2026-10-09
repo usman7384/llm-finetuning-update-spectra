@@ -27,7 +27,7 @@ stored in bf16, any update smaller than half a bf16 unit is rounded away
 \citep{zamirai2020bfloat16, zhu2025path}. In a first round of our own runs that
 did exactly this, 78--96\% of the weights never changed, and the measured
 ``update'' was an artefact of the rounding. Every run reported here is
-checked after training: at most $10^{-5}$ of the weights are unchanged. We
+checked after training: at most $1.1\times10^{-5}$ of the weights are unchanged. We
 recommend this check to anyone measuring fine-tuning updates.
 
 \paragraph{Released models.} We measure fourteen official pairs with no

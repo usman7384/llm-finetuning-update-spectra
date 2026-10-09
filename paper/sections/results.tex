@@ -89,7 +89,7 @@ concentrated.
 
 The updates are also more concentrated than the weights they are added to.
 The stable rank of the pretrained weights is 0.178 on Qwen and 0.140 on
-SmolLM2, against 0.09--0.10 and 0.02--0.03 for the SFT, wikitext and code
+SmolLM2, against 0.09--0.10 and 0.020--0.034 for the SFT, wikitext and code
 updates. The threshold count cannot see this either: it puts the Qwen updates
 and the pretrained weights at the same 97--98\%.
 
@@ -108,8 +108,9 @@ a run with a different seed and data sample.}
 difference & Qwen2.5-0.5B & SmolLM2-360M \\
 \midrule
 SFT $-$ wikitext            & $+0.004$ ($-0.001$, $+0.010$) & $+0.005$ ($+0.003$, $+0.006$) \\
-SFT $-$ code                & $+0.003$ ($-0.000$, $+0.006$) & $-0.010$ ($-0.011$, $-0.008$) \\
-shuffled words $-$ SFT      & $-0.055$ ($-0.062$, $-0.047$) & $-0.016$ ($-0.018$, $-0.014$) \\
+SFT $-$ code                & $+0.003$ ($-0.000$, $+0.006$) & $-0.009$ ($-0.011$, $-0.008$) \\
+code $-$ wikitext           & $+0.002$ ($-0.004$, $+0.007$) & $+0.014$ ($+0.012$, $+0.016$) \\
+shuffled words $-$ SFT      & $-0.054$ ($-0.062$, $-0.047$) & $-0.016$ ($-0.018$, $-0.014$) \\
 \midrule
 second seed $-$ first, SFT      & $-0.001$ ($-0.005$, $+0.001$) & -- \\
 second seed $-$ first, wikitext & $-0.001$ ($-0.005$, $+0.003$) & -- \\

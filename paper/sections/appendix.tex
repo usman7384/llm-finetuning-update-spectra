@@ -18,7 +18,7 @@ batch                       & 1 sequence $\times$ 16 accumulation steps \\
 sequence length             & 512 tokens \\
 embeddings                  & frozen (tied with the output head; not analysed) \\
 memory                      & gradient checkpointing, one 6\,GB GPU \\
-check after training        & at most $10^{-5}$ of attention/MLP weights unchanged \\
+check after training        & at most $1.1\times10^{-5}$ of attention/MLP weights unchanged \\
 \midrule
 SFT data                    & 10k examples of Alpaca-cleaned, loss on answers only \\
 wikitext / code data        & wikitext-103 / CodeParrot (Python), plain LM loss \\
@@ -168,7 +168,7 @@ update & particip. & noise & above noise edge & above rounding floor \\
 SmolLM2-135M instruct & 0.321 & 0.667 & 30  & 96\% \\
 SmolLM2-360M instruct & 0.239 & 0.668 & 46  & 95\% \\
 Qwen2.5-0.5B instruct & 0.657 & 0.755 & 22  & 97\% \\
-Qwen3-0.6B            & 0.442 & 0.654 & 72  & 98\% \\
+Qwen3-0.6B            & 0.442 & 0.654 & 72  & 99\% \\
 Qwen2.5-1.5B instruct & 0.299 & 0.753 & 100 & 78\% \\
 SmolLM2-1.7B instruct & 0.375 & 0.629 & 140 & 91\% \\
 Qwen3-8B              & 0.405 & 0.693 & 243 & 97\% \\
