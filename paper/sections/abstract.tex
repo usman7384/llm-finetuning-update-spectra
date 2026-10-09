@@ -1,21 +1,18 @@
 \begin{abstract}
 Studies of what fine-tuning does to a language model often summarise the
 weight update $\dW$ by its rank. We compare the rank measures used for this
-against the same measures on random matrices of the same shape. Measures that
-count directions (a threshold count of singular values, the number of
-directions holding 90\% of the energy, and the entropy effective rank) put our
-fine-tuning updates only 2--36\% below noise, so on their own they make
-fine-tuning look unstructured. Stable rank puts the same updates 78--94\%
-below noise: a few strong directions on top of a long tail. These measures form one family,
-and the gap grows steadily with how much weight a measure gives to the top
-directions. The pattern holds for full fine-tunes of two small models and for
-fourteen released base/instruct and base/specialist pairs up to 8B
-parameters. The concentration is not a sign of alignment: with the amount of
-training held fixed, instruction tuning, Wikipedia and Python code give
-almost the same update, and scrambled text gives the most concentrated update
-of all. Applying the same baselines to a recent claim that post-training is
-superficial because the effective rank of the weights barely changes, we find
-that a random update of the same size leaves it just as unchanged while
-clearly damaging the model. Rank measures of weight updates should be
-reported against a noise baseline.
+against the same measures on random matrices of the same shape. On our
+fine-tunes of two small models, a threshold count of singular values puts the
+update within 2--5\% of noise, and the entropy effective rank and the 90\%
+energy rank put it 12--36\% below; stable rank puts the same updates 78--94\%
+below noise. The updates have a few strong directions on top of a long tail,
+and the gap to noise grows with how much weight a measure gives to the top.
+The pattern holds for twelve released base/instruct, preference-stage and
+base/specialist pairs up to 8B parameters. It is not a mark of instruction
+tuning: with training tokens held fixed, instruction data, Wikipedia and
+Python code give updates of similar shape, and scrambled text gives the most
+concentrated one. Applying the baselines to a recent claim that post-training
+is superficial because the effective rank of the weights barely changes, we
+find that a random update of the same size leaves it almost unchanged too.
+Rank measures of weight updates should be reported against a noise baseline.
 \end{abstract}
