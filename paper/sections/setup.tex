@@ -4,10 +4,12 @@
 \paragraph{Our fine-tunes.} We fine-tune Qwen2.5-0.5B base \citep{qwen2.5}
 and SmolLM2-360M base \citep{allal2025smollm2}, all parameters, four ways
 each, with the same optimizer settings and the same number of training tokens
-(about 1.75M for Qwen and 1.9M for SmolLM2, counted after truncation):
+(about 1.75M for Qwen and 1.9M for SmolLM2 per epoch, counted after
+truncation, for three epochs):
 \begin{itemize}
-  \item \textbf{SFT} on 10k instruction examples from the cleaned release of
-  Alpaca \citep{taori2023alpaca}, with the loss on answer tokens only;
+  \item \textbf{SFT} on 10k instruction examples from Alpaca-cleaned, a
+  community-cleaned version of Alpaca \citep{taori2023alpaca}, with the loss
+  on answer tokens only;
   \item \textbf{wikitext}: plain language-model training on wikitext-103
   \citep{merity2017pointer};
   \item \textbf{code}: the same on deduplicated Python files from CodeParrot
@@ -17,7 +19,11 @@ each, with the same optimizer settings and the same number of training tokens
   unchanged but there is no structure left to learn.
 \end{itemize}
 On Qwen, SFT, wikitext and code were each run twice, with a different seed
-and a different data sample. Appendix~\ref{app:training} lists every setting.
+and a different data sample. Matching tokens does not match optimizer steps:
+Python files are long, so the code runs take about 700 steps against about
+1,850 for SFT and 1,900--2,100 for wikitext and shuffled words.
+Appendix~\ref{app:training} lists every setting (Table~\ref{tab:hparams}) and
+the steps, loss and update size of every run (Table~\ref{tab:runs}).
 
 \paragraph{Precision.} All runs fit on one 6\,GB GPU. The weights are kept in
 fp32 and only the compute runs in bf16, with 8-bit AdamW
@@ -25,18 +31,26 @@ fp32 and only the compute runs in bf16, with 8-bit AdamW
 \citep{chen2016checkpointing}. This matters: if the weights themselves are
 stored in bf16, any update smaller than half a bf16 unit is rounded away
 \citep{zamirai2020bfloat16, zhu2025path}. In a first round of our own runs that
-did exactly this, 78--96\% of the weights never changed, and the measured
+did exactly this, 77--98\% of the weights never changed, and the measured
 ``update'' was an artefact of the rounding. Every run reported here is
 checked after training: at most $1.1\times10^{-5}$ of the weights are unchanged. We
 recommend this check to anyone measuring fine-tuning updates.
 
-\paragraph{Released models.} We measure fourteen official pairs with no
+\paragraph{Released models.} We measure twelve official pairs with no
 training, in three groups. (i) Base/instruct releases: SmolLM2 135M, 360M and
 1.7B; Qwen2.5 0.5B and 1.5B; Qwen3 0.6B and 8B \citep{yang2025qwen3}, the two
 Qwen3 pairs being among those studied by \citet{wu2025timber}. (ii) The
-post-training stages of OLMo 2 1B, base to SFT, SFT to DPO and DPO to RL,
-whose training data are public. (iii) Large updates without alignment content:
+preference stages of OLMo 2 1B, SFT to DPO and DPO to RL, whose training data
+are public. (iii) Large updates without alignment content:
 Qwen2.5-Math-1.5B and Qwen2.5-Coder 0.5B and 1.5B against their bases.
+
+Before measuring a pair we check that the second checkpoint descends from the
+first: the cosine between the two sets of weights is 0.99 or more for the six
+smaller base/instruct pairs and 0.20--0.60 for the specialists, which were trained on
+far more data. For OLMo 2 1B the released SFT checkpoint fails this check
+against the released base: the cosine is 0.00 in every matrix, so the two do
+not share an initialisation, and their difference is not a fine-tuning update.
+We leave out that stage, and the base-to-instruct update with it.
 
 \paragraph{What we measure.} Every attention and MLP projection
 (\texttt{q}, \texttt{k}, \texttt{v}, \texttt{o}, \texttt{gate}, \texttt{up},
@@ -44,4 +58,6 @@ Qwen2.5-Math-1.5B and Qwen2.5-Coder 0.5B and 1.5B against their bases.
 embeddings and the output head are excluded. We report means over matrices.
 Matrices in the same layer are not independent, so 95\% intervals come from a
 bootstrap that resamples whole layers, and comparisons between runs on the
-same model are paired matrix by matrix.
+same model are paired matrix by matrix. These intervals describe the spread
+over layers within one run, not the variation between training runs; for
+that we have the second seeds on Qwen.

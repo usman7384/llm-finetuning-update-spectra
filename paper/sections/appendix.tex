@@ -23,16 +23,49 @@ check after training        & at most $1.1\times10^{-5}$ of attention/MLP weight
 SFT data                    & 10k examples of Alpaca-cleaned, loss on answers only \\
 wikitext / code data        & wikitext-103 / CodeParrot (Python), plain LM loss \\
 shuffled-words data         & wikitext documents, word order shuffled within each document \\
-training tokens             & Qwen: 1.71--1.75M; SmolLM2: 1.87--1.91M \\
+training tokens per epoch   & Qwen: 1.71--1.75M; SmolLM2: 1.87--1.91M \\
 \bottomrule
 \end{tabular}
 \end{center}
 \end{table}
 
-Training a run took 1.3--3.7 hours. The base tokenizer of SmolLM2-360M has no
-chat template, so SFT borrows the one from SmolLM2-360M-Instruct. Second seeds
-change both the training seed and the data sample. Every run records its exact
-training rows, token count and the fraction of unchanged weights.
+\begin{table}[h]
+\caption{Every fine-tune. Steps are optimizer steps (rounded to 10); loss is
+the mean training loss; $\|\dW\|_F$ is over all attention and MLP matrices.
+The second SFT seed was interrupted and resumed from step 1{,}600 with its
+optimizer and scheduler state, so its logged mean loss covers only the last
+steps and is not shown.}
+\label{tab:runs}
+\begin{center}
+\small
+\begin{tabular}{llcccccc}
+\toprule
+model & run & steps & loss & $\|\dW\|_F$ & stable rank & stable w/o top & hours \\
+\midrule
+Qwen2.5-0.5B & SFT               & 1{,}840 & 1.00 & 10.4 & 0.097 & 0.126 & 2.8 \\
+             & SFT, seed 2       & 1{,}840 & --   & 10.5 & 0.096 & 0.126 & -- \\
+             & wikitext          & 1{,}910 & 2.23 & 12.1 & 0.093 & 0.122 & 2.8 \\
+             & wikitext, seed 2  & 1{,}910 & 2.24 & 12.0 & 0.092 & 0.121 & 2.7 \\
+             & code              & 680     & 1.12 & 6.3  & 0.094 & 0.123 & 1.3 \\
+             & code, seed 2      & 670     & 1.12 & 6.3  & 0.094 & 0.122 & 1.3 \\
+             & shuffled words    & 1{,}920 & 5.40 & 12.3 & 0.042 & 0.072 & 2.9 \\
+\midrule
+SmolLM2-360M & SFT               & 1{,}840 & 1.18 & 14.9 & 0.025 & 0.041 & 3.4 \\
+             & wikitext          & 2{,}080 & 2.52 & 17.4 & 0.020 & 0.032 & 3.7 \\
+             & code              & 720     & 1.28 & 8.8  & 0.034 & 0.051 & 1.4 \\
+             & shuffled words    & 2{,}090 & 5.51 & 20.8 & 0.009 & 0.021 & 3.7 \\
+\bottomrule
+\end{tabular}
+\end{center}
+\end{table}
+
+Training a run took 1.3--3.7 hours on one GPU (Table~\ref{tab:runs}). The base
+tokenizer of SmolLM2-360M has no chat template, so SFT borrows the one from
+SmolLM2-360M-Instruct. Second seeds change both the training seed and the data
+sample. Every run records its exact training rows, token count and the
+fraction of unchanged weights. Dropping the top direction leaves every update
+far below noise (0.440 for Qwen, 0.357 for SmolLM2), so stable rank is not
+driven by a single outlying direction.
 
 \section{Threshold sensitivity and the noise baseline}
 \label{app:sensitivity}
@@ -139,52 +172,66 @@ SmolLM2-360M & SFT            & 0.023 & 0.027 & 0.029 & 0.021 \\
 \end{center}
 \end{table}
 
-To test whether the shuffled-words update mainly shifts the output towards
-frequent tokens, we take the top left singular vector of each layer's
-\texttt{down\_proj} update on Qwen, map it to the vocabulary through the final
-norm and the tied unembedding, and correlate that logit shift with the log
-frequency of each token in the run's training data, against 50 random
-directions. In layers 18--22 the correlation is 0.32--0.39 for shuffled words,
-above the random 95th percentile (about 0.19), while the wikitext run, trained
-on the same words in their normal order, stays at 0.00--0.13. In the first two
-thirds of the network the shuffled-words update shows no such alignment, so
-frequency explains only part of its concentration.
+We tested one possible explanation: that the shuffled-words update mainly
+shifts the output towards frequent tokens. For each layer's
+\texttt{down\_proj} update on Qwen, we map the top left singular vector to the
+vocabulary through the final norm and the tied unembedding (ignoring the
+layers in between, as the logit lens does) and correlate the resulting logit
+shift with the log frequency of each token in the run's training data,
+against 50 random directions. In the last third of the network the top
+direction of several runs lines up with frequency, not only shuffled words:
+the correlation beats the random 95th percentile (about 0.19) in layers 18--23
+for shuffled words, in most of layers 15--23 for SFT and code, and in layer 23
+for wikitext. The mean correlation over the last third is 0.33 for shuffled
+words, 0.25 for SFT, 0.19 for code and 0.09 for wikitext. With 24 layers and
+four runs, and no correction for multiple tests, we read this only as a
+pattern: frequency alignment in late layers is common to fine-tuning, so it
+does not explain why the shuffled-words update is the most concentrated.
 
 \section{Released pairs: more measures}
 \label{app:released}
 
 \begin{table}[h]
-\caption{Participation ratio of each released update against a Gaussian matrix
-of the same shape, the number of singular values above the largest one a
-Gaussian matrix of the same shape and size would have (mean per matrix), and
-the share of directions above the simulated bf16 rounding floor.}
+\caption{More on the released pairs. Participation ratio against a Gaussian
+matrix of the same shape; the number of singular values above the largest one
+such a Gaussian matrix would have (mean per matrix); the share of directions
+above the simulated bf16 rounding floor (an upper bound on rounding, see
+\S\ref{sec:background}); the size of the update relative to the base
+weights; and the share of entries of $\dW$ that are exactly zero, the direct
+trace of rounding. The last two were not computed for Qwen3-8B.}
 \label{tab:released_more}
 \begin{center}
 \small
-\begin{tabular}{lcccc}
+\begin{tabular}{lcccccc}
 \toprule
-update & particip. & noise & above noise edge & above rounding floor \\
+update & particip.\ ratio & noise & above noise edge & above rounding floor & $\|\dW\|_F/\|W\|_F$ & exactly zero \\
 \midrule
-SmolLM2-135M instruct & 0.321 & 0.667 & 30  & 96\% \\
-SmolLM2-360M instruct & 0.239 & 0.668 & 46  & 95\% \\
-Qwen2.5-0.5B instruct & 0.657 & 0.755 & 22  & 97\% \\
-Qwen3-0.6B            & 0.442 & 0.654 & 72  & 99\% \\
-Qwen2.5-1.5B instruct & 0.299 & 0.753 & 100 & 78\% \\
-SmolLM2-1.7B instruct & 0.375 & 0.629 & 140 & 91\% \\
-Qwen3-8B              & 0.405 & 0.693 & 243 & 97\% \\
-OLMo 2 1B: base $\to$ SFT & 0.435 & 0.629 & 85  & -- \\
-OLMo 2 1B: SFT $\to$ DPO  & 0.116 & 0.629 & 114 & 13\% \\
-OLMo 2 1B: DPO $\to$ RL   & 0.127 & 0.629 & 99  & 3\% \\
-Qwen2.5-Coder-0.5B    & 0.545 & 0.755 & 44  & 100\% \\
-Qwen2.5-Math-1.5B     & 0.611 & 0.753 & 61  & 100\% \\
-Qwen2.5-Coder-1.5B    & 0.585 & 0.753 & 66  & 100\% \\
+SmolLM2-135M instruct & 0.321 & 0.667 & 30  & 96\%  & 8.1\%  & 2.5\%  \\
+SmolLM2-360M instruct & 0.239 & 0.668 & 46  & 95\%  & 7.6\%  & 2.7\%  \\
+Qwen2.5-0.5B instruct & 0.657 & 0.755 & 22  & 97\%  & 7.8\%  & 2.2\%  \\
+Qwen3-0.6B            & 0.442 & 0.654 & 72  & 99\%  & 12.7\% & 1.5\%  \\
+Qwen2.5-1.5B instruct & 0.299 & 0.753 & 100 & 78\%  & 1.2\%  & 14.0\% \\
+SmolLM2-1.7B instruct & 0.375 & 0.629 & 140 & 91\%  & 6.2\%  & 3.1\%  \\
+Qwen3-8B              & 0.405 & 0.693 & 243 & 97\%  & --     & --     \\
+OLMo 2 1B: SFT $\to$ DPO  & 0.116 & 0.629 & 114 & 13\% & 0.4\% & 38.8\% \\
+OLMo 2 1B: DPO $\to$ RL   & 0.127 & 0.629 & 99  & 3\%  & 0.3\% & 51.6\% \\
+Qwen2.5-Coder-0.5B    & 0.545 & 0.755 & 44  & 100\% & 89\%   & 0.2\%  \\
+Qwen2.5-Math-1.5B     & 0.611 & 0.753 & 61  & 100\% & 156\%  & 0.1\%  \\
+Qwen2.5-Coder-1.5B    & 0.585 & 0.753 & 66  & 100\% & 92\%   & 0.1\%  \\
 \bottomrule
 \end{tabular}
 \end{center}
 \end{table}
 
-Qwen2.5-0.5B is the least concentrated instruct release on every measure, and
-less concentrated than our own SFT of the same base; we do not know why.
+Qwen2.5-0.5B is the least concentrated instruct release on every rank measure
+(not on top-1 energy), and less concentrated than our own SFT of the same
+base; we do not know why.
+
+The rounding check agrees with the simulation. Where the simulated floor says
+rounding matters, many entries of the update are exactly zero: 14\% for
+Qwen2.5-1.5B, and 39\% and 52\% for the OLMo DPO and RL stages, whose updates
+are under half a percent of the weights. For the specialists, whose updates
+are as large as the weights themselves, almost no entry is zero.
 
 \section{Edit experiment details}
 \label{app:cutoff}
@@ -194,15 +241,22 @@ put your final answer within \verb|\boxed{}|.'', in Qwen3's chat template with
 thinking turned off, sampled at temperature 0.7, top-$p$ 0.8 and top-$k$ 20 for
 up to 512 new tokens. The answer is the last \verb|\boxed{}| expression, or the
 last number if there is none. The edit is applied to every attention and MLP
-projection in fp32 and the model then runs in bf16, which distorts the edit by
-25\% of its size for Timber's tail edit, 4\% for the stable-rank tail edit and
-6\% for uniform scaling. pass@$k$ uses the unbiased estimator of
+projection in fp32 and the model then runs in bf16. Rounding then distorts the
+edit: the error $\|\mathrm{bf16}(W') - W'\|_F$, where $W'$ is the edited
+matrix, is on average 25\% of the intended change $\|W' - W\|_F$ for Timber's
+tail edit, 4\% for the stable-rank tail edit, 5.5\% for uniform scaling
+matched to the stable-rank edit and 88\% for uniform scaling matched to
+Timber's edit, which bf16 storage almost erases. The uniform scaling factor is
+computed per matrix; its mean is 0.75 for the stable-rank match. pass@$k$ uses
+the unbiased estimator of
 \citet{chen2021codex} with $n=8$.
 
 \begin{table}[h]
 \caption{All edit variants on the first 300 GSM8K test problems. Differences
-from the unedited model in points, with 95\% paired bootstrap intervals.
-``Answered'' is the share of samples with a final boxed answer.}
+from the unedited model in points, with 95\% paired bootstrap intervals,
+not corrected for the twelve comparisons. ``Answered'' is the share of
+samples with a final boxed answer. ``Uniform'' scales the whole update, per
+matrix, to the size of the named tail edit.}
 \label{tab:cutoff300}
 \begin{center}
 \small
@@ -215,7 +269,8 @@ tail $\times 0$, eRank cutoff         & 63.9 & 87.7 & 96.7\% & $+0.5$ ($-1.3$, $
 tail $\times 0.5$, eRank cutoff       & 64.7 & 88.0 & 96.8\% & $+1.3$ ($-0.5$, $+3.0$) & $+3.3$ ($+0.3$, $+6.3$) \\
 tail $\times 0$, stable-rank cutoff   & 59.3 & 83.0 & 90.6\% & $-4.2$ ($-6.9$, $-1.4$) & $-1.7$ ($-5.7$, $+2.3$) \\
 tail $\times 0.5$, stable-rank cutoff & 64.5 & 87.3 & 95.1\% & $+1.1$ ($-1.2$, $+3.4$) & $+2.7$ ($-1.0$, $+6.3$) \\
-whole update $\times 0.75$            & 66.0 & 88.7 & 96.0\% & $+2.6$ ($+0.5$, $+4.8$) & $+4.0$ ($+1.3$, $+7.0$) \\
+uniform, matched to eRank edit         & 64.2 & 86.3 & 96.5\% & $+0.8$ ($-0.8$, $+2.4$) & $+1.7$ ($-1.0$, $+4.3$) \\
+uniform, matched to stable-rank edit   & 66.0 & 88.7 & 96.0\% & $+2.6$ ($+0.5$, $+4.8$) & $+4.0$ ($+1.3$, $+7.0$) \\
 \bottomrule
 \end{tabular}
 \end{center}
