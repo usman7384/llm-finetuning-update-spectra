@@ -1,8 +1,10 @@
 #!/usr/bin/env python
-"""Figures for the paper, as vector PDFs, straight from the result CSVs.
+"""Figures for the paper, as vector PDFs, straight from the result files.
 
 Nothing here recomputes anything expensive; it only reads what the other
-scripts saved, so the numbers in the figures can't drift from the results.
+scripts saved (v2_analysis.py, released_measures.py, timber_check.py,
+random_update_check.py, timber_cutoff.py), so the figures can't drift from
+the results.
 
     uv run python scripts/paper_figures.py
 
@@ -11,9 +13,7 @@ Writes paper/figures/*.pdf.
 
 from __future__ import annotations
 
-import glob
 import json
-import os
 import sys
 from pathlib import Path
 
@@ -25,7 +25,6 @@ import torch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
-from align_geometry.analysis.svd_delta import entropy_rank  # noqa: E402
 from align_geometry.eval.gsm8k import pass_at_k  # noqa: E402
 
 matplotlib.rcParams.update(
@@ -40,32 +39,47 @@ matplotlib.rcParams.update(
 )
 OUT = Path("paper/figures")
 NOISE = "0.6"  # grey for every noise baseline
-
-QWEN = [
-    ("SFT", "sft (vs base)", "svd_sft", "sft"),
-    ("DPO", "dpo (vs sft)", "svd_dpo", "dpo"),
-    ("wikitext", "wikitext LM (vs base)", "svd_control_lm", "control_lm"),
-    ("code", "python code LM (vs base)", "svd_control_code", "control_code"),
-]
-SMOL = [
-    ("SFT", "sft (vs base)", "svd_smollm2_sft", "smollm2_sft"),
-    ("wikitext", "wikitext LM (vs base)", "svd_smollm2_control_lm", "smollm2_control_lm"),
-    ("code", "python code LM (vs base)", "svd_smollm2_control_code", "smollm2_control_code"),
-]
-PAIR_NAMES = {
-    "smollm2-135m": "SmolLM2-135M",
-    "smollm2-360m": "SmolLM2-360M",
-    "qwen2.5-0.5b": "Qwen2.5-0.5B",
-    "qwen3-0.6b": "Qwen3-0.6B",
-    "qwen2.5-1.5b": "Qwen2.5-1.5B",
-    "smollm2-1.7b": "SmolLM2-1.7B",
-    "qwen3-8b": "Qwen3-8B",
+# Okabe-Ito: readable for the common kinds of colour blindness
+RUN_COLORS = {
+    "SFT": "#0072B2",
+    "wikitext": "#009E73",
+    "code": "#E69F00",
+    "shuffled words": "#CC79A7",
+    "pretrained W": "#000000",
+    "noise": NOISE,
+}
+MEASURE_LABELS = {
+    "threshold": "threshold\ncount",
+    "erank": "entropy\neRank",
+    "k90": "90%\nenergy",
+    "participation": "participation\nratio",
+    "stable": "stable\nrank",
 }
 
 
-def threshold_frac(svd_dir: str) -> float:
-    df = pd.read_csv(f"results/{svd_dir}/matrix_summary.csv")
-    return float((df["effective_rank_0.01"] / df["max_rank"]).mean())
+def fig_gaps() -> None:
+    """How far below noise each measure puts each update, both models."""
+    gaps = pd.read_csv("results/v2/gaps.csv")
+    gaps = gaps[gaps["vs"] == "noise"]
+    order = list(MEASURE_LABELS)
+    fig, axes = plt.subplots(1, 2, figsize=(6.5, 2.4), sharey=True)
+    for ax, model in zip(axes, ["Qwen2.5-0.5B", "SmolLM2-360M"], strict=True):
+        sub = gaps[gaps["model"] == model]
+        for run in ["SFT", "wikitext", "code", "shuffled words"]:
+            r = sub[sub["run"] == run].set_index("measure").loc[order]
+            x = np.arange(len(order))
+            yerr = [100 * (r["gap"] - r["lo"]), 100 * (r["hi"] - r["gap"])]
+            ax.errorbar(x, 100 * r["gap"], yerr=yerr, marker="o", ms=3, capsize=2,
+                        color=RUN_COLORS[run], label=run)  # fmt: skip
+        ax.set_xticks(range(len(order)))
+        ax.set_xticklabels([MEASURE_LABELS[m] for m in order], fontsize=7)
+        ax.set_title(model)
+        ax.set_ylim(0, 100)
+    axes[0].set_ylabel("how far below noise, %")
+    axes[0].legend(fontsize=7, loc="upper left")
+    fig.tight_layout()
+    fig.savefig(OUT / "gaps_by_measure.pdf", bbox_inches="tight")
+    plt.close(fig)
 
 
 def load_spectra(result_dir: str) -> list[torch.Tensor]:
@@ -75,77 +89,14 @@ def load_spectra(result_dir: str) -> list[torch.Tensor]:
     ]
 
 
-def family_rows(runs, stable_csv: str, noise_dir: str) -> pd.DataFrame:
-    """The four rank measures for each run plus its noise baseline."""
-    sr = pd.read_csv(stable_csv)
-    rows = []
-    for label, source, svd_dir, tc in runs:
-        sub = sr[sr["source"] == source]
-        rows.append(
-            {
-                "run": label,
-                "threshold": threshold_frac(svd_dir),
-                "k90": sub["k_for_90pct_frac"].mean(),
-                "erank": pd.read_csv(f"results/timber_check/{tc}.csv")["delta_erank_frac"].mean(),
-                "stable": sub["stable_rank_frac"].mean(),
-            }
-        )
-    noise = sr[sr["source"] == "random init pair"]
-    rows.append(
-        {
-            "run": "noise",
-            "threshold": threshold_frac(noise_dir),
-            "k90": noise["k_for_90pct_frac"].mean(),
-            # from the random-init pair's own spectra, like every other noise bar
-            "erank": np.mean([entropy_rank(sv) / sv.numel() for sv in load_spectra(noise_dir)]),
-            "stable": noise["stable_rank_frac"].mean(),
-        }
-    )
-    return pd.DataFrame(rows)
-
-
-def fig_metrics() -> None:
-    """Four rank measures, real updates vs noise, both families."""
-    fams = [
-        ("Qwen2.5-0.5B", family_rows(QWEN, "results/stable_rank.csv", "svd_control_random")),
-        (
-            "SmolLM2-360M",
-            family_rows(SMOL, "results/stable_rank_smollm2.csv", "svd_smollm2_random"),
-        ),
-    ]
-    metrics = [
-        ("threshold", "threshold count\n($\\sigma_i \\geq 0.01\\,\\sigma_1$)"),
-        ("k90", "rank for 90%\nof energy"),
-        ("erank", "entropy eRank\n($\\gamma=1$)"),
-        ("stable", "stable rank\n$\\|\\Delta W\\|_F^2 / \\|\\Delta W\\|_2^2$"),
-    ]
-    colors = {"SFT": "C0", "DPO": "C1", "wikitext": "C2", "code": "C3", "noise": NOISE}
-    fig, axes = plt.subplots(1, 4, figsize=(6.5, 2.1), sharey=True)
-    for ax, (col, title) in zip(axes, metrics, strict=True):
-        x = 0.0
-        ticks, labels = [], []
-        for fam, df in fams:
-            start = x
-            for _, r in df.iterrows():
-                ax.bar(x, r[col], 0.8, color=colors[r["run"]])
-                x += 1
-            ticks.append((start + x - 1) / 2)
-            labels.append(fam.split("-")[0])
-            x += 0.8
-        ax.set_xticks(ticks)
-        ax.set_xticklabels(labels)
-        ax.set_title(title)
-        ax.set_ylim(0, 1.05)
-    axes[0].set_ylabel("fraction of max rank")
-    handles = [plt.Rectangle((0, 0), 1, 1, color=c) for c in colors.values()]
-    fig.legend(handles, list(colors), loc="lower center", ncol=5, bbox_to_anchor=(0.5, -0.08))
-    fig.tight_layout(rect=(0, 0.06, 1, 1))
-    fig.savefig(OUT / "metrics_vs_noise.pdf", bbox_inches="tight")
-    plt.close(fig)
-
-
 def mean_curves(result_dir: str, grid: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
-    """Cumulative energy share and sigma_i / sigma_1, against i / r, averaged over matrices."""
+    """Cumulative energy share and sigma_i / sigma_1 against i / r.
+
+    Each matrix's curve is interpolated onto a common grid of i / r (matrices
+    have different ranks), then averaged: arithmetic mean for the energy
+    share, geometric mean for the decay. Below 1/r a curve is held at its
+    first value, which is why small matrices flatten out at the far left.
+    """
     cum, decay = [], []
     for sv in load_spectra(result_dir):
         sv = sv.numpy()
@@ -157,20 +108,21 @@ def mean_curves(result_dir: str, grid: np.ndarray) -> tuple[np.ndarray, np.ndarr
 
 
 def fig_spectrum() -> None:
-    """Where the energy sits: a concentrated head and a noise-like tail (Qwen2.5-0.5B)."""
+    """Where the energy sits: a few strong directions and a long tail (Qwen2.5-0.5B)."""
     grid = np.logspace(-3, 0, 300)
     lines = [
-        ("SFT", "svd_sft", "C0", "-"),
-        ("wikitext", "svd_control_lm", "C2", "-"),
-        ("code", "svd_control_code", "C3", "-"),
-        ("random-init pair", "svd_control_random", NOISE, "-"),
-        ("pretrained $W$", "weights_base", "k", "--"),
+        ("SFT", "v2/svd_sft", "-"),
+        ("wikitext", "v2/svd_control_lm", "-"),
+        ("code", "v2/svd_control_code", "-"),
+        ("shuffled words", "v2/svd_control_shuffled", "-"),
+        ("noise", "svd_control_random", "-"),
+        ("pretrained W", "weights_base", "--"),
     ]
     fig, axes = plt.subplots(1, 2, figsize=(6.5, 2.3))
-    for label, d, color, ls in lines:
+    for label, d, ls in lines:
         cum, decay = mean_curves(d, grid)
-        axes[0].plot(grid, 100 * cum, color=color, ls=ls, label=label)
-        axes[1].plot(grid, decay, color=color, ls=ls, label=label)
+        axes[0].plot(grid, 100 * cum, color=RUN_COLORS[label], ls=ls, label=label)
+        axes[1].plot(grid, decay, color=RUN_COLORS[label], ls=ls, label=label)
     axes[0].set_xscale("log")
     axes[0].set_xlabel("top fraction of singular directions, $i/r$")
     axes[0].set_ylabel("share of energy, %")
@@ -186,45 +138,58 @@ def fig_spectrum() -> None:
     plt.close(fig)
 
 
+RELEASED = [
+    # (key, label, group)
+    ("smollm2-135m", "SmolLM2-135M", "instruct release"),
+    ("smollm2-360m", "SmolLM2-360M", "instruct release"),
+    ("qwen2.5-0.5b", "Qwen2.5-0.5B", "instruct release"),
+    ("qwen3-0.6b", "Qwen3-0.6B", "instruct release"),
+    ("qwen2.5-1.5b", "Qwen2.5-1.5B", "instruct release"),
+    ("smollm2-1.7b", "SmolLM2-1.7B", "instruct release"),
+    ("qwen3-8b", "Qwen3-8B", "instruct release"),
+    ("olmo2-1b-sft", "OLMo2-1B SFT", "OLMo 2 stage"),
+    ("olmo2-1b-dpo", "OLMo2-1B DPO", "OLMo 2 stage"),
+    ("olmo2-1b-rl", "OLMo2-1B RL", "OLMo 2 stage"),
+    ("qwen2.5-coder-0.5b", "Coder-0.5B", "code / math"),
+    ("qwen2.5-math-1.5b", "Math-1.5B", "code / math"),
+    ("qwen2.5-coder-1.5b", "Coder-1.5B", "code / math"),
+]
+
+
 def fig_released() -> None:
-    """Threshold count and stable rank on public base/instruct pairs."""
-    df = pd.read_csv("results/released_pairs.csv").set_index("pair")
-    order = [p for p in PAIR_NAMES if p in df.index]
-    df = df.loc[order]
-    x = np.arange(len(df))
-    fig, axes = plt.subplots(1, 2, figsize=(6.5, 2.2))
+    """Threshold count and stable rank on released updates, against noise."""
+    df = pd.read_csv("results/released_measures.csv").set_index("pair")
+    rows = [r for r in RELEASED if r[0] in df.index]
+    x = np.arange(len(rows))
+    fig, axes = plt.subplots(1, 2, figsize=(6.5, 2.6))
     for ax, real, noise, title in [
-        (axes[0], "threshold_rank_frac", "noise_threshold_rank_frac", "threshold count (0.01)"),
-        (axes[1], "stable_rank_frac", "noise_stable_rank_frac", "stable rank"),
+        (axes[0], "real_threshold", "noise_threshold", "threshold count (0.01)"),
+        (axes[1], "real_stable", "noise_stable", "stable rank"),
     ]:
-        ax.bar(x - 0.2, df[real], 0.4, color="C0", label="base $\\to$ instruct")
-        ax.bar(x + 0.2, df[noise], 0.4, color=NOISE, label="Gaussian, same shape")
+        ax.bar(x - 0.2, df.loc[[r[0] for r in rows], real], 0.4, color="#0072B2",
+               label="released update")  # fmt: skip
+        ax.bar(x + 0.2, df.loc[[r[0] for r in rows], noise], 0.4, color=NOISE,
+               label="Gaussian, same shape")  # fmt: skip
         ax.set_xticks(x)
-        ax.set_xticklabels([PAIR_NAMES[p] for p in order], rotation=35, ha="right")
+        ax.set_xticklabels([r[1] for r in rows], rotation=60, ha="right", fontsize=6)
         ax.set_title(title)
         ax.set_ylabel("fraction of max rank")
-    for i, ratio in enumerate(df["noise_over_real"]):
-        axes[1].text(i, df["noise_stable_rank_frac"].iloc[i] + 0.01, f"{ratio:.1f}x",
-                     ha="center", fontsize=6)  # fmt: skip
-    axes[0].set_ylim(0.9, 1.0)
+        # separators between the three groups
+        for i in range(1, len(rows)):
+            if rows[i][2] != rows[i - 1][2]:
+                ax.axvline(i - 0.5, color="0.85", lw=0.8)
+    axes[0].set_ylim(0.85, 1.0)
     axes[1].set_ylim(0, 0.5)
     handles, labels = axes[1].get_legend_handles_labels()
-    fig.legend(handles, labels, loc="lower center", ncol=2, bbox_to_anchor=(0.5, -0.06))
+    fig.legend(handles, labels, loc="lower center", ncol=2, bbox_to_anchor=(0.5, -0.08))
     fig.tight_layout(rect=(0, 0.05, 1, 1))
     fig.savefig(OUT / "released_pairs.pdf", bbox_inches="tight")
     plt.close(fig)
 
 
-def fig_erank_perturbation() -> None:
-    """How much eRank(W) moves for the real update vs a random one of the same size."""
+def fig_random_update() -> None:
+    """eRank(W) barely moves under real or random updates; the model does notice."""
     names = {
-        "dpo": "DPO (ours)",
-        "control_code": "code LM (ours)",
-        "sft": "SFT (ours)",
-        "control_lm": "wikitext LM (ours)",
-        "smollm2_control_code": "SmolLM2 code (ours)",
-        "smollm2_control_lm": "SmolLM2 wikitext (ours)",
-        "smollm2_sft": "SmolLM2 SFT (ours)",
         "qwen2.5-1.5b": "Qwen2.5-1.5B",
         "qwen3-8b": "Qwen3-8B",
         "smollm2-1.7b": "SmolLM2-1.7B",
@@ -235,49 +200,69 @@ def fig_erank_perturbation() -> None:
     }
     rows = []
     for key, label in names.items():
-        df = pd.read_csv(f"results/timber_check/{key}.csv")
-        rows.append(
-            (label, df["erank_change_real"].mean() * 100, df["erank_change_random"].mean() * 100)
-        )
+        d = pd.read_csv(f"results/timber_check/{key}.csv")
+        rows.append((label, 100 * d.erank_change_real.mean(), 100 * d.erank_change_random.mean()))
+    fig, axes = plt.subplots(1, 2, figsize=(6.5, 2.4), gridspec_kw={"width_ratios": [1.3, 1]})
     y = np.arange(len(rows))
-    fig, ax = plt.subplots(figsize=(4.2, 3.0))
-    ax.barh(y + 0.2, [r[1] for r in rows], 0.4, color="C0", label="real update")
-    ax.barh(y - 0.2, [r[2] for r in rows], 0.4, color=NOISE, label="random, same norm")
-    ax.set_yticks(y)
-    ax.set_yticklabels([r[0] for r in rows])
-    ax.set_xscale("log")
-    ax.set_xlabel("relative change in eRank($W$), %")
-    ax.legend(loc="lower right", fontsize=7)
+    axes[0].barh(y + 0.2, [r[1] for r in rows], 0.4, color="#0072B2", label="real update")
+    axes[0].barh(y - 0.2, [r[2] for r in rows], 0.4, color=NOISE, label="random, same size")
+    axes[0].set_yticks(y)
+    axes[0].set_yticklabels([r[0] for r in rows], fontsize=7)
+    axes[0].set_xlabel("change in eRank($W$), %")
+    axes[0].set_title("effective rank of $W$ barely moves")
+    axes[0].legend(fontsize=6, loc="lower right")
+
+    p = pd.read_csv("results/v2/random_update_check.csv").set_index("update")
+    order = [("none (base)", "base"), ("gaussian", "random,\nGaussian"),
+             ("spectrum", "random,\nsame\nspectrum")]  # fmt: skip
+    vals = [p.loc[k, "perplexity"] for k, _ in order]
+    bars = axes[1].bar(range(len(order)), vals, color=["#000000", NOISE, NOISE])
+    for b, (k, _) in zip(bars, order, strict=True):
+        if k != "none (base)":
+            note = f"eRank {p.loc[k, 'erank_change_pct']:.2f}%"
+            axes[1].text(b.get_x() + b.get_width() / 2, b.get_height() + 0.8, note,
+                         ha="center", fontsize=6)  # fmt: skip
+    axes[1].set_xticks(range(len(order)))
+    axes[1].set_xticklabels([lbl for _, lbl in order], fontsize=7)
+    axes[1].set_ylabel("wikitext perplexity")
+    axes[1].set_title("but the model does (Qwen3-0.6B)")
     fig.tight_layout()
-    fig.savefig(OUT / "erank_perturbation.pdf", bbox_inches="tight")
+    fig.savefig(OUT / "random_update.pdf", bbox_inches="tight")
     plt.close(fig)
 
 
-def pass_curve(variant: str, limit: int) -> list[float]:
-    text = Path(f"results/timber_cutoff/{variant}.jsonl").read_text(encoding="utf-8")
-    recs = [r for r in map(json.loads, text.splitlines()) if r["idx"] < limit]
+def pass_curve(variant: str, limit: int) -> list[float] | None:
+    path = Path(f"results/timber_cutoff/{variant}.jsonl")
+    recs = [r for r in map(json.loads, path.read_text(encoding="utf-8").splitlines())
+            if r["idx"] < limit]  # fmt: skip
+    if len(recs) < limit:
+        return None  # not finished on this many problems
     n = len(recs[0]["correct"])
     return [100 * np.mean([pass_at_k(n, sum(r["correct"]), k) for r in recs]) for k in (1, 2, 4, 8)]
 
 
 def fig_cutoff() -> None:
-    """pass@k for Timber's edit with each cutoff."""
+    """pass@k for the edit variants."""
     ks = [1, 2, 4, 8]
     styles = {
         "instruct": ("no edit", NOISE, "-"),
-        "erank_l0.5": ("eRank cutoff, $\\lambda$=0.5 (Timber)", "C0", "-"),
-        "stable_l0.5": ("stable-rank cutoff, $\\lambda$=0.5", "C2", "-"),
-        "erank_l0.0": ("eRank cutoff, $\\lambda$=0", "C0", ":"),
-        "stable_l0.0": ("stable-rank cutoff, $\\lambda$=0", "C3", ":"),
+        "erank_l0.5": ("tail edit, eRank cutoff (Timber)", "#0072B2", "-"),
+        "stable_l0.5": ("tail edit, stable-rank cutoff", "#009E73", "-"),
+        "uniform_stable_l0.5": ("uniform scaling, same size", "#CC79A7", "-"),
+        "stable_l0.0": ("tail removed, stable-rank cutoff", "#D55E00", ":"),
     }
     fig, axes = plt.subplots(1, 2, figsize=(6.5, 2.3), sharey=True)
     for ax, limit, variants, title in [
         (axes[0], 300, list(styles), "first 300 problems"),
-        (axes[1], 1319, ["instruct", "erank_l0.5", "stable_l0.5"], "all 1,319 problems"),
-    ]:
+        (axes[1], 1319, ["instruct", "erank_l0.5", "stable_l0.5", "uniform_stable_l0.5"],
+         "all 1,319 problems"),
+    ]:  # fmt: skip
         for v in variants:
+            curve = pass_curve(v, limit)
+            if curve is None:
+                continue
             label, color, ls = styles[v]
-            ax.plot(ks, pass_curve(v, limit), marker="o", ms=3, color=color, ls=ls, label=label)
+            ax.plot(ks, curve, marker="o", ms=3, color=color, ls=ls, label=label)
         ax.set_xscale("log", base=2)
         ax.set_xticks(ks)
         ax.set_xticklabels(ks)
@@ -292,15 +277,10 @@ def fig_cutoff() -> None:
 
 def main() -> int:
     OUT.mkdir(parents=True, exist_ok=True)
-    missing = [p for p in ["results/stable_rank.csv", "results/released_pairs.csv"]
-               if not os.path.exists(p)]  # fmt: skip
-    if missing or not glob.glob("results/timber_cutoff/*.jsonl"):
-        print("results missing, run the analysis scripts first:", missing)
-        return 1
-    fig_metrics()
+    fig_gaps()
     fig_spectrum()
     fig_released()
-    fig_erank_perturbation()
+    fig_random_update()
     fig_cutoff()
     print("wrote", ", ".join(sorted(p.name for p in OUT.glob("*.pdf"))))
     return 0
