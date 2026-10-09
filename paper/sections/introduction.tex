@@ -15,49 +15,56 @@ $\dW$ and of $W$ \citep{wu2025timber}. Related work reports that fine-tuning
 updates are ``high rank'' \citep{biderman2024lora} or ``nearly full-rank''
 \citep{mukherjee2025rl}.
 
-Real updates are full rank in the strict sense, so these studies use softer
-measures: how many singular values exceed 1\% of the largest, how many
-directions hold 90\% of the energy, or the entropy effective rank
-\citep{roy2007effective}. We began this project by measuring an SFT update
-with the first of these and got a puzzling answer. The update scored 97\% of
-full rank. The difference between two random initialisations of the same
-model, which is pure noise, scored 99.6\%. By that measure, fine-tuning looks
-almost like noise.
+Real updates are full rank in the strict sense, so these readings rest on
+softer measures: the numerical rank, the number of directions that hold 90\%
+of the energy \citep{biderman2024lora}, or the entropy effective rank
+\citep{roy2007effective, wu2025timber}. \citet{biderman2024lora} also compared
+against noise: the spectrum of a fully fine-tuned weight matrix looks like that
+of the pretrained one plus low-magnitude Gaussian noise, and they concluded
+that nothing about it is unusual. We began this project with the same
+impression. Counting the singular values of an SFT update above 1\% of the
+largest gave 97\% of full rank, and the difference between two random
+initialisations of the same model, which is pure noise, gave 99.6\%. By that
+measure, fine-tuning looks almost like noise.
 
 It is not. Stable rank \citep{rudelson2007sampling}, computed from the same
 singular values, puts the update 4.5 times below noise, and its top direction
 holds 6.6 times as much of the energy. The two answers differ because the
-measures weigh different parts of the spectrum, and the counting measures are
-rarely compared with what noise gives. Comparing against noise is an old idea
-in statistics \citep{horn1965parallel, gavish2014optimal} and has been used to
+measures weigh different parts of the spectrum, and because measures of $W$
+cannot see much of $\dW$ at all. Comparing against noise is an old idea in
+statistics \citep{horn1965parallel, gavish2014optimal} and has been used to
 study trained weights \citep{martin2021implicit, thamm2022random}; this paper
-applies it to fine-tuning updates.
+applies it to the update itself, measure by measure.
 
 Our findings:
 
 \begin{enumerate}
-  \item \textbf{Counting measures make updates look like noise.} They put our
-  updates only 2--36\% below a random matrix of the same shape; stable rank
-  puts them 78--94\% below. All the measures belong to one family, and the gap
-  grows with how much weight a measure gives to the top directions
+  \item \textbf{Counting measures put updates close to noise.} On our SFT,
+  Wikipedia and code fine-tunes, the threshold count is within 2--5\% of a
+  random matrix of the same shape, and eRank and the 90\% energy rank are
+  12--36\% below it; stable rank is 78--94\% below. Across the measures, the
+  gap grows with how much weight a measure gives to the top directions
   (\S\ref{sec:metrics}).
-  \item \textbf{Updates have a few strong directions and a long tail}, and are
-  more concentrated than the pretrained weights they are added to
+  \item \textbf{Updates have a few strong directions and a long tail}, and on
+  average are more concentrated than the pretrained weights they are added to
   (\S\ref{sec:headtail}).
-  \item \textbf{The shape comes from fine-tuning, not from alignment.} With the
-  amount of training held fixed, instruction tuning, Wikipedia and Python code
-  give almost the same update, and text with its word order scrambled gives the
-  most concentrated update of all (\S\ref{sec:controls}).
-  \item \textbf{It holds for released models}, fourteen base/instruct and
-  base/specialist pairs up to 8B parameters. On their bf16 checkpoints, much of
-  what the threshold count counts could come from rounding alone
-  (\S\ref{sec:released}).
+  \item \textbf{Instruction tuning leaves no special mark.} With the number of
+  training tokens held fixed, instruction SFT, Wikipedia and Python code give
+  updates of similar spectral shape, with SFT not an outlier, and text with its
+  word order scrambled gives the most concentrated update of all
+  (\S\ref{sec:controls}).
+  \item \textbf{It holds for released models}, twelve base/instruct,
+  preference-stage and base/specialist pairs up to 8B parameters. On several
+  bf16 checkpoints, much of what the threshold count counts could come from
+  rounding alone (\S\ref{sec:released}).
   \item \textbf{It changes how earlier evidence reads.} An unchanged effective
   rank of $W$ after post-training, read by \citet{wu2025timber} as a sign that
-  post-training is superficial, is what any update of that size produces,
-  including random updates that clearly damage the model (\S\ref{sec:timber}).
+  post-training is superficial, is what a random update of the same size also
+  produces, even one that changes the model's predictions a lot
+  (\S\ref{sec:timber}).
 \end{enumerate}
 
 The practical message is short: report rank measures of weight updates next to
-the same measure on noise, and test claims about alignment against fine-tuning
+the same measure on noise, check that low-precision training or storage did
+not erase the update, and test claims about alignment against fine-tuning
 without alignment content.
