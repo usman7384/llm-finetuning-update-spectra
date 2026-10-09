@@ -4,83 +4,62 @@
 \subsection{Counting measures make updates look like noise}
 \label{sec:metrics}
 
-\begin{figure}[t]
-\begin{center}
-\includegraphics[width=\linewidth]{figures/metrics_vs_noise.pdf}
-\end{center}
-\caption{The four rank measures for our fine-tuning updates and for the
-random-init pair of the same model (grey). The three counting measures put
-every update close to the noise value; stable rank puts every update far
-below it. Means over 168 (Qwen2.5-0.5B) and 224 (SmolLM2-360M) matrices.}
-\label{fig:metrics}
-\end{figure}
-
 \begin{table}[t]
 \caption{Rank measures as a fraction of the maximum rank, and the share of
-energy in the top singular value. ``Noise'' is the random-init pair;
-``pretrained $W$'' measures the base model's weights themselves. DPO is
-measured against the SFT model.}
-\label{tab:metrics}
+energy in the top direction, averaged over all attention and MLP matrices.
+``Noise'' is the random-init pair; ``pretrained $W$'' is the base model's own
+weights.}
+\label{tab:measures}
 \begin{center}
 \small
-\begin{tabular}{llccccc}
+\begin{tabular}{llcccccc}
 \toprule
-model & matrix & threshold & 90\% energy & eRank & stable rank & top-1 energy \\
+model & matrix & threshold & eRank & 90\% energy & particip. & stable & top-1 energy \\
 \midrule
-Qwen2.5-0.5B & SFT update      & 0.991 & 0.660 & 0.893 & 0.145 & 5.1\% \\
-             & DPO update      & 0.990 & 0.652 & 0.891 & 0.144 & 5.5\% \\
-             & wikitext update & 0.990 & 0.643 & 0.881 & 0.110 & 6.9\% \\
-             & code update     & 0.992 & 0.679 & 0.905 & 0.154 & 3.0\% \\
-             & noise           & 0.996 & 0.716 & 0.928 & 0.436 & 0.6\% \\
-             & pretrained $W$  & 0.976 & 0.590 & 0.846 & 0.178 & 2.2\% \\
+Qwen2.5-0.5B & SFT update            & 0.973 & 0.816 & 0.541 & 0.381 & 0.097 & 4.2\% \\
+             & wikitext update       & 0.972 & 0.810 & 0.531 & 0.365 & 0.093 & 4.0\% \\
+             & code update           & 0.975 & 0.817 & 0.543 & 0.374 & 0.094 & 3.8\% \\
+             & shuffled-words update & 0.941 & 0.745 & 0.440 & 0.202 & 0.042 & 9.0\% \\
+             & noise                 & 0.996 & 0.928 & 0.716 & 0.754 & 0.436 & 0.6\% \\
+             & pretrained $W$        & 0.976 & 0.846 & 0.590 & 0.537 & 0.178 & 2.2\% \\
 \midrule
-SmolLM2-360M & SFT update      & 0.955 & 0.500 & 0.800 & 0.052 & 7.8\% \\
-             & wikitext update & 0.943 & 0.452 & 0.767 & 0.045 & 9.2\% \\
-             & code update     & 0.976 & 0.559 & 0.841 & 0.089 & 4.7\% \\
-             & noise           & 0.996 & 0.659 & 0.908 & 0.354 & 0.5\% \\
-             & pretrained $W$  & 0.982 & 0.562 & 0.841 & 0.140 & 1.6\% \\
+SmolLM2-360M & SFT update            & 0.951 & 0.755 & 0.439 & 0.145 & 0.025 & 8.3\% \\
+             & wikitext update       & 0.948 & 0.744 & 0.425 & 0.111 & 0.020 & 9.6\% \\
+             & code update           & 0.963 & 0.751 & 0.432 & 0.183 & 0.034 & 5.5\% \\
+             & shuffled-words update & 0.863 & 0.629 & 0.275 & 0.040 & 0.009 & 21.1\% \\
+             & noise                 & 0.996 & 0.908 & 0.659 & 0.668 & 0.354 & 0.5\% \\
+             & pretrained $W$        & 0.982 & 0.841 & 0.562 & 0.488 & 0.140 & 1.6\% \\
 \bottomrule
 \end{tabular}
 \end{center}
 \end{table}
 
-\begin{table}[t]
-\caption{How far below noise each measure puts each update: $1 - \text{update}/\text{noise}$,
-in percent, with 95\% layer-bootstrap intervals.}
-\label{tab:gaps}
+\begin{figure}[t]
 \begin{center}
-\small
-\begin{tabular}{llcccc}
-\toprule
-model & update & threshold & 90\% energy & eRank & stable rank \\
-\midrule
-Qwen2.5-0.5B & SFT      & 0.6 (0.4--0.7) & 7.9 (6.2--10.0)  & 3.8 (2.9--4.8)  & 66.7 (63.0--70.5) \\
-             & DPO      & 0.6 (0.4--1.0) & 9.0 (7.5--11.1)  & 4.0 (3.2--5.0)  & 67.1 (63.1--70.8) \\
-             & wikitext & 0.6 (0.5--0.7) & 10.3 (8.1--12.9) & 5.1 (3.9--6.5)  & 74.7 (71.3--78.0) \\
-             & code     & 0.4 (0.4--0.5) & 5.2 (4.7--5.8)   & 2.5 (2.2--2.9)  & 64.7 (62.1--67.4) \\
-\midrule
-SmolLM2-360M & SFT      & 4.2 (2.3--6.5) & 24.1 (21.1--27.8) & 11.9 (9.9--14.5) & 85.4 (84.0--86.9) \\
-             & wikitext & 5.4 (3.3--7.9) & 31.4 (28.6--34.6) & 15.6 (13.6--17.9) & 87.4 (86.3--88.5) \\
-             & code     & 2.0 (1.0--3.2) & 15.1 (12.4--18.4) & 7.4 (5.8--9.3)   & 75.0 (72.4--77.6) \\
-\bottomrule
-\end{tabular}
+\includegraphics[width=\linewidth]{figures/gaps_by_measure.pdf}
 \end{center}
-\end{table}
+\caption{How far below noise each measure puts each update,
+$1-\text{update}/\text{noise}$, with 95\% layer-bootstrap intervals. Measures
+are ordered by how much weight they give to the top directions. The gap grows
+from a few percent for the threshold count to 78--97\% for stable rank.}
+\label{fig:gaps}
+\end{figure}
 
-Figure~\ref{fig:metrics} and Table~\ref{tab:metrics} show the four measures on
-our updates. By the threshold count, every Qwen update is at 99\% of full rank,
-like the noise. The energy rank and the effective rank are lower than noise,
-but not by much. Stable rank tells a different story: every update is several
-times more concentrated than noise.
+Table~\ref{tab:measures} gives the five measures for our updates. By the
+threshold count, every Qwen update is at 97\% of full rank, close to the 99.6\%
+of noise. Stable rank tells a different story: every update is several times
+below noise, 4.5 times for the Qwen SFT update, 10 to 17 times for the SmolLM2
+updates, and up to 39 times for shuffled words.
 
-Table~\ref{tab:gaps} puts a number on this. The three counting measures put
-the updates 0.4--31\% below noise; stable rank puts them 65--87\% below, that
-is, 2.8--7.9 times lower. Every interval excludes zero, so all four measures
-do detect that the updates are not random. The problem is size. A reader who
-sees ``99\% of full rank'' or ``89\% effective rank'' without the noise value
-next to it will conclude that the update is diffuse and unstructured, which is
-what we concluded at first. The pattern holds for every matrix type
-(Appendix~\ref{app:pertype}).
+Figure~\ref{fig:gaps} shows how the measures fit together. Ordered from the
+threshold count to stable rank, each measure puts the updates further below
+noise: about 2\% for the threshold count, 12\% for eRank, 25\% for the 90\%
+energy rank, 50\% for the participation ratio and 78\% for stable rank on
+Qwen, and the same order on SmolLM2. This is the R\'enyi ordering of
+\S\ref{sec:background}. Every interval excludes zero, so all five measures do
+detect that the updates are not random. The problem is size: a reader who sees
+``97\% of full rank'' without the noise value next to it will conclude that the
+update is diffuse, which is what we concluded at first.
 
 \subsection{A few strong directions and a long tail}
 \label{sec:headtail}
@@ -90,42 +69,36 @@ what we concluded at first. The pattern holds for every matrix type
 \includegraphics[width=\linewidth]{figures/spectrum_head_tail.pdf}
 \end{center}
 \caption{Where the energy sits, averaged over the 168 matrices of
-Qwen2.5-0.5B. Left: share of energy in the top fraction of singular
-directions. Right: singular values relative to the largest. The updates hold
-far more energy in their top directions than noise does, then decay slowly
-over a long tail, much like the pretrained weights (dashed).}
+Qwen2.5-0.5B. Left: share of energy in the top fraction of directions. Right:
+singular values relative to the largest. Updates put much more energy in their
+top directions than noise does, then decay slowly over a long tail. The
+pretrained weights (dashed) sit between the updates and noise.}
 \label{fig:spectrum}
 \end{figure}
 
 Figure~\ref{fig:spectrum} shows why the measures disagree. At the top of the
-spectrum the updates are far more concentrated than noise: the top singular
-value of the Qwen SFT update holds 5.1\% of its energy against 0.6\% for noise,
-and the top 8 directions hold 12.0\% against 4.9\%. Below that the
-spectrum decays slowly, and that long tail still holds most of the energy.
-Stable rank is dominated by the top, so it sees the concentration. The
+spectrum the updates are far more concentrated than noise: the top direction of
+the Qwen SFT update holds 4.2\% of its energy against 0.6\% for noise. Below
+that the spectrum decays slowly, and this long tail still holds most of the
+energy. Stable rank is dominated by the top, so it sees the concentration; the
 counting measures count directions, most of which are in the tail, so they see
-a nearly full-rank matrix.
+a nearly full-rank matrix. Both descriptions are true of the same matrix:
+fine-tuning updates are high rank \citep{biderman2024lora} and they are
+concentrated.
 
-Both descriptions are therefore true of the same matrices: fine-tuning
-updates are high rank \citep{biderman2024lora} and they are concentrated. The
-tail is not noise to be discarded either; removing it hurts the model
-(\S\ref{sec:cutoff}).
+The updates are also more concentrated than the weights they are added to.
+The stable rank of the pretrained weights is 0.178 on Qwen and 0.140 on
+SmolLM2, against 0.09--0.10 and 0.02--0.03 for the SFT, wikitext and code
+updates. The threshold count cannot see this either: it puts the Qwen updates
+and the pretrained weights at the same 97--98\%.
 
-The pretrained weights have a very similar shape (dashed line). Their stable
-rank is 0.178 for Qwen2.5-0.5B and 0.140 for SmolLM2-360M
-(Table~\ref{tab:metrics}). So the updates are concentrated compared with
-noise, and at least as concentrated as the weights they are added to:
-1.2--1.6$\times$ more on Qwen and 1.6--3.1$\times$ more on SmolLM2. Being
-concentrated is normal for trained matrices; the point is that counting
-measures hide it.
-
-\subsection{It is about fine-tuning, not alignment}
+\subsection{The shape comes from fine-tuning, not from alignment}
 \label{sec:controls}
 
 \begin{table}[t]
 \caption{Differences in stable rank between runs on the same model, paired
-matrix by matrix, with 95\% layer-bootstrap intervals. The seed rows compare
-two runs of the same task with a different seed and data sample.}
+matrix by matrix, with 95\% layer-bootstrap intervals. ``Second seed'' repeats
+a run with a different seed and data sample.}
 \label{tab:paired}
 \begin{center}
 \small
@@ -133,78 +106,109 @@ two runs of the same task with a different seed and data sample.}
 \toprule
 difference & Qwen2.5-0.5B & SmolLM2-360M \\
 \midrule
-code $-$ wikitext & $+0.044$ ($0.033$ to $0.054$) & $+0.044$ ($0.036$ to $0.052$) \\
-SFT $-$ wikitext  & $+0.035$ ($0.025$ to $0.045$) & $+0.007$ ($0.003$ to $0.011$) \\
-code $-$ SFT      & $+0.009$ ($-0.003$ to $0.020$) & $+0.037$ ($0.029$ to $0.045$) \\
+SFT $-$ wikitext            & $+0.004$ ($-0.001$, $+0.010$) & $+0.005$ ($+0.003$, $+0.006$) \\
+SFT $-$ code                & $+0.003$ ($-0.000$, $+0.006$) & $-0.010$ ($-0.011$, $-0.008$) \\
+shuffled words $-$ SFT      & $-0.055$ ($-0.062$, $-0.047$) & $-0.016$ ($-0.018$, $-0.014$) \\
 \midrule
-second seed, SFT      & $-0.003$ ($-0.010$ to $0.003$) & -- \\
-second seed, wikitext & $-0.002$ ($-0.007$ to $0.002$) & -- \\
-second seed, code     & $-0.002$ ($-0.008$ to $0.004$) & -- \\
+second seed $-$ first, SFT      & $-0.001$ ($-0.005$, $+0.001$) & -- \\
+second seed $-$ first, wikitext & $-0.001$ ($-0.005$, $+0.003$) & -- \\
+second seed $-$ first, code     & $-0.000$ ($-0.001$, $+0.001$) & -- \\
 \bottomrule
 \end{tabular}
 \end{center}
 \end{table}
 
 A concentrated SFT update says nothing about alignment unless fine-tuning on
-other data looks different. It does not. On both models, the updates from
-fine-tuning on Wikipedia text and on Python code are as concentrated as the
-SFT update (Table~\ref{tab:metrics}), even though they contain no
-instructions, chat format or preferences. The DPO update has the same average
-stable rank as SFT (0.144 against 0.145) at a fifteenth of the size.
+other data looks different. With the model, optimizer and amount of training
+held fixed, it does not. On Qwen, SFT, wikitext and code give stable ranks of
+0.097, 0.093 and 0.094, and the differences between them cannot be told apart
+from zero (Table~\ref{tab:paired}); a second seed moves each by at most 0.0014.
+On SmolLM2 the three are again close (0.020--0.034), with small differences
+that do clear zero. Instruction data leaves no special mark.
 
-Size and concentration are separate. On Qwen the updates differ eighteen-fold
-in size (mean Frobenius norm from 0.019 for DPO to 0.349 for wikitext), while
-their stable rank stays between 0.110 and 0.154.
+The surprise is the shuffled-words control. Text with its word order
+scrambled, which has nothing to learn but word frequencies, gives the most
+concentrated update on both models: stable rank 0.042 on Qwen and 0.009 on
+SmolLM2, with 9\% and 21\% of the energy in a single direction. This holds in
+every quarter of the network (Appendix~\ref{app:shuffled}). In the last layers
+the top direction of this update pushes the output towards frequent tokens,
+but in earlier layers it does not, so word frequency explains only part of it.
+We report it as an observation: the concentration of a fine-tuning update
+depends on the training process and the data, not on whether the data teach
+alignment.
 
-The differences between tasks are real but small (Table~\ref{tab:paired}).
-Repeating a run with a new seed and data sample moves stable rank by at most
-0.003. Wikitext is more concentrated than code on both models, by the same
-0.044. SFT falls between the two controls, but not at a consistent place: on
-Qwen it cannot be told apart from code, on SmolLM2 it is close to wikitext.
-What we can say is that the alignment update lies inside the range of the two
-non-alignment updates.
-
-\subsection{The same holds for released models up to 8B}
+\subsection{Released models}
 \label{sec:released}
 
 \begin{figure}[t]
 \begin{center}
 \includegraphics[width=\linewidth]{figures/released_pairs.pdf}
 \end{center}
-\caption{Official base $\to$ instruct updates (blue) against a Gaussian matrix
-of the same shape (grey). Left: the threshold count puts every update within
-a few points of noise (the axis starts at 0.9). Right: stable rank puts every
-update 1.6--9.1$\times$ below noise.}
+\caption{Released updates (blue) against a Gaussian matrix of the same shape
+(grey), in three groups: base/instruct releases, the OLMo 2 post-training
+stages, and code/math specialists. Left: the threshold count (axis starts at
+0.85). Right: stable rank.}
 \label{fig:released}
 \end{figure}
 
 \begin{table}[t]
-\caption{Released base/instruct pairs. The last column is how many times
-lower the update's stable rank is than noise, with a 95\% layer-bootstrap
-interval.}
+\caption{Released pairs. ``Rounding'' is the share of the threshold count that
+simulated bf16 rounding alone could produce (blank when a checkpoint is not
+stored in bf16). The last column drops the top direction, to check that one
+outlier does not drive the result.}
 \label{tab:released}
 \begin{center}
 \small
-\begin{tabular}{lccccc}
+\begin{tabular}{lcccccc}
 \toprule
-pair & threshold & noise & stable rank & noise & noise / update \\
+update & threshold & noise & rounding & stable rank & noise & stable w/o top \\
 \midrule
-SmolLM2-135M & 97.1\% & 99.6\% & 0.086 & 0.354 & 4.1 (3.5--5.0) \\
-SmolLM2-360M & 96.4\% & 99.6\% & 0.039 & 0.356 & 9.1 (8.0--10.6) \\
-Qwen2.5-0.5B & 99.0\% & 99.6\% & 0.280 & 0.434 & 1.6 (1.5--1.7) \\
-Qwen3-0.6B   & 98.9\% & 99.6\% & 0.124 & 0.342 & 2.8 (2.6--3.0) \\
-Qwen2.5-1.5B & 96.9\% & 99.6\% & 0.051 & 0.432 & 8.4 (7.7--9.2) \\
-SmolLM2-1.7B & 95.9\% & 99.3\% & 0.075 & 0.336 & 4.5 (4.2--4.9) \\
-Qwen3-8B     & 98.0\% & 99.6\% & 0.082 & 0.373 & 4.5 (4.2--5.0) \\
+SmolLM2-135M instruct & 0.971 & 0.996 & 27\% & 0.086 & 0.354 & 0.119 \\
+SmolLM2-360M instruct & 0.964 & 0.996 & 10\% & 0.039 & 0.356 & 0.059 \\
+Qwen2.5-0.5B instruct & 0.990 & 0.996 & 75\% & 0.280 & 0.434 & 0.314 \\
+Qwen3-0.6B            & 0.989 & 0.996 & 14\% & 0.124 & 0.342 & 0.145 \\
+Qwen2.5-1.5B instruct & 0.969 & 0.996 & 92\% & 0.051 & 0.432 & 0.073 \\
+SmolLM2-1.7B instruct & 0.959 & 0.993 & 44\% & 0.075 & 0.336 & 0.090 \\
+Qwen3-8B              & 0.980 & 0.996 & 24\% & 0.082 & 0.373 & 0.098 \\
+\midrule
+OLMo 2 1B: base $\to$ SFT & 0.971 & 0.993 & --   & 0.077 & 0.336 & 0.120 \\
+OLMo 2 1B: SFT $\to$ DPO  & 0.908 & 0.993 & 89\% & 0.012 & 0.336 & 0.023 \\
+OLMo 2 1B: DPO $\to$ RL   & 0.922 & 0.993 & 92\% & 0.013 & 0.336 & 0.021 \\
+\midrule
+Qwen2.5-Coder-0.5B    & 0.981 & 0.996 & 0\%  & 0.194 & 0.434 & 0.228 \\
+Qwen2.5-Math-1.5B     & 0.990 & 0.996 & 0\%  & 0.200 & 0.432 & 0.245 \\
+Qwen2.5-Coder-1.5B    & 0.987 & 0.996 & 0\%  & 0.191 & 0.432 & 0.234 \\
 \bottomrule
 \end{tabular}
 \end{center}
 \end{table}
 
-Our fine-tunes are small. Released instruct models go through much larger and
-more varied post-training, so we measured seven official pairs directly
-(Figure~\ref{fig:released}, Table~\ref{tab:released}). The pattern is the
-same. The threshold count reads 96--99\% for every update, close to noise;
-stable rank puts every update 1.6--9.1$\times$ below noise, including
-Qwen3-8B at 4.5$\times$. Qwen2.5-0.5B is the least concentrated, and less so
-than our own SFT of the same base (0.280 against 0.145); we do not know why.
+Released instruct models go through much larger and more varied
+post-training than our runs. The same pattern holds for all of them
+(Figure~\ref{fig:released}, Table~\ref{tab:released}). The threshold count
+reads 91--99\%, close to noise; stable rank puts every update 1.6 to 28 times
+below noise, and dropping the top direction changes little, so no single
+outlier drives it. Every update also has tens to hundreds of directions above
+the largest singular value a same-size Gaussian matrix would have
+(Appendix~\ref{app:released}).
+
+Rounding gives a second reason to distrust the threshold count. For several
+pairs, simulated bf16 rounding alone could produce most of what it counts: 75\%
+for Qwen2.5-0.5B and 92\% for Qwen2.5-1.5B. Rounding adds many tiny singular
+values, which stable rank largely ignores.
+
+The OLMo 2 stages show where the change happens. Almost all of it is in SFT:
+the base-to-instruct update has the same shape as the SFT stage alone. The DPO
+and RL stages are so small that only 13\% and 3\% of their directions rise
+above the rounding floor, so their very low stable rank reflects a few real
+directions on top of rounding noise, and we draw no further conclusion from
+them.
+
+One comparison needs care. The math and code specialists, trained on far more
+data, are less concentrated (stable rank 0.19--0.20) than the instruct
+releases (0.04--0.28). This is not a controlled comparison, since the
+specialists differ in both content and amount of training; our matched runs in
+\S\ref{sec:controls} are the controlled test, and there the content made no
+difference. What the released models show is that concentration varies with
+how much and what kind of training was done, so it cannot serve as a signature
+of alignment.
