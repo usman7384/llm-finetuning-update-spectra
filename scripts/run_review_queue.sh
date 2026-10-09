@@ -3,6 +3,7 @@
 #
 #   1. same-size random updates scored on GSM8K accuracy (random_update_tasks.py)
 #   2. Timber's recommended lambda=0.2 on the full GSM8K test set
+#   2b. DPO on our SFT model, with a swapped-preference control and a second seed
 #   3. Timber on GPQA-Diamond, its own benchmark, lambda in {0.2, 0.5, 0.8},
 #      plus the stable-rank and uniform-scaling controls (skipped if the gated
 #      dataset is not accessible yet; rerun the script once it is)
@@ -45,6 +46,24 @@ step scripts/random_update_tasks.py || exit 1
 step scripts/timber_cutoff.py --limit 1319 --variants erank_l0.2 || exit 1
 cp results/timber_cutoff.csv results/timber_cutoff_full.csv
 step scripts/timber_cutoff.py --limit 300 --variants instruct
+
+# 2b. DPO on our SFT model: real preferences, the same pairs with half of them
+# swapped (no preference signal), and a second seed of the real run
+dpo() {
+  local name=$1
+  if ! step scripts/train_dpo.py --config "configs/v2_${name}.yaml"; then
+    echo "=== retrying ${name} with shorter sequences"
+    DPO_MAX_LENGTH=384 step scripts/train_dpo.py --config "configs/v2_${name}.yaml" || return 1
+  fi
+  rm -rf "checkpoints/v2/${name}"/checkpoint-*
+  if [ ! -f "results/v2/svd_${name}/matrix_summary.csv" ]; then
+    step scripts/svd_deltas.py --before checkpoints/v2/sft --after "checkpoints/v2/${name}" \
+      --tag "v2_${name}" --out "results/v2/svd_${name}"
+  fi
+}
+dpo dpo
+dpo dpo_swapped
+dpo dpo_seed43
 
 # 3. GPQA-Diamond, Timber's benchmark (needs Hub login and accepted terms)
 if "$UV" run python -c "from huggingface_hub import hf_hub_download as d; d('Idavidrein/gpqa','gpqa_diamond.csv',repo_type='dataset')" > /dev/null 2>&1; then

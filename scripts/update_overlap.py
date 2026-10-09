@@ -47,10 +47,14 @@ FAMILIES = {
         "code": "smollm2_control_code", "code (seed 2)": "smollm2_control_code_seed43",
         "shuffled words": "smollm2_control_shuffled",
         "code (steps matched)": "smollm2_control_code_steps"}),
+    # DPO updates are measured from the SFT model they start from
+    "Qwen2.5-0.5B DPO": ("checkpoints/v2/sft", {
+        "DPO": "dpo", "DPO (seed 2)": "dpo_seed43", "DPO swapped": "dpo_swapped"}),
 }  # fmt: skip
 PAIRS = [("SFT", "SFT (seed 2)"), ("wikitext", "wikitext (seed 2)"), ("code", "code (seed 2)"),
          ("SFT", "wikitext"), ("SFT", "code"), ("wikitext", "code"), ("SFT", "shuffled words"),
-         ("wikitext", "shuffled words"), ("code", "code (steps matched)")]  # fmt: skip
+         ("wikitext", "shuffled words"), ("code", "code (steps matched)"),
+         ("DPO", "DPO (seed 2)"), ("DPO", "DPO swapped")]  # fmt: skip
 
 
 def top_subspaces(base: LazyWeights, run: Path) -> dict[str, tuple[torch.Tensor, torch.Tensor]]:
@@ -76,7 +80,7 @@ def main() -> int:
         for name, path in have.items():
             print(f"{fam}: SVD of {name}", flush=True)
             subs[name] = top_subspaces(base, path)
-        for a, b in PAIRS + [("SFT", "random")]:
+        for a, b in PAIRS + [("SFT", "random"), ("DPO", "random")]:
             if a not in subs or (b not in subs and b != "random"):
                 continue
             per = []
