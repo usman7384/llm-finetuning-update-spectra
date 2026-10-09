@@ -54,4 +54,12 @@ run sft_seed43 checkpoints/base
 run control_lm_seed43 checkpoints/base
 run control_code_seed43 checkpoints/base
 
+# added after review: SmolLM2 second seeds, and code runs matched on optimizer
+# steps instead of tokens (the token-matched code runs take ~2.6x fewer steps)
+run control_code_steps checkpoints/base
+run smollm2_control_code_steps checkpoints/smollm2_base
+run smollm2_sft_seed43 checkpoints/smollm2_base
+run smollm2_control_lm_seed43 checkpoints/smollm2_base
+run smollm2_control_code_seed43 checkpoints/smollm2_base
+
 echo "=== ALL DONE"
