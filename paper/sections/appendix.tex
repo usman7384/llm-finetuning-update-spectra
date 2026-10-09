@@ -193,18 +193,20 @@ does not explain why the shuffled-words update is the most concentrated.
 
 \begin{table}[h]
 \caption{More on the released pairs. Participation ratio against a Gaussian
-matrix of the same shape; the number of singular values above the largest one
-such a Gaussian matrix would have (mean per matrix); the share of directions
-above the simulated bf16 rounding floor (an upper bound on rounding, see
+matrix of the same shape; ``above edge'', the number of singular values above
+the largest one such a Gaussian matrix would have (mean per matrix); ``above
+floor'', the share of directions above the simulated bf16 rounding floor (an
+upper bound on rounding, see
 \S\ref{sec:background}); the size of the update relative to the base
 weights; and the share of entries of $\dW$ that are exactly zero, the direct
 trace of rounding. The last two were not computed for Qwen3-8B.}
 \label{tab:released_more}
 \begin{center}
 \small
+\setlength{\tabcolsep}{4pt}
 \begin{tabular}{lcccccc}
 \toprule
-update & particip.\ ratio & noise & above noise edge & above rounding floor & $\|\dW\|_F/\|W\|_F$ & exactly zero \\
+update & particip.\ ratio & noise & above edge & above floor & $\|\dW\|_F/\|W\|_F$ & zero entries \\
 \midrule
 SmolLM2-135M instruct & 0.321 & 0.667 & 30  & 96\%  & 8.1\%  & 2.5\%  \\
 SmolLM2-360M instruct & 0.239 & 0.668 & 46  & 95\%  & 7.6\%  & 2.7\%  \\
