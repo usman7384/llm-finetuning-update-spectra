@@ -235,6 +235,18 @@ def summarize(n_problems: int) -> None:
         print(s.round(4).to_string(index=False))
 
 
+def edit_stats_only(name: str) -> None:
+    """Rewrite <name>.edit.json without generating, on the CPU (the GPU may be busy)."""
+    cutoff, lam, uniform = parse_variant(name)
+    if not cutoff:
+        return
+    model = AutoModelForCausalLM.from_pretrained(INSTRUCT, dtype=torch.bfloat16)
+    stats = apply_edit(model, cutoff, lam, "cpu", uniform)
+    stats.update(variant=name, cutoff=cutoff, lam=lam, uniform=uniform)
+    (OUT_DIR / f"{name}.edit.json").write_text(json.dumps(stats, indent=2))
+    print(name, stats)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
@@ -245,9 +257,15 @@ def main() -> int:
     parser.add_argument("--batch-seqs", type=int, default=32, help="sequences per generate call")
     parser.add_argument("--max-new-tokens", type=int, default=512)
     parser.add_argument("--seed", type=int, default=1234)
+    parser.add_argument("--edit-only", action="store_true",
+                        help="only recompute the .edit.json statistics, on the CPU")  # fmt: skip
     args = parser.parse_args()
     for v in args.variants:
         parse_variant(v)
+    if args.edit_only:
+        for name in args.variants:
+            edit_stats_only(name)
+        return 0
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
     OUT_DIR.mkdir(parents=True, exist_ok=True)
