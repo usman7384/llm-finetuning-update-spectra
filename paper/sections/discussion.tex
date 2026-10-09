@@ -9,11 +9,24 @@ spread, and the answer is ``very''. The mistake is to read either number
 without the value for noise next to it, or to take a property of all
 fine-tuning as evidence about alignment.
 
+\paragraph{Check where a checkpoint comes from.} One of the pairs we planned
+to use, the OLMo 2 1B base and SFT checkpoints, turned out not to be a
+fine-tuning pair at all: the two share no initialisation (\S\ref{sec:setup}).
+Their difference still has a plausible-looking spectrum, with stable rank
+4.4 times below noise. Nothing in a rank measure flags such a mistake; a
+cosine between the two sets of weights does, and costs nothing.
+
 \paragraph{Limitations.}
 \begin{itemize}
+  \item \textbf{Instruction SFT only.} Our controlled runs test instruction
+  tuning on Alpaca-cleaned. Preference and reinforcement-learning training,
+  part of what ``alignment'' usually means, appear only in the released OLMo 2
+  stages, which are too small to measure above rounding.
   \item \textbf{Scale of our own training.} Our fine-tunes are 0.36B and 0.5B
-  parameters with about two million tokens each. The measurement results hold
-  on released models up to 8B, but we do not study training at that scale.
+  parameters with about two million tokens per epoch. The measurement results
+  hold on released models up to 8B, but we do not study training at that scale.
+  \item \textbf{Tokens, not steps.} The runs are matched on training tokens;
+  the code runs take about 2.6 times fewer optimizer steps than the others.
   \item \textbf{Which null.} A Gaussian matrix is the least structured baseline
   possible. We add the pretrained weights as a second reference, and a
   shuffled-words fine-tune as a control for the data, but other baselines
@@ -26,10 +39,15 @@ fine-tuning as evidence about alignment.
   \item \textbf{Loss masking differs.} SFT computes the loss on answer tokens
   only, the controls on every token; the tokens seen are matched, the tokens
   trained on are not.
-  \item \textbf{The shuffled-words result is unexplained.} Token frequency
-  accounts for the top direction in the last layers only.
-  \item \textbf{The edit experiment is narrow:} one model, one benchmark, one
-  sampling mode.
+  \item \textbf{The shuffled-words result is unexplained.} The one explanation
+  we tested, alignment with token frequency, is shared by other runs.
+  \item \textbf{Shape, not direction.} We compare the spectra of updates, not
+  the subspaces they occupy; two updates with the same stable rank can point
+  in different directions.
+  \item \textbf{The edit experiment is narrow:} one model, one benchmark,
+  non-thinking mode, and $\lambda=0.5$ rather than Timber's recommended 0.2.
+  \item \textbf{Perplexity is a crude measure of change.} It shows that the
+  model's predictions move, not whether they get better or worse.
 \end{itemize}
 
 \section{Conclusion}
@@ -40,14 +58,16 @@ full rank and put them close to random matrices of the same shape. Measures
 that weigh the top directions show the same updates to be far more
 concentrated than noise, and more concentrated than the pretrained weights.
 Both are right: the updates have a few strong directions and a long tail that
-holds most of the energy. With training held fixed, this shape is the same for
-instruction tuning, Wikipedia and code, and strongest for scrambled text, so it
-is a property of fine-tuning rather than a signature of alignment. An
-unchanged effective rank of the weights after post-training is what any update
-of that size produces. Our recommendation is simple: report any rank measure
-of a weight update next to its value on a random matrix of the same shape,
-check that low-precision training did not erase the update, and test claims
-about alignment against a fine-tune without alignment content.
+holds most of the energy. With training tokens held fixed, instruction
+tuning, Wikipedia and code give updates of similar shape, and scrambled text
+the most concentrated, so the shape is a property of fine-tuning rather than a
+mark of instruction tuning. An unchanged effective rank of the weights after
+post-training is what a random update of the same size also produces. Our
+recommendation is simple: report any rank measure of a weight update next to
+its value on a random matrix of the same shape, check that low-precision
+training or storage did not erase the update, check that the two checkpoints
+are really related, and test claims about alignment against a fine-tune
+without alignment content.
 
 \subsubsection*{Broader Impact Statement}
 This paper is about measurement methodology for analysing fine-tuned language
