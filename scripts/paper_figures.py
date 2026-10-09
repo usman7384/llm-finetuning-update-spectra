@@ -109,20 +109,24 @@ def mean_curves(result_dir: str, grid: np.ndarray) -> tuple[np.ndarray, np.ndarr
 
 def fig_spectrum() -> None:
     """Where the energy sits: a few strong directions and a long tail (Qwen2.5-0.5B)."""
-    grid = np.logspace(-3, 0, 300)
+    # start at 1/128, the smallest rank among the matrices, so no curve is extrapolated
+    grid = np.logspace(np.log10(1 / 128), 0, 300)
+    # SFT, wikitext and code nearly coincide: SFT goes on top, thick, the other two dashed
     lines = [
-        ("SFT", "v2/svd_sft", "-"),
-        ("wikitext", "v2/svd_control_lm", "-"),
-        ("code", "v2/svd_control_code", "-"),
-        ("shuffled words", "v2/svd_control_shuffled", "-"),
-        ("noise", "svd_control_random", "-"),
-        ("pretrained W", "weights_base", "--"),
+        ("wikitext", "v2/svd_control_lm", (0, (4, 2)), 1.0),
+        ("code", "v2/svd_control_code", (0, (1, 1.5)), 1.2),
+        ("shuffled words", "v2/svd_control_shuffled", "-", 1.0),
+        ("noise", "svd_control_random", "-", 1.0),
+        ("pretrained W", "weights_base", "--", 1.0),
+        ("SFT", "v2/svd_sft", "-", 2.2),
     ]
     fig, axes = plt.subplots(1, 2, figsize=(6.5, 2.3))
-    for label, d, ls in lines:
+    for label, d, ls, lw in lines:
         cum, decay = mean_curves(d, grid)
-        axes[0].plot(grid, 100 * cum, color=RUN_COLORS[label], ls=ls, label=label)
-        axes[1].plot(grid, decay, color=RUN_COLORS[label], ls=ls, label=label)
+        style = {"color": RUN_COLORS[label], "ls": ls, "lw": lw, "label": label,
+                 "zorder": 3 if label == "SFT" else 2, "alpha": 0.7 if label == "SFT" else 1}  # fmt: skip
+        axes[0].plot(grid, 100 * cum, **style)
+        axes[1].plot(grid, decay, **style)
     axes[0].set_xscale("log")
     axes[0].set_xlabel("top fraction of singular directions, $i/r$")
     axes[0].set_ylabel("share of energy, %")
@@ -147,7 +151,8 @@ RELEASED = [
     ("qwen2.5-1.5b", "Qwen2.5-1.5B", "instruct release"),
     ("smollm2-1.7b", "SmolLM2-1.7B", "instruct release"),
     ("qwen3-8b", "Qwen3-8B", "instruct release"),
-    ("olmo2-1b-sft", "OLMo2-1B SFT", "OLMo 2 stage"),
+    # no olmo2-1b-sft: the released SFT checkpoint is not a fine-tune of the
+    # released base (cosine of the weights ~0, results/released_sizes.csv)
     ("olmo2-1b-dpo", "OLMo2-1B DPO", "OLMo 2 stage"),
     ("olmo2-1b-rl", "OLMo2-1B RL", "OLMo 2 stage"),
     ("qwen2.5-coder-0.5b", "Coder-0.5B", "code / math"),
@@ -161,7 +166,7 @@ def fig_released() -> None:
     df = pd.read_csv("results/released_measures.csv").set_index("pair")
     rows = [r for r in RELEASED if r[0] in df.index]
     x = np.arange(len(rows))
-    fig, axes = plt.subplots(1, 2, figsize=(6.5, 2.6))
+    fig, axes = plt.subplots(1, 2, figsize=(6.5, 2.8))
     for ax, real, noise, title in [
         (axes[0], "real_threshold", "noise_threshold", "threshold count (0.01)"),
         (axes[1], "real_stable", "noise_stable", "stable rank"),
@@ -171,7 +176,7 @@ def fig_released() -> None:
         ax.bar(x + 0.2, df.loc[[r[0] for r in rows], noise], 0.4, color=NOISE,
                label="Gaussian, same shape")  # fmt: skip
         ax.set_xticks(x)
-        ax.set_xticklabels([r[1] for r in rows], rotation=60, ha="right", fontsize=6)
+        ax.set_xticklabels([r[1] for r in rows], rotation=90, fontsize=6)
         ax.set_title(title)
         ax.set_ylabel("fraction of max rank")
         # separators between the three groups
@@ -188,7 +193,7 @@ def fig_released() -> None:
 
 
 def fig_random_update() -> None:
-    """eRank(W) barely moves under real or random updates; the model does notice."""
+    """eRank(W) barely moves under real or random updates; the model's predictions do."""
     names = {
         "qwen2.5-1.5b": "Qwen2.5-1.5B",
         "qwen3-8b": "Qwen3-8B",
@@ -214,18 +219,19 @@ def fig_random_update() -> None:
 
     p = pd.read_csv("results/v2/random_update_check.csv").set_index("update")
     order = [("none (base)", "base"), ("gaussian", "random,\nGaussian"),
-             ("spectrum", "random,\nsame\nspectrum")]  # fmt: skip
+             ("spectrum", "random,\nsame\nspectrum"), ("real", "real\nupdate")]  # fmt: skip
     vals = [p.loc[k, "perplexity"] for k, _ in order]
-    bars = axes[1].bar(range(len(order)), vals, color=["#000000", NOISE, NOISE])
+    bars = axes[1].bar(range(len(order)), vals, color=["#000000", NOISE, NOISE, "#0072B2"])
     for b, (k, _) in zip(bars, order, strict=True):
         if k != "none (base)":
-            note = f"eRank {p.loc[k, 'erank_change_pct']:.2f}%"
+            note = f"eRank\n{p.loc[k, 'erank_change_pct']:+.2f}%"
             axes[1].text(b.get_x() + b.get_width() / 2, b.get_height() + 0.8, note,
                          ha="center", fontsize=6)  # fmt: skip
+    axes[1].set_ylim(0, 1.2 * max(vals))
     axes[1].set_xticks(range(len(order)))
     axes[1].set_xticklabels([lbl for _, lbl in order], fontsize=7)
     axes[1].set_ylabel("wikitext perplexity")
-    axes[1].set_title("but the model does (Qwen3-0.6B)")
+    axes[1].set_title("predictions change (Qwen3-0.6B base)")
     fig.tight_layout()
     fig.savefig(OUT / "random_update.pdf", bbox_inches="tight")
     plt.close(fig)
