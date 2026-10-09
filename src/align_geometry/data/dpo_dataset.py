@@ -30,9 +30,15 @@ def load_dpo_dataset(
     subsample_seed: int,
     val_fraction: float,
     indices_out: str | Path | None = None,
+    swap_fraction: float = 0.0,
 ) -> tuple[Dataset, Dataset]:
     """Returns (train, val). Same indices-persisting convention as
-    load_sft_dataset."""
+    load_sft_dataset.
+
+    swap_fraction > 0 swaps chosen and rejected in that share of the pairs,
+    picked at random (seeded). At 0.5 the data carry no preference signal but
+    the prompts, responses and token counts are exactly those of the real run:
+    the control for "is this update about preferences?"."""
     full = load_dataset(dataset_name, split=split)
 
     rng = np.random.default_rng(subsample_seed)
@@ -56,6 +62,7 @@ def load_dpo_dataset(
                     "n_source_rows": len(full),
                     "train_indices": train_idx.tolist(),
                     "val_indices": val_idx.tolist(),
+                    "swap_fraction": swap_fraction,
                 },
                 indent=2,
             )
@@ -63,4 +70,15 @@ def load_dpo_dataset(
 
     train = full.select(train_idx.tolist()).map(_to_dpo_format, remove_columns=full.column_names)
     val = full.select(val_idx.tolist()).map(_to_dpo_format, remove_columns=full.column_names)
+    if swap_fraction > 0:
+        swap_rng = np.random.default_rng(subsample_seed + 1)
+
+        def maybe_swap(ex: dict) -> dict:
+            if swap_rng.random() < swap_fraction:
+                return {"chosen": ex["rejected"], "rejected": ex["chosen"]}
+            return {}
+
+        # validation pairs stay real, so reward accuracy says whether the
+        # model learned the true preferences
+        train = train.map(maybe_swap, load_from_cache_file=False)
     return train, val

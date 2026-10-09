@@ -2,11 +2,19 @@
 
 Tight on 6GB: DPOTrainer keeps a frozen reference copy of the model around for
 the KL term, so there are two 0.5B models resident plus optimizer state.
+
+Second round (v2 configs): fp32 master weights with bf16 compute, as for SFT,
+frozen embeddings, and the reference log-probs computed once before training
+(`precompute_ref_log_probs`) so no reference copy has to fit next to the fp32
+model. After training we check how many weights never moved, as train_sft
+does. DPO_MAX_LENGTH in the environment overrides the sequence limit, for a
+retry when 6GB is not enough.
 """
 
 from __future__ import annotations
 
 import json
+import os
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -17,12 +25,16 @@ import yaml
 from transformers import AutoModelForCausalLM, AutoTokenizer
 from trl import DPOConfig, DPOTrainer
 
+from align_geometry.analysis.svd_delta import LazyWeights, is_analyzable_matrix
 from align_geometry.data.dpo_dataset import load_dpo_dataset
+from align_geometry.hub import weights_dir
 from align_geometry.train.common import (
     compute_warmup_and_save_steps,
     file_hash,
     find_latest_checkpoint,
+    freeze_input_embeddings,
     git_commit_hash,
+    unchanged_fraction,
 )
 
 
@@ -58,6 +70,20 @@ def train_dpo(config_path: str | Path, force: bool = False) -> Path:
         attn_implementation=model_cfg["model"]["attn_implementation"],
         trust_remote_code=model_cfg["model"]["trust_remote_code"],
     )
+    if dtype != torch.float32:
+        print(
+            f"WARNING: training with {dtype} weights. Small updates will round away; "
+            "use dtype: float32 with compute_dtype: bfloat16."
+        )
+    if model_cfg["memory"].get("freeze_embeddings"):
+        n = freeze_input_embeddings(model)
+        print(f"froze {n:,} embedding parameters")
+        if model_cfg["model"].get("compute_dtype") == "bfloat16":
+            model.get_input_embeddings().to(torch.bfloat16)
+            if model.get_output_embeddings() is not None:
+                model.get_output_embeddings().to(torch.bfloat16)
+    compute_dtype = model_cfg["model"].get("compute_dtype", model_cfg["model"]["dtype"])
+    max_length = int(os.environ.get("DPO_MAX_LENGTH", model_cfg["model"]["max_seq_len"]))
 
     log_dir = Path(cfg["train"]["log_dir"])
     save_dir.mkdir(parents=True, exist_ok=True)
@@ -75,6 +101,7 @@ def train_dpo(config_path: str | Path, force: bool = False) -> Path:
         subsample_seed=cfg["data"]["subsample_seed"],
         val_fraction=cfg["data"]["val_fraction"],
         indices_out=indices_path,
+        swap_fraction=cfg["data"].get("swap_fraction", 0.0),
     )
 
     memory_cfg = model_cfg["memory"]
@@ -104,8 +131,11 @@ def train_dpo(config_path: str | Path, force: bool = False) -> Path:
         gradient_accumulation_steps=memory_cfg["gradient_accumulation_steps"],
         gradient_checkpointing=memory_cfg["gradient_checkpointing"],
         optim=memory_cfg["optimizer"],
-        bf16=(model_cfg["model"]["dtype"] == "bfloat16"),
-        max_length=model_cfg["model"]["max_seq_len"],
+        # with fp32 weights this turns on bf16 autocast and keeps fp32 masters
+        bf16=(compute_dtype == "bfloat16"),
+        max_length=max_length,
+        precompute_ref_log_probs=cfg["train"].get("precompute_ref_log_probs", False),
+        precompute_ref_batch_size=memory_cfg["per_device_train_batch_size"],
         eval_strategy="epoch",
         save_strategy="steps",
         save_steps=save_steps,
@@ -131,6 +161,13 @@ def train_dpo(config_path: str | Path, force: bool = False) -> Path:
     trainer.save_model(str(save_dir))
     tokenizer.save_pretrained(str(save_dir))
 
+    # did the weights actually move? (see train_sft)
+    before = LazyWeights(weights_dir(init_from))
+    after = trainer.model.state_dict()
+    keys = [k for k in before if is_analyzable_matrix(k) and k in after]
+    unchanged = unchanged_fraction(after, before, keys)
+    print(f"{unchanged:.2%} of attention/MLP weights unchanged")
+
     manifest = {
         "phase": "dpo",
         "init_from": init_from,
@@ -145,8 +182,16 @@ def train_dpo(config_path: str | Path, force: bool = False) -> Path:
         if resume_checkpoint is not None
         else None,
         "data_subsample_indices_file": str(indices_path),
+        "swap_fraction": cfg["data"].get("swap_fraction", 0.0),
+        "max_length": max_length,
+        "weights_dtype": model_cfg["model"]["dtype"],
+        "unchanged_weight_fraction": unchanged,
         "observed_train_loss": train_result.metrics.get("train_loss"),
         "observed_eval_loss": eval_metrics.get("eval_loss"),
+        # share of held-out (real, unswapped) pairs where the chosen answer
+        # gets the higher implicit reward: ~0.5 means no preference learned
+        "observed_eval_reward_accuracy": eval_metrics.get("eval_rewards/accuracies"),
+        "observed_eval_reward_margin": eval_metrics.get("eval_rewards/margins"),
         "observed_train_runtime_sec": train_result.metrics.get("train_runtime"),
         "observed_train_samples_per_second": train_result.metrics.get("train_samples_per_second"),
         "timestamp_utc": datetime.now(UTC).isoformat(),
@@ -158,4 +203,10 @@ def train_dpo(config_path: str | Path, force: bool = False) -> Path:
     }
     (save_dir / "manifest.json").write_text(json.dumps(manifest, indent=2))
 
+    limit = model_cfg["memory"].get("max_unchanged_fraction", 0.01)
+    if unchanged > limit:
+        raise RuntimeError(
+            f"{unchanged:.1%} of weights never changed (limit {limit:.0%}). "
+            "This update isn't a real fine-tuning update; check the weight dtype."
+        )
     return save_dir
