@@ -190,6 +190,32 @@ def load_state_dict(checkpoint_path: str | Path) -> dict[str, torch.Tensor]:
     return load_file(path)
 
 
+class _PickleHandle:
+    """A pytorch_model.bin behind the same interface as a safe_open handle.
+
+    weights_only=True refuses anything but tensors and plain containers, so
+    loading can't run code; mmap keeps it from reading the whole file into RAM.
+    """
+
+    def __init__(self, path: Path):
+        self._sd = torch.load(path, map_location="cpu", weights_only=True, mmap=True)
+
+    def keys(self):
+        return self._sd.keys()
+
+    def get_tensor(self, key: str) -> torch.Tensor:
+        return self._sd[key]
+
+    def get_slice(self, key: str):
+        tensor = self._sd[key]
+
+        class _Slice:
+            def get_shape(self):
+                return list(tensor.shape)
+
+        return _Slice()
+
+
 class LazyWeights:
     """Reads one tensor at a time from a checkpoint's safetensors files.
 
@@ -202,8 +228,15 @@ class LazyWeights:
 
         path = Path(checkpoint_path)
         files = [path] if path.is_file() else sorted(path.glob("*.safetensors"))
+        if not files and path.is_dir():
+            # some releases (OLMo 2 SFT/DPO) only ship pytorch_model.bin
+            bins = sorted(path.glob("pytorch_model*.bin"))
+            if bins:
+                self._handles = [_PickleHandle(b) for b in bins]
+                self._where = {k: h for h in self._handles for k in h.keys()}  # noqa: SIM118
+                return
         if not files:
-            raise FileNotFoundError(f"no safetensors files under {path}")
+            raise FileNotFoundError(f"no safetensors or pytorch_model.bin files under {path}")
         self._handles = [safe_open(str(f), framework="pt") for f in files]
         # safe_open handles have .keys() but aren't iterable like a dict
         self._where = {k: h for h in self._handles for k in h.keys()}  # noqa: SIM118
