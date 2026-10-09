@@ -1,38 +1,47 @@
 \section{Related work}
 \label{sec:related}
 
+\paragraph{Noise baselines for spectra.} Comparing a spectrum against what
+noise would give is old. Parallel analysis \citep{horn1965parallel} keeps only
+the factors whose eigenvalues beat those of random data, and
+\citet{gavish2014optimal} derive the optimal threshold for separating signal
+singular values from Gaussian noise. Random matrix theory has been used to
+study trained weight matrices \citep{martin2021implicit, thamm2022random}, which
+mostly follow the Marchenko--Pastur law with a few large outliers. Our point is
+that the recent literature on fine-tuning updates measures rank without such a
+baseline, and that this changes what the numbers seem to say.
+
 \paragraph{Superficial alignment.} \citet{zhou2023lima} proposed that
 alignment mostly selects a format the pretrained model already supports, and
-\citet{lin2024urial} found that base and aligned models differ mainly on a
-small set of stylistic tokens. \citet{wu2025timber} looked for weight-level
-evidence through the effective rank of released models, which we examine in
-\S\ref{sec:timber}. \citet{chaudhury2025alignment} locate the effect of
-preference tuning in a few middle layers by activation patching, a causal
-question about activations that our analysis of weights does not address.
+\citet{lin2024urial} found that base and aligned models differ mainly on
+stylistic tokens. \citet{wu2025timber} looked for weight-level evidence through
+the effective rank of released models (\S\ref{sec:timber}).
+\citet{chaudhury2025alignment} locate the effect of preference tuning in a few
+middle layers by activation patching, a question about activations that our
+weight analysis does not address.
 
-\paragraph{Structure of fine-tuning updates.} \citet{aghajanyan2021intrinsic}
-showed that fine-tuning can be carried out in a small random subspace, the
-idea that LoRA \citep{hu2022lora} builds on, and \citet{ryu2023efficient}
-store fine-tuned models as low-rank approximations of the weight residual.
-\citet{biderman2024lora} measured full fine-tuning updates with the rank
-needed for 90\% of the variance and found them 10--100$\times$ higher rank
-than typical LoRA ranks; they also noted that adding small Gaussian noise to
-$W$ leaves its spectrum similar, which is close in spirit to our same-norm
-check, applied there to $W$ rather than as a control for a claim about
-alignment. Our results agree with theirs and add the other half of the
-picture: the same updates are also several times more concentrated than noise
-at the top of the spectrum. \citet{shuttleworth2025lora} compare the singular
-vectors of fine-tuned and pretrained $W$ and find that LoRA introduces
-``intruder dimensions'' that full fine-tuning does not. Delta-CoMe
-\citep{ping2024deltacome} compresses $\dW$ with more bits for the top singular
-vectors, motivated by the same long-tailed spectrum, and finds that pure
-low-rank truncation hurts. \citet{paul2026spectral} use stable rank among
-other shape features of LoRA updates to tell training objectives apart. To
-our knowledge none of these compares rank measures of $\dW$ against a noise
-baseline matrix by matrix, or uses non-alignment fine-tunes as a control for
-claims about alignment.
+\paragraph{The rank of fine-tuning updates.} Fine-tuning can be carried out in
+a small random subspace \citep{aghajanyan2021intrinsic}, the idea behind LoRA
+\citep{hu2022lora}, and fine-tuned models can be stored as low-rank
+approximations of the update \citep{ryu2023efficient}. Measured directly, full
+fine-tuning updates need a rank 10--100 times larger than typical LoRA ranks to
+hold 90\% of their energy \citep{biderman2024lora}, and reinforcement-learning
+updates are reported as nearly full rank, 99.2--99.8\% of the maximum
+\citep{mukherjee2025rl}. Both statements count directions; our results agree
+with them and add that the same updates are far more concentrated than noise at
+the top of the spectrum. \citet{shuttleworth2025lora} compare singular vectors
+of fine-tuned and pretrained $W$ and find that LoRA introduces new dominant
+directions that full fine-tuning does not. Delta-CoMe \citep{ping2024deltacome}
+compresses updates by giving more bits to the top singular vectors and finds
+that plain low-rank truncation hurts, consistent with our finding that the tail
+matters. \citet{paul2026spectral} use stable rank among other features of LoRA
+updates to tell training objectives apart.
 
-\paragraph{The measures.} Stable rank, also called numerical rank, comes from
-\citet{rudelson2007sampling}, and the entropy effective rank from
-\citet{roy2007effective}. Neither is new; the question here is only which of
-them can tell a weight update from noise.
+\paragraph{Low precision.} Rounding weights to bf16 cancels small updates
+\citep{zamirai2020bfloat16}, and in reinforcement learning this can make
+updates look sparse \citep{zhu2025path}. We found the same effect in our own
+first runs (\S\ref{sec:setup}) and show that it also inflates the threshold
+count of released checkpoints (\S\ref{sec:released}). A likely reason for the
+concentration itself is that gradients of linear layers are approximately low
+rank \citep{zhao2024galore}, so a sum of gradient steps inherits a few
+dominant directions.
