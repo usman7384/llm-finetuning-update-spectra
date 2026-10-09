@@ -9,18 +9,23 @@ singular values from Gaussian noise. Random matrix theory has also been used to
 study trained weight matrices: their spectra depart from those of random
 matrices in heavy-tailed ways that track training quality
 \citep{martin2021implicit}, while much of the bulk still follows random-matrix
-statistics \citep{thamm2022random}. Our point is
-that the recent literature on fine-tuning updates measures rank without such a
-baseline, and that this changes what the numbers seem to say.
+statistics \citep{thamm2022random}. For fine-tuning, \citet{biderman2024lora}
+compared the spectrum of a fully fine-tuned weight matrix with that of the
+pretrained matrix plus Gaussian noise and found them alike. We compare the
+update itself with noise, measure by measure, and find that the answer depends
+on which measure one uses.
 
 \paragraph{Superficial alignment.} \citet{zhou2023lima} proposed that
 alignment mostly selects a format the pretrained model already supports, and
 \citet{lin2024urial} found that base and aligned models differ mainly on
-stylistic tokens. \citet{wu2025timber} looked for weight-level evidence through
-the effective rank of released models (\S\ref{sec:timber}).
-\citet{chaudhury2025alignment} locate the effect of preference tuning in a few
-middle layers by activation patching, a question about activations that our
-weight analysis does not address.
+stylistic tokens. Others have questioned how far this goes: safety behaviour
+can be confined to the first few output tokens \citep{qi2025safety}, and
+post-training keeps improving reasoning with more data
+\citep{raghavendra2024revisiting}. \citet{wu2025timber} looked for
+weight-level evidence through the effective rank of released models
+(\S\ref{sec:timber}). \citet{chaudhury2025alignment} locate the effect of
+preference tuning in a few middle layers by activation patching, a question
+about activations that our weight analysis does not address.
 
 \paragraph{The rank of fine-tuning updates.} Fine-tuning can be carried out in
 a small random subspace \citep{aghajanyan2021intrinsic}, the idea behind LoRA
@@ -34,16 +39,25 @@ with them and add that the same updates are far more concentrated than noise at
 the top of the spectrum. \citet{shuttleworth2025lora} compare singular vectors
 of fine-tuned and pretrained $W$ and find that LoRA introduces new dominant
 directions that full fine-tuning does not. Delta-CoMe \citep{ping2024deltacome}
-compresses updates by giving more bits to the top singular vectors and finds
-that plain low-rank truncation hurts, consistent with our finding that the tail
-matters. \citet{paul2026spectral} use stable rank among other features of LoRA
-updates to tell training objectives apart.
+observes that update spectra are long-tailed and compresses them by giving more
+bits to the top singular vectors, finding that plain low-rank truncation hurts.
+\citet{paul2026spectral} use stable rank among other features of LoRA updates
+to tell training objectives apart.
+
+\paragraph{Editing updates.} Updates can be added, scaled and merged
+\citep{ilharco2023task}, and much of an update can be dropped or trimmed at
+random or by magnitude before merging with little loss
+\citep{yu2024dare, yadav2023ties}. Timber's tail edit belongs to this family,
+and our comparison with uniform scaling (\S\ref{sec:cutoff}) asks whether its
+spectral cutoff adds anything over the simplest edit of this kind.
 
 \paragraph{Low precision.} Rounding weights to bf16 cancels small updates
 \citep{zamirai2020bfloat16}, and in reinforcement learning this can make
 updates look sparse \citep{zhu2025path}. We found the same effect in our own
 first runs (\S\ref{sec:setup}) and show that it also inflates the threshold
-count of released checkpoints (\S\ref{sec:released}). A likely reason for the
-concentration itself is that gradients of linear layers are approximately low
-rank \citep{zhao2024galore}, so a sum of gradient steps inherits a few
-dominant directions.
+count of released checkpoints (\S\ref{sec:released}).
+
+\paragraph{Why updates concentrate.} Gradient descent spends most of its
+motion in a small subspace \citep{gurari2018tiny}, and gradients of linear
+layers are approximately low rank \citep{zhao2024galore}, so a sum of gradient
+steps can inherit a few dominant directions. We do not test this mechanism.
