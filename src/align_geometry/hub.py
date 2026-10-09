@@ -18,4 +18,8 @@ def weights_dir(src: str | Path) -> Path:
         return path
     from huggingface_hub import snapshot_download
 
-    return Path(snapshot_download(str(src), allow_patterns=WEIGHT_FILES))
+    local = Path(snapshot_download(str(src), allow_patterns=WEIGHT_FILES))
+    if not any(local.glob("*.safetensors")):
+        # a few releases only ship the older pytorch_model.bin format
+        local = Path(snapshot_download(str(src), allow_patterns=["pytorch_model*.bin"]))
+    return local
