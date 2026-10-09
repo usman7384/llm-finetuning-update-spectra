@@ -42,6 +42,16 @@ PAIRS = {
     "qwen2.5-1.5b": ("Qwen/Qwen2.5-1.5B", "Qwen/Qwen2.5-1.5B-Instruct"),
     "smollm2-1.7b": ("HuggingFaceTB/SmolLM2-1.7B", "HuggingFaceTB/SmolLM2-1.7B-Instruct"),
     "qwen3-8b": ("Qwen/Qwen3-8B-Base", "Qwen/Qwen3-8B"),
+    # OLMo 2 publishes every post-training stage, with open data: each stage's
+    # update separately, and base -> instruct overall
+    "olmo2-1b-sft": ("allenai/OLMo-2-0425-1B", "allenai/OLMo-2-0425-1B-SFT"),
+    "olmo2-1b-dpo": ("allenai/OLMo-2-0425-1B-SFT", "allenai/OLMo-2-0425-1B-DPO"),
+    "olmo2-1b-rl": ("allenai/OLMo-2-0425-1B-DPO", "allenai/OLMo-2-0425-1B-Instruct"),
+    "olmo2-1b-instruct": ("allenai/OLMo-2-0425-1B", "allenai/OLMo-2-0425-1B-Instruct"),
+    # large released updates with no alignment content
+    "qwen2.5-math-1.5b": ("Qwen/Qwen2.5-1.5B", "Qwen/Qwen2.5-Math-1.5B"),
+    "qwen2.5-coder-0.5b": ("Qwen/Qwen2.5-0.5B", "Qwen/Qwen2.5-Coder-0.5B"),
+    "qwen2.5-coder-1.5b": ("Qwen/Qwen2.5-1.5B", "Qwen/Qwen2.5-Coder-1.5B"),
 }
 
 
@@ -83,20 +93,25 @@ def main() -> int:
         # shapes, so later analysis needs neither weights nor the Hub cache
         shapes = {k: list(base.shape(k)) for k in keys}
         (out / "shapes.json").write_text(json.dumps(shapes, indent=1))
+        # the rounding floor only applies to checkpoints stored in bf16
+        stored_bf16 = all(w[keys[0]].dtype == torch.bfloat16 for w in (base, inst))
+        if not stored_bf16:
+            print(f"{name}: not stored in bf16, no rounding floor")
         done = 0
         for i, key in enumerate(keys, 1):
             d_path, r_path = out / "delta" / f"{key}.pt", out / "rounding" / f"{key}.pt"
-            if d_path.exists() and r_path.exists():
+            if d_path.exists() and (r_path.exists() or not stored_bf16):
                 continue
             w_b, w_i = base[key], inst[key]
-            # seeded per matrix, so a resumed run draws exactly what a full one would
-            g = torch.Generator().manual_seed(zlib.crc32(key.encode()))
-            noise = rounding_noise(w_b, w_i, g)
             delta = w_i.float() - w_b.float()
             if delta.ndim != 2 or delta.abs().max() == 0:
                 continue
             torch.save(torch.linalg.svdvals(delta.to(args.device)).cpu(), d_path)
-            torch.save(torch.linalg.svdvals(noise.to(args.device)).cpu(), r_path)
+            if stored_bf16:
+                # seeded per matrix, so a resumed run draws exactly what a full one would
+                g = torch.Generator().manual_seed(zlib.crc32(key.encode()))
+                noise = rounding_noise(w_b, w_i, g)
+                torch.save(torch.linalg.svdvals(noise.to(args.device)).cpu(), r_path)
             done += 1
             if i % 25 == 0 or i == len(keys):
                 print(f"{name}: {i}/{len(keys)} matrices", flush=True)
