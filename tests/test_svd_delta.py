@@ -188,3 +188,15 @@ def test_bf16_half_ulp_matches_real_rounding():
     assert torch.all((w.bfloat16().float() - w).abs() <= half + 1e-12)
     # and a nudge of a full unit is always visible
     assert torch.all((w + 2 * half).bfloat16().float() != w.bfloat16().float())
+
+
+def test_lazy_weights_reads_pytorch_bin(tmp_path):
+    from align_geometry.analysis.svd_delta import LazyWeights
+
+    sd = {"model.layers.0.mlp.up_proj.weight": torch.randn(4, 3)}
+    torch.save(sd, tmp_path / "pytorch_model.bin")
+    w = LazyWeights(tmp_path)
+    key = "model.layers.0.mlp.up_proj.weight"
+    assert list(w) == [key]
+    assert torch.equal(w[key], sd[key])
+    assert w.shape(key) == (4, 3)
