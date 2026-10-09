@@ -12,7 +12,9 @@ does this update really use?'', and they differ in how much the strongest
 directions count.
 \begin{itemize}
   \item \textbf{Threshold count} $\thresholdrank$: how many $\sigma_i$ are at
-  least $0.01\,\sigma_1$.
+  least $0.01\,\sigma_1$. We use it as the simplest example of counting; the
+  numerical rank reported by \citet{mukherjee2025rl} counts in the same way,
+  with a tolerance set by floating-point precision.
   \item \textbf{Energy rank} $\energyrank$: the smallest $k$ with
   $\sum_{i\leq k} p_i \geq 0.9$, the measure of \citet{biderman2024lora}.
   \item \textbf{Entropy effective rank} $\entropyrank$
@@ -25,39 +27,62 @@ directions count.
 All five ignore the overall scale of $\dW$, which matters because the updates
 we compare differ in size by orders of magnitude.
 
-\paragraph{One family.} Most of these are effective ranks of one kind: the
-exponential of a R\'enyi entropy of $p$ of some order $\alpha$,
+\paragraph{How the measures relate.} Three of the five are effective ranks of
+one kind: the exponential of a R\'enyi entropy of $p$ of order $\alpha$,
 $R_\alpha = \bigl(\sum_i p_i^\alpha\bigr)^{1/(1-\alpha)}$. Order 0 counts the
 nonzero directions (the threshold count is a thresholded version of it),
 order 2 is the participation ratio, and order $\infty$ is the stable rank.
 The higher the order, the more the top directions dominate. This is why the
 measures can disagree about the same matrix: a spectrum with a few strong
 directions and a long tail of weak ones has many directions to count but most
-of its weight on top. The entropy effective rank and the energy rank sit in
-between.
+of its weight on top. The other two are close relatives rather than members:
+eRank uses the Shannon entropy of $q \propto \sigma$ instead of
+$p \propto \sigma^2$, and the energy rank counts directions up to a fixed share
+of $p$. We list them between the threshold count and the participation ratio,
+which is where their values fall for our updates.
+
+Note that $R_\alpha$ can only fall as $\alpha$ grows, for any matrix, so the
+order of the raw values tells us nothing. What does carry information is how
+far each measure puts an update below noise.
+
+\paragraph{The gap to noise.} For each measure we report
+$1 - \bar{x}_{\text{update}}/\bar{x}_{\text{noise}}$, where $\bar{x}$ is the
+mean of the measure over all matrices of a model: 0 means the update looks
+like noise, values near 1 mean it is far more concentrated. Intervals come
+from a bootstrap over layers (\S\ref{sec:setup}). The measures have different
+ceilings (the threshold count of noise is already 0.996), so the gap is best
+compared across updates for one measure, and only roughly across measures.
 
 \paragraph{The noise baseline.} A value of any of these measures only means
 something next to its value for a matrix with no structure. For our own runs
 the baseline is the difference between two independent random initialisations
-of the same model; for released models, a Gaussian matrix of the same shape.
-The spectrum of such a matrix follows the Marchenko--Pastur law, whose upper
-edge (the Bai--Yin limit, \citealp{bai2010spectral}) gives a stable rank close
-to $mn/(\sqrt{m}+\sqrt{n})^2$, a quarter of $r$ for square matrices. Our
+of the same model; for released models, one Gaussian draw for each matrix,
+with the same shape. The spectrum of such a matrix follows the
+Marchenko--Pastur law, whose upper edge (the Bai--Yin limit,
+\citealp{bai2010spectral}) gives a stable rank close to
+$mn/(\sqrt{m}+\sqrt{n})^2$, a quarter of $r$ for square matrices. Our
 random-init pairs match this to within 0.01 for every matrix shape of
-Qwen2.5-0.5B (Appendix~\ref{app:sensitivity}). A Gaussian matrix is the least
+Qwen2.5-0.5B (Table~\ref{tab:mp} in Appendix~\ref{app:sensitivity}), and the
+two baselines agree: on Qwen2.5-0.5B the stable rank is 0.436 for the
+random-init pair and 0.434 for the Gaussian matrices. A Gaussian matrix is the least
 structured baseline possible, so as a second reference we also measure the
 pretrained weights $W$ themselves.
 
 \paragraph{The rounding floor.} Released checkpoints are usually stored in
 bf16, which rounds every weight to 8 significant bits. The rounding adds a
 small noise matrix to $\dW$. For each released pair we simulate it (uniform
-error up to half a bf16 unit at each weight, for both checkpoints) and ask
-how much of a measure it could account for.
+error up to half a bf16 unit at each weight, independently for both
+checkpoints) and ask how much of a measure it could account for. This is an
+upper bound: when a weight barely moves, its two rounding errors are not
+independent, and the stored difference is exactly zero. So we also report the
+direct evidence, the share of entries of $\dW$ that are exactly zero.
 
 \paragraph{Measures of $W$ rather than $\dW$.} Some studies measure the full
 weight matrix before and after fine-tuning. By Weyl's inequality
 \citep{horn2012matrix}, each singular value of $W + \dW$ is within
-$\|\dW\|_2$ of the corresponding one of $W$, so when the update is small
-compared with $W$, no measure of the spectrum of $W$ can move much. The
-right comparison is then a random update of the same size,
-$W + G\,\|\dW\|_F/\|G\|_F$ with $G$ Gaussian.
+$\|\dW\|_2$ of the corresponding one of $W$. When the update is small
+compared with $W$, the large singular values of $W$ barely move; the small
+ones can move more relative to their size, so the bound alone does not settle
+how much a measure of $W$ can change. We therefore test it directly against a
+random update of the same size, $W + G\,\|\dW\|_F/\|G\|_F$ with $G$
+Gaussian.
