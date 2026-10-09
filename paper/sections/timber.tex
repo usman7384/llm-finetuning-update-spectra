@@ -2,12 +2,13 @@
 \label{sec:timber}
 
 \citet{wu2025timber} compare released base and instruct models (Llama~3 and
-Qwen3) through the entropy effective rank of each weight matrix. They find it
-almost unchanged by post-training, at about 85\% of full rank, and read this
-as weight-level evidence that post-training is superficial. They also propose
-an edit: keep the top $\lceil \entropyrank(\dW)\cdot r\rceil$ singular
-directions of the update and scale the rest by $\lambda<1$, which improves
-pass@$k$ on their benchmarks. We check both with the baselines of
+Qwen3) through the entropy effective rank of each weight matrix $W$ (not of
+$\dW$). They find it almost unchanged by post-training, at about 85\% of full
+rank, and read this as weight-level evidence that post-training is
+superficial. They also propose an edit, Timber: keep the top
+$\lceil \entropyrank(\dW)\rceil$ singular directions of the update and scale
+the rest by $\lambda<1$, with $\lambda=0.2$ recommended, which improves Mean@$k$
+and pass@$k$ on their benchmarks. We check both with the baselines of
 \S\ref{sec:background}.
 
 \subsection{An unchanged effective rank is what any update of this size gives}
@@ -19,8 +20,10 @@ pass@$k$ on their benchmarks. We check both with the baselines of
 \caption{Left: change in the effective rank of the full weight matrix $W$ for
 the real base-to-instruct update (blue) and a random update of the same
 Frobenius norm (grey), averaged over matrices. Right: perplexity on held-out
-wikitext of Qwen3-0.6B base after a random update of the same size as its real
-post-training update, Gaussian or with the real update's singular values.}
+wikitext of Qwen3-0.6B base, unchanged, after a random update of the same size
+as its real post-training update (Gaussian, or with the real update's singular
+values), and after the real update, which gives the instruct model. The
+numbers above the bars are the change in eRank($W$).}
 \label{fig:random}
 \end{figure}
 
@@ -28,23 +31,28 @@ The measurement reproduces. On Qwen3-0.6B and Qwen3-8B, two of their pairs,
 the effective rank of the base weights is 0.84 and 0.86 of full rank, and
 post-training changes it by only 0.13\% and 0.06\%.
 
-But a random update of the same size leaves it just as unchanged
-(Figure~\ref{fig:random}, left). On all seven base/instruct pairs, real and
-random updates move the effective rank of $W$ by at most 0.5\%, as Weyl's
-inequality suggests for updates much smaller than the weights. On the released
-models the real update moves it 1.5--4 times less than the random one, so
-post-training does change $W$ in a structured way, but that is visible only
-next to the random comparison.
+But a random update of the same size also leaves it almost unchanged
+(Figure~\ref{fig:random}, left). On all seven base/instruct pairs, whose
+updates are 1--13\% of the size of the weights, real and random updates both
+move the effective rank of $W$ by at most 0.5\%. The real update moves it 1.6
+to 3.8 times less than the random one, so post-training does change $W$ in a
+structured way, but that is visible only next to the random comparison.
 
-The random updates are not harmless. Adding to Qwen3-0.6B base a random update
-of the same size as its real post-training update, matrix by matrix, raises
-its perplexity on held-out wikitext from 18.1 to 33.1, whether the update is
-Gaussian or has exactly the real update's singular values
-(Figure~\ref{fig:random}, right), while its effective rank moves by 0.5\%. An
-unchanged effective rank therefore cannot tell a superficial change from a
-damaging one, or from fine-tuning on Wikipedia (\S\ref{sec:controls}). This
-does not show that post-training is deep; it shows that this measurement
-cannot decide the question.
+An unchanged effective rank also says little about how much the model
+changed. Adding to Qwen3-0.6B base a random update of the same size as its
+real post-training update, matrix by matrix, raises its perplexity on held-out
+wikitext from 18.1 to 33.1, whether the update is Gaussian or has exactly the
+real update's singular values, while its effective rank moves by 0.5\%
+(Figure~\ref{fig:random}, right). The real update, which moves the effective
+rank by only 0.13\%, raises the perplexity further, to 50.1. That is expected:
+an instruct model is no longer a plain predictor of web text. So perplexity
+cannot tell useful change from damage, and we do not claim that the random
+update harms the model more than post-training does. The point is simpler:
+large changes in what the model predicts come with tiny changes in the
+effective rank of $W$, whether the update is structured or random, so the
+measure cannot tell a superficial change from a deep one. This does not show
+that post-training is deep; it shows that this measurement cannot decide the
+question.
 
 \subsection{The edit does not need the effective-rank cutoff}
 \label{sec:cutoff}
@@ -53,24 +61,26 @@ cannot decide the question.
 \begin{center}
 \includegraphics[width=\linewidth]{figures/cutoff_passk.pdf}
 \end{center}
-\caption{GSM8K pass@$k$ for Qwen3-0.6B (non-thinking mode) with
-Timber-style tail edits and with uniform scaling of the whole update. Eight
-samples per problem, the same sampling seed per problem for every variant.
-Left: first 300 test problems. Right: all 1{,}319.}
+\caption{GSM8K pass@$k$ for Qwen3-0.6B (non-thinking mode) with tail edits
+($\lambda=0.5$) and with uniform scaling of the whole update. Eight samples
+per problem, the same sampling seed per problem for every variant. Left: first
+300 test problems, all variants (Table~\ref{tab:cutoff300}). Right: all
+1{,}319 (Table~\ref{tab:cutoff}).}
 \label{fig:cutoff}
 \end{figure}
 
 \begin{table}[t]
 \caption{Edits of the Qwen3-0.6B update on all 1{,}319 GSM8K test problems.
-``Untouched'' is the share of the update's energy left as it is. Differences
-from the unedited model in points, with 95\% paired bootstrap intervals over
-problems.}
+``Unscaled'' is the share of the update's energy the edit leaves at full
+strength (uniform scaling shrinks every direction by the same factor).
+Differences from the unedited model in points, with 95\% paired bootstrap
+intervals over problems, not corrected for multiple comparisons.}
 \label{tab:cutoff}
 \begin{center}
 \small
 \begin{tabular}{lccccc}
 \toprule
-edit & untouched & pass@1 & pass@8 & $\Delta$ pass@1 & $\Delta$ pass@8 \\
+edit & unscaled & pass@1 & pass@8 & $\Delta$ pass@1 & $\Delta$ pass@8 \\
 \midrule
 none                                       & 100\%  & 62.3 & 85.1 & -- & -- \\
 tail $\times 0.5$, eRank cutoff (Timber)   & 98.9\% & 63.1 & 85.9 & $+0.7$ ($-0.02$, $+1.6$) & $+0.8$ ($-0.6$, $+2.3$) \\
@@ -84,20 +94,38 @@ whole update $\times 0.75$ (same size)     & 0\%    & XX   & XX   & XX & XX \\
 Because the effective rank of $\dW$ sits close to its noise value, the cutoff
 it gives is high: on Qwen3-0.6B it keeps 83\% of the directions and 98.9\% of
 the update's energy, so the edit touches only the last 1\% (Wu et al.\ report
-98.82\% for Qwen3-8B). An edit that small is also fragile in practice: storing
-the edited model in bf16 distorts it by about a quarter.
+98.82\% for Qwen3-8B). An edit that small is also fragile in practice: running
+the edited model in bf16 distorts it by about a quarter of its size
+(Appendix~\ref{app:cutoff}).
 
-We compare three edits of the same update on GSM8K \citep{cobbe2021gsm8k},
-which is not among Wu et al.'s benchmarks, using pass@$k$
-\citep{chen2021codex}: Timber's tail edit, the same edit with a stable-rank
-cutoff that scales 53 times more of the update's energy, and simply scaling the
-whole update by 0.75 so that the edited update has the same size as the
-stable-rank edit. Removing the tail entirely instead of halving it costs 4.2
-points of pass@1 (Appendix~\ref{app:cutoff}), so the long tail matters to the
-model.
+We compare edits of the same update on GSM8K \citep{cobbe2021gsm8k}, which is
+not among Wu et al.'s benchmarks, using pass@$k$ \citep{chen2021codex}:
+Timber's tail edit, the same edit with a stable-rank cutoff that scales 53
+times more of the update's energy, and simply scaling the whole update by one
+factor per matrix (0.75 on average) so that the edited update has the same
+size as the stable-rank edit. Our setup differs from Wu et al.'s in two ways:
+we use $\lambda=0.5$ rather than their recommended $0.2$, and Qwen3's
+non-thinking mode rather than thinking mode. So this is a test of the cutoff,
+not a replication of their gains.
+
+On all 1{,}319 problems, Timber's edit changes pass@1 by $+0.7$ points
+($-0.02$, $+1.6$) and pass@8 by $+0.8$ ($-0.6$, $+2.3$): no detectable effect
+on this benchmark in this mode (Table~\ref{tab:cutoff},
+Figure~\ref{fig:cutoff}). The stable-rank edit gives a similar pass@1 and a
+pass@8 gain of $+1.8$ ($+0.2$, $+3.4$).
 
 XX: full-set result for uniform scaling, and what it implies.
 
-None of this tests the gains Wu et al.\ report on other benchmarks. It shows
-that, on this benchmark, the effective-rank cutoff is not what makes the edit
-work.
+On the first 300 problems we also ran the extreme $\lambda=0$, which removes
+the tail completely (Table~\ref{tab:cutoff300}). Removing Timber's tail, 1.1\%
+of the update's energy, changes nothing measurable ($+0.5$ points of pass@1).
+Removing the stable-rank ``tail'', which is 59\% of the update's energy and so
+most of the update, costs 4.2 points against the unedited model and 5.2 against
+halving it. Removing most of an update hurts; this says little about the
+weakest directions alone. A uniform scaling matched in size to Timber's edit is
+almost erased by bf16 storage (88\% of the change is lost) and, like Timber's
+edit, has no clear effect ($+0.8$, interval $-0.8$ to $+2.4$).
+
+None of this tests the gains Wu et al.\ report on their benchmarks with their
+settings. It shows that, on GSM8K in non-thinking mode, the effective-rank
+cutoff is not what makes an edit of this kind work.
