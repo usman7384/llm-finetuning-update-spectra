@@ -2,72 +2,45 @@
 \label{app:training}
 
 \begin{table}[h]
-\caption{Hyperparameters. All runs use bf16 weights, 8-bit AdamW, gradient
-checkpointing, sequence length 1{,}024, a cosine schedule with 3\% warmup and
-gradient clipping at 1.0, on one 6\,GB GPU.}
+\caption{Settings shared by all our fine-tunes. Each run trains on the same
+number of tokens as the SFT run of the same model, counted after truncation.}
 \label{tab:hparams}
 \begin{center}
 \small
-\begin{tabular}{llllp{3.4cm}}
+\begin{tabular}{ll}
 \toprule
-run & data & size & schedule & notes \\
+setting & value \\
 \midrule
-SFT & Alpaca-cleaned & 10k examples & 3 ep., lr $2\times10^{-5}$ & loss on answers only; 1{,}750{,}543 tokens \\
-DPO & UltraFeedback & 10k pairs & 1 ep., lr $5\times10^{-6}$ & $\beta=0.1$, from SFT \\
-wikitext LM & wikitext-103 & 1{,}714{,}520 tok. & as SFT & plain LM, loss on all tokens \\
-code LM & CodeParrot & 1{,}718{,}163 tok. & as SFT & plain LM, Python only \\
-LoRA & as SFT & ranks 1--128 & 3 ep., lr $\{1,3,10\}{\times}10^{-4}$ & $\alpha = 2r$, all 7 projections \\
+weights / compute precision & fp32 master weights, bf16 autocast \\
+optimizer                   & 8-bit AdamW, learning rate $2\times10^{-5}$, no weight decay \\
+schedule                    & cosine, 3\% warmup, 3 epochs, gradient clipping at 1.0 \\
+batch                       & 1 sequence $\times$ 16 accumulation steps \\
+sequence length             & 512 tokens \\
+embeddings                  & frozen (tied with the output head; not analysed) \\
+memory                      & gradient checkpointing, one 6\,GB GPU \\
+check after training        & at most $10^{-5}$ of attention/MLP weights unchanged \\
 \midrule
-SmolLM2 SFT & Alpaca-cleaned & 10k examples & as Qwen SFT & 1{,}920{,}060 tokens \\
-SmolLM2 wikitext & wikitext-103 & 1{,}880{,}834 tok. & as Qwen SFT & token-matched \\
-SmolLM2 code & CodeParrot & 1{,}883{,}657 tok. & as Qwen SFT & token-matched \\
+SFT data                    & 10k examples of Alpaca-cleaned, loss on answers only \\
+wikitext / code data        & wikitext-103 / CodeParrot (Python), plain LM loss \\
+shuffled-words data         & wikitext documents, word order shuffled within each document \\
+training tokens             & Qwen: 1.71--1.75M; SmolLM2: 1.87--1.91M \\
 \bottomrule
 \end{tabular}
 \end{center}
 \end{table}
 
-Training uses TRL \citep{vonwerra2020trl}. The effective batch size is 16
-(batch 1 with 16 accumulation steps) for full fine-tuning; LoRA runs use batch 4 with plain AdamW. The base tokenizer of
-SmolLM2-360M has no chat template, so SFT borrows the one from
-SmolLM2-360M-Instruct. Token budgets for the controls are counted after
-truncation to the sequence length, so they match what each run actually
-trained on. Seed repeats change both the training seed and the data sample
-(42 to 43). Every run records its exact training rows and token count.
-
-\section{Stable rank by matrix type}
-\label{app:pertype}
-
-\begin{table}[h]
-\caption{Stable rank (fraction of maximum rank) by matrix type, Qwen2.5-0.5B.}
-\label{tab:pertype}
-\begin{center}
-\begin{tabular}{lccccccc}
-\toprule
- & \texttt{q} & \texttt{k} & \texttt{v} & \texttt{o} & \texttt{gate} & \texttt{up} & \texttt{down} \\
-\midrule
-SFT              & 0.068 & 0.135 & 0.316 & 0.080 & 0.103 & 0.096 & 0.217 \\
-DPO (vs SFT)     & 0.097 & 0.220 & 0.204 & 0.062 & 0.160 & 0.109 & 0.153 \\
-wikitext LM      & 0.057 & 0.119 & 0.229 & 0.069 & 0.090 & 0.074 & 0.135 \\
-code LM          & 0.074 & 0.159 & 0.315 & 0.085 & 0.147 & 0.105 & 0.192 \\
-random-init pair & 0.252 & 0.536 & 0.535 & 0.251 & 0.492 & 0.492 & 0.493 \\
-\bottomrule
-\end{tabular}
-\end{center}
-\end{table}
-
-Every matrix type of every update is below the noise baseline. For SFT the
-gap is largest in the \texttt{up} and \texttt{gate} projections (about
-5$\times$) and smallest in \texttt{down} (2.3$\times$) and \texttt{v}
-(1.7$\times$). The ordering of the non-alignment controls
-(wikitext most concentrated) holds in every column.
+Training a run took 1.3--3.7 hours. The base tokenizer of SmolLM2-360M has no
+chat template, so SFT borrows the one from SmolLM2-360M-Instruct. Second seeds
+change both the training seed and the data sample. Every run records its exact
+training rows, token count and the fraction of unchanged weights.
 
 \section{Threshold sensitivity and the noise baseline}
 \label{app:sensitivity}
 
 \begin{table}[h]
-\caption{The threshold count at three cut-offs (fraction of maximum rank).
-At $0.01\,\sigma_1$ every update looks like noise; at $0.1\,\sigma_1$ the gap
-is large. The conclusion depends on an arbitrary choice.}
+\caption{The threshold count at three cut-offs. At $0.01\,\sigma_1$ every
+update looks almost like noise; at $0.1\,\sigma_1$ the gap is large. The verdict
+depends on an arbitrary choice.}
 \label{tab:threshold}
 \begin{center}
 \small
@@ -75,25 +48,28 @@ is large. The conclusion depends on an arbitrary choice.}
 \toprule
 model & matrix & $0.01\,\sigma_1$ & $0.05\,\sigma_1$ & $0.1\,\sigma_1$ \\
 \midrule
-Qwen2.5-0.5B & SFT update      & 0.991 & 0.937 & 0.810 \\
-             & DPO update      & 0.990 & 0.906 & 0.816 \\
-             & wikitext update & 0.990 & 0.891 & 0.784 \\
-             & code update     & 0.992 & 0.960 & 0.895 \\
-             & noise           & 0.996 & 0.982 & 0.964 \\
+Qwen2.5-0.5B & SFT update            & 0.973 & 0.889 & 0.787 \\
+             & wikitext update       & 0.972 & 0.886 & 0.775 \\
+             & code update           & 0.975 & 0.895 & 0.799 \\
+             & shuffled-words update & 0.941 & 0.752 & 0.530 \\
+             & noise                 & 0.996 & 0.982 & 0.964 \\
+             & pretrained $W$        & 0.976 & 0.913 & 0.851 \\
 \midrule
-SmolLM2-360M & SFT update      & 0.955 & 0.822 & 0.610 \\
-             & wikitext update & 0.943 & 0.779 & 0.548 \\
-             & code update     & 0.976 & 0.902 & 0.780 \\
-             & noise           & 0.996 & 0.982 & 0.964 \\
+SmolLM2-360M & SFT update            & 0.951 & 0.757 & 0.458 \\
+             & wikitext update       & 0.948 & 0.701 & 0.386 \\
+             & code update           & 0.963 & 0.803 & 0.534 \\
+             & shuffled-words update & 0.863 & 0.384 & 0.151 \\
+             & noise                 & 0.996 & 0.982 & 0.964 \\
+             & pretrained $W$        & 0.982 & 0.926 & 0.857 \\
 \bottomrule
 \end{tabular}
 \end{center}
 \end{table}
 
 \begin{table}[h]
-\caption{Stable rank of the random-init pair against the Marchenko--Pastur
-prediction $mn/(\sqrt{m}+\sqrt{n})^2/r$ for a Gaussian matrix of the same
-shape, Qwen2.5-0.5B, mean over layers.}
+\caption{Stable rank of the random-init pair against the prediction
+$mn/(\sqrt{m}+\sqrt{n})^2/r$ for a Gaussian matrix of the same shape,
+Qwen2.5-0.5B, mean over layers.}
 \label{tab:mp}
 \begin{center}
 \small
@@ -110,50 +86,121 @@ matrix & shape & predicted & random-init pair \\
 \end{center}
 \end{table}
 
-\section{Effective rank of the full weight matrix}
-\label{app:erankw}
+\section{Stable rank by matrix type}
+\label{app:pertype}
 
 \begin{table}[h]
-\caption{Relative change in the entropy effective rank of $W$ caused by the
-real update and by a Gaussian perturbation with the same Frobenius norm, mean
-over matrices. The first column is the size of the update relative to $W$.}
-\label{tab:erankw}
+\caption{Stable rank (fraction of maximum rank) by matrix type, Qwen2.5-0.5B.}
+\label{tab:pertype}
 \begin{center}
-\begin{tabular}{lccc}
+\small
+\begin{tabular}{lccccccc}
 \toprule
-update & $\|\dW\|_F / \|W\|_F$ & real & random, same norm \\
+ & \texttt{q} & \texttt{k} & \texttt{v} & \texttt{o} & \texttt{gate} & \texttt{up} & \texttt{down} \\
 \midrule
-SFT (ours, Qwen2.5-0.5B)         & 1.1\%  & 0.010\%  & 0.008\% \\
-wikitext LM (ours)               & 1.4\%  & 0.014\%  & 0.010\% \\
-code LM (ours)                   & 0.5\%  & 0.002\%  & 0.002\% \\
-DPO (ours, vs SFT)               & 0.08\% & 0.0001\% & 0.0001\% \\
-SFT (ours, SmolLM2-360M)         & 0.45\% & 0.010\%  & 0.014\% \\
-\midrule
-SmolLM2-135M, base $\to$ instruct & 8.1\%  & 0.19\%  & 0.33\% \\
-SmolLM2-360M                      & 7.4\%  & 0.14\%  & 0.23\% \\
-Qwen2.5-0.5B                      & 7.1\%  & 0.14\%  & 0.36\% \\
-Qwen3-0.6B                        & 12.6\% & 0.13\%  & 0.50\% \\
-Qwen2.5-1.5B                      & 1.2\%  & 0.004\% & 0.006\% \\
-SmolLM2-1.7B                      & 6.2\%  & 0.06\%  & 0.12\% \\
-Qwen3-8B                          & 8.3\%  & 0.06\%  & 0.14\% \\
+SFT update            & 0.032 & 0.064 & 0.251 & 0.057 & 0.064 & 0.072 & 0.139 \\
+wikitext update       & 0.031 & 0.072 & 0.227 & 0.057 & 0.065 & 0.085 & 0.112 \\
+code update           & 0.031 & 0.070 & 0.243 & 0.058 & 0.057 & 0.073 & 0.127 \\
+shuffled-words update & 0.011 & 0.043 & 0.124 & 0.021 & 0.023 & 0.026 & 0.048 \\
+noise                 & 0.252 & 0.536 & 0.535 & 0.251 & 0.492 & 0.492 & 0.493 \\
+pretrained $W$        & 0.058 & 0.212 & 0.453 & 0.078 & 0.071 & 0.242 & 0.135 \\
 \bottomrule
 \end{tabular}
 \end{center}
 \end{table}
 
-\section{Cutoff experiment details}
+Every matrix type of every update is far below noise. The SFT, wikitext and
+code updates agree closely in every column; the shuffled-words update is the
+most concentrated in every column.
+
+\section{The shuffled-words update}
+\label{app:shuffled}
+
+\begin{table}[h]
+\caption{Stable rank by quarter of the network.}
+\label{tab:shuffled}
+\begin{center}
+\small
+\begin{tabular}{llcccc}
+\toprule
+model & update & first quarter & second & third & last quarter \\
+\midrule
+Qwen2.5-0.5B & SFT            & 0.094 & 0.099 & 0.103 & 0.091 \\
+             & wikitext       & 0.086 & 0.100 & 0.104 & 0.080 \\
+             & code           & 0.091 & 0.097 & 0.104 & 0.085 \\
+             & shuffled words & 0.055 & 0.039 & 0.034 & 0.042 \\
+\midrule
+SmolLM2-360M & SFT            & 0.023 & 0.027 & 0.029 & 0.021 \\
+             & wikitext       & 0.019 & 0.024 & 0.023 & 0.015 \\
+             & code           & 0.030 & 0.038 & 0.043 & 0.027 \\
+             & shuffled words & 0.013 & 0.010 & 0.007 & 0.007 \\
+\bottomrule
+\end{tabular}
+\end{center}
+\end{table}
+
+To test whether the shuffled-words update mainly shifts the output towards
+frequent tokens, we take the top left singular vector of each layer's
+\texttt{down\_proj} update on Qwen, map it to the vocabulary through the final
+norm and the tied unembedding, and correlate that logit shift with the log
+frequency of each token in the run's training data, against 50 random
+directions. In layers 18--22 the correlation is 0.32--0.39 for shuffled words,
+above the random 95th percentile (about 0.19), while the wikitext run, trained
+on the same words in their normal order, stays at 0.00--0.13. In the first two
+thirds of the network the shuffled-words update shows no such alignment, so
+frequency explains only part of its concentration.
+
+\section{Released pairs: more measures}
+\label{app:released}
+
+\begin{table}[h]
+\caption{Participation ratio of each released update against a Gaussian matrix
+of the same shape, the number of singular values above the largest one a
+Gaussian matrix of the same shape and size would have (mean per matrix), and
+the share of directions above the simulated bf16 rounding floor.}
+\label{tab:released_more}
+\begin{center}
+\small
+\begin{tabular}{lcccc}
+\toprule
+update & particip. & noise & above noise edge & above rounding floor \\
+\midrule
+SmolLM2-135M instruct & 0.321 & 0.667 & 30  & 96\% \\
+SmolLM2-360M instruct & 0.239 & 0.668 & 46  & 95\% \\
+Qwen2.5-0.5B instruct & 0.657 & 0.755 & 22  & 97\% \\
+Qwen3-0.6B            & 0.442 & 0.654 & 72  & 98\% \\
+Qwen2.5-1.5B instruct & 0.299 & 0.753 & 100 & 78\% \\
+SmolLM2-1.7B instruct & 0.375 & 0.629 & 140 & 91\% \\
+Qwen3-8B              & 0.405 & 0.693 & 243 & 97\% \\
+OLMo 2 1B: base $\to$ SFT & 0.435 & 0.629 & 85  & -- \\
+OLMo 2 1B: SFT $\to$ DPO  & 0.116 & 0.629 & 114 & 13\% \\
+OLMo 2 1B: DPO $\to$ RL   & 0.127 & 0.629 & 99  & 3\% \\
+Qwen2.5-Coder-0.5B    & 0.545 & 0.755 & 44  & 100\% \\
+Qwen2.5-Math-1.5B     & 0.611 & 0.753 & 61  & 100\% \\
+Qwen2.5-Coder-1.5B    & 0.585 & 0.753 & 66  & 100\% \\
+\bottomrule
+\end{tabular}
+\end{center}
+\end{table}
+
+Qwen2.5-0.5B is the least concentrated instruct release on every measure, and
+less concentrated than our own SFT of the same base; we do not know why.
+
+\section{Edit experiment details}
 \label{app:cutoff}
 
 The prompt is the GSM8K question followed by ``Please reason step by step, and
 put your final answer within \verb|\boxed{}|.'', in Qwen3's chat template with
-thinking turned off. The answer is the last \verb|\boxed{}| expression, or the
-last number if there is none, compared numerically with the reference. The
-edit is applied to every attention and MLP projection; embeddings, norms and
-biases are left unchanged. pass@$k$ uses the unbiased estimator of
-\citet{chen2021codex} with $n = 8$ samples per problem.
+thinking turned off, sampled at temperature 0.7, top-$p$ 0.8 and top-$k$ 20 for
+up to 512 new tokens. The answer is the last \verb|\boxed{}| expression, or the
+last number if there is none. The edit is applied to every attention and MLP
+projection in fp32 and the model then runs in bf16, which distorts the edit by
+25\% of its size for Timber's tail edit, 4\% for the stable-rank tail edit and
+6\% for uniform scaling. pass@$k$ uses the unbiased estimator of
+\citet{chen2021codex} with $n=8$.
 
 \begin{table}[h]
-\caption{All five variants on the first 300 GSM8K test problems. Differences
+\caption{All edit variants on the first 300 GSM8K test problems. Differences
 from the unedited model in points, with 95\% paired bootstrap intervals.
 ``Answered'' is the share of samples with a final boxed answer.}
 \label{tab:cutoff300}
@@ -161,50 +208,15 @@ from the unedited model in points, with 95\% paired bootstrap intervals.
 \small
 \begin{tabular}{lccccc}
 \toprule
-variant & pass@1 & pass@8 & answered & $\Delta$ pass@1 & $\Delta$ pass@8 \\
+edit & pass@1 & pass@8 & answered & $\Delta$ pass@1 & $\Delta$ pass@8 \\
 \midrule
-no edit                       & 63.4 & 84.7 & 96.5\% & -- & -- \\
-eRank, $\lambda = 0$          & 63.9 & 87.7 & 96.7\% & $+0.5$ ($-1.3$, $+2.3$) & $+3.0$ ($-0.3$, $+6.3$) \\
-eRank, $\lambda = 0.5$        & 64.7 & 88.0 & 96.8\% & $+1.3$ ($-0.5$, $+3.0$) & $+3.3$ ($+0.3$, $+6.3$) \\
-stable rank, $\lambda = 0$    & 59.3 & 83.0 & 90.6\% & $-4.2$ ($-6.9$, $-1.4$) & $-1.7$ ($-5.7$, $+2.3$) \\
-stable rank, $\lambda = 0.5$  & 64.5 & 87.3 & 95.1\% & $+1.1$ ($-1.2$, $+3.4$) & $+2.7$ ($-1.0$, $+6.3$) \\
+none                                  & 63.4 & 84.7 & 96.5\% & -- & -- \\
+tail $\times 0$, eRank cutoff         & 63.9 & 87.7 & 96.7\% & $+0.5$ ($-1.3$, $+2.3$) & $+3.0$ ($-0.3$, $+6.3$) \\
+tail $\times 0.5$, eRank cutoff       & 64.7 & 88.0 & 96.8\% & $+1.3$ ($-0.5$, $+3.0$) & $+3.3$ ($+0.3$, $+6.3$) \\
+tail $\times 0$, stable-rank cutoff   & 59.3 & 83.0 & 90.6\% & $-4.2$ ($-6.9$, $-1.4$) & $-1.7$ ($-5.7$, $+2.3$) \\
+tail $\times 0.5$, stable-rank cutoff & 64.5 & 87.3 & 95.1\% & $+1.1$ ($-1.2$, $+3.4$) & $+2.7$ ($-1.0$, $+6.3$) \\
+whole update $\times 0.75$            & 66.0 & 88.7 & 96.0\% & $+2.6$ ($+0.5$, $+4.8$) & $+4.0$ ($+1.3$, $+7.0$) \\
 \bottomrule
 \end{tabular}
 \end{center}
 \end{table}
-
-\section{LoRA sweep}
-\label{app:lora}
-
-\begin{table}[h]
-\caption{LoRA sweep on Qwen2.5-0.5B, best learning rate per rank by
-validation loss ($10^{-4}$ at every rank). IFEval recovery is the share of
-full SFT's prompt-level strict gain recovered. Overlap is the mean cosine of
-principal angles between the top-$r$ left singular vectors of the full SFT
-update and the adapter's $B$, with random subspaces of the same size for
-comparison.}
-\label{tab:lora}
-\begin{center}
-\begin{tabular}{rcccccc}
-\toprule
-rank & val.\ loss & IFEval recovery & GSM8K & overlap & random & ratio \\
-\midrule
-1   & 1.380 & 137\% & 32.4\% & 0.322 & 0.028 & 11.3 \\
-2   & 1.378 & 88\%  & 33.0\% & 0.331 & 0.054 & 6.2 \\
-4   & 1.378 & 75\%  & 32.3\% & 0.304 & 0.072 & 4.2 \\
-8   & 1.377 & 125\% & 31.3\% & 0.287 & 0.105 & 2.7 \\
-16  & 1.387 & 63\%  & 30.3\% & 0.299 & 0.149 & 2.0 \\
-32  & 1.416 & 131\% & 25.0\% & 0.332 & 0.213 & 1.6 \\
-64  & 1.488 & 275\% & 23.7\% & 0.397 & 0.307 & 1.3 \\
-128 & 1.613 & 275\% & 17.7\% & 0.526 & 0.465 & 1.1 \\
-\bottomrule
-\end{tabular}
-\end{center}
-\end{table}
-
-Full SFT scored 29.5\% on GSM8K and the base model 34.2\%. The IFEval
-recovery varies non-monotonically between ranks, which with one seed per
-rank we cannot separate from noise; ranks 64 and 128 produced identical IFEval
-scores despite different checkpoints and validation losses. Because the
-lowest learning rate won at every rank, the best rate is probably lower still,
-and the GSM8K trend should be read with that in mind.
