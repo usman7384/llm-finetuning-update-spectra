@@ -34,6 +34,10 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 from align_geometry.analysis.svd_delta import LazyWeights, is_analyzable_matrix  # noqa: E402
 from align_geometry.hub import weights_dir  # noqa: E402
 
+# The SFT stage starts from the final mid-training checkpoint, not from the
+# `main` revision of the base repo, which shares no initialisation with it
+# (results/olmo_lineage.csv)
+OLMO_BASE = "allenai/OLMo-2-0425-1B@stage2-ingredient3-step23852-tokens51B"
 PAIRS = {
     "smollm2-135m": ("HuggingFaceTB/SmolLM2-135M", "HuggingFaceTB/SmolLM2-135M-Instruct"),
     "smollm2-360m": ("HuggingFaceTB/SmolLM2-360M", "HuggingFaceTB/SmolLM2-360M-Instruct"),
@@ -44,10 +48,10 @@ PAIRS = {
     "qwen3-8b": ("Qwen/Qwen3-8B-Base", "Qwen/Qwen3-8B"),
     # OLMo 2 publishes every post-training stage, with open data: each stage's
     # update separately, and base -> instruct overall
-    "olmo2-1b-sft": ("allenai/OLMo-2-0425-1B", "allenai/OLMo-2-0425-1B-SFT"),
+    "olmo2-1b-sft": (OLMO_BASE, "allenai/OLMo-2-0425-1B-SFT"),
     "olmo2-1b-dpo": ("allenai/OLMo-2-0425-1B-SFT", "allenai/OLMo-2-0425-1B-DPO"),
     "olmo2-1b-rl": ("allenai/OLMo-2-0425-1B-DPO", "allenai/OLMo-2-0425-1B-Instruct"),
-    "olmo2-1b-instruct": ("allenai/OLMo-2-0425-1B", "allenai/OLMo-2-0425-1B-Instruct"),
+    "olmo2-1b-instruct": (OLMO_BASE, "allenai/OLMo-2-0425-1B-Instruct"),
     # large released updates with no alignment content
     "qwen2.5-math-1.5b": ("Qwen/Qwen2.5-1.5B", "Qwen/Qwen2.5-Math-1.5B"),
     "qwen2.5-coder-0.5b": ("Qwen/Qwen2.5-0.5B", "Qwen/Qwen2.5-Coder-0.5B"),
