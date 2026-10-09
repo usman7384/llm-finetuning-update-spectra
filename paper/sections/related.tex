@@ -5,9 +5,11 @@
 noise would give is old. Parallel analysis \citep{horn1965parallel} keeps only
 the factors whose eigenvalues beat those of random data, and
 \citet{gavish2014optimal} derive the optimal threshold for separating signal
-singular values from Gaussian noise. Random matrix theory has been used to
-study trained weight matrices \citep{martin2021implicit, thamm2022random}, which
-mostly follow the Marchenko--Pastur law with a few large outliers. Our point is
+singular values from Gaussian noise. Random matrix theory has also been used to
+study trained weight matrices: their spectra depart from those of random
+matrices in heavy-tailed ways that track training quality
+\citep{martin2021implicit}, while much of the bulk still follows random-matrix
+statistics \citep{thamm2022random}. Our point is
 that the recent literature on fine-tuning updates measures rank without such a
 baseline, and that this changes what the numbers seem to say.
 
