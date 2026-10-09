@@ -3,53 +3,61 @@
 
 Let $\dW \in \R^{m\times n}$ be the update to one weight matrix,
 $r = \min(m,n)$, and $\sigma_1 \geq \dots \geq \sigma_r$ its singular values.
-We report every measure as a fraction of $r$, so that matrices of different
-shapes can be averaged, and we use four measures.
+Write $p_i = \sigma_i^2 / \sum_j \sigma_j^2$ for the share of the update's
+energy (squared Frobenius norm) in direction $i$. We report every measure as a
+fraction of $r$, so that matrices of different shapes can be averaged.
 
-\paragraph{Threshold count:} how many singular values are at least 1\% of the
-largest,
-\begin{equation}
-  \thresholdrank = \tfrac{1}{r}\,\bigl|\{\, i : \sigma_i \geq 0.01\,\sigma_1 \,\}\bigr| .
-\end{equation}
+\paragraph{Five measures.} In plain words, each asks ``how many directions
+does this update really use?'', and they differ in how much the strongest
+directions count.
+\begin{itemize}
+  \item \textbf{Threshold count} $\thresholdrank$: how many $\sigma_i$ are at
+  least $0.01\,\sigma_1$.
+  \item \textbf{Energy rank} $\energyrank$: the smallest $k$ with
+  $\sum_{i\leq k} p_i \geq 0.9$, the measure of \citet{biderman2024lora}.
+  \item \textbf{Entropy effective rank} $\entropyrank$
+  \citep{roy2007effective}: $\exp\bigl(-\sum_i q_i \log q_i\bigr)$ with
+  $q_i = \sigma_i/\sum_j \sigma_j$, as used by \citet{wu2025timber}.
+  \item \textbf{Participation ratio}: $1/\sum_i p_i^2$.
+  \item \textbf{Stable rank} $\stablerank$ \citep{rudelson2007sampling}:
+  $\|\dW\|_F^2/\|\dW\|_2^2 = 1/p_1$.
+\end{itemize}
+All five ignore the overall scale of $\dW$, which matters because the updates
+we compare differ in size by orders of magnitude.
 
-\paragraph{Energy rank:} how many directions are needed to hold 90\% of the
-squared Frobenius norm, the measure used by \citet{biderman2024lora},
-\begin{equation}
-  \energyrank = \tfrac{1}{r}\,\min\Bigl\{ k : \textstyle\sum_{i\leq k}\sigma_i^2 \geq 0.9 \sum_{i}\sigma_i^2 \Bigr\} .
-\end{equation}
-
-\paragraph{Entropy effective rank} \citep{roy2007effective}, with
-$p_i = \sigma_i / \sum_j \sigma_j$ as in \citet{wu2025timber},
-\begin{equation}
-  \entropyrank = \tfrac{1}{r}\exp\Bigl(-\textstyle\sum_i p_i \log p_i\Bigr) .
-\end{equation}
-
-\paragraph{Stable rank} \citep{rudelson2007sampling},
-\begin{equation}
-  \stablerank = \frac{1}{r}\,\frac{\|\dW\|_F^2}{\|\dW\|_2^2} = \frac{1}{r}\sum_i \frac{\sigma_i^2}{\sigma_1^2} .
-\end{equation}
-
-The first three count directions, in different ways. Stable rank instead asks
-how dominant the top direction is: it is small when a few directions carry
-most of the energy, and many small singular values barely affect it. All four
-ignore the overall scale of $\dW$, which matters because the updates we
-compare differ in size by three orders of magnitude.
+\paragraph{One family.} Most of these are effective ranks of one kind: the
+exponential of a R\'enyi entropy of $p$ of some order $\alpha$,
+$R_\alpha = \bigl(\sum_i p_i^\alpha\bigr)^{1/(1-\alpha)}$. Order 0 counts the
+nonzero directions (the threshold count is a thresholded version of it),
+order 2 is the participation ratio, and order $\infty$ is the stable rank.
+The higher the order, the more the top directions dominate. This is why the
+measures can disagree about the same matrix: a spectrum with a few strong
+directions and a long tail of weak ones has many directions to count but most
+of its weight on top. The entropy effective rank and the energy rank sit in
+between.
 
 \paragraph{The noise baseline.} A value of any of these measures only means
-something next to the value for a matrix with no structure. For our own runs
-we use the difference between two independent random initialisations of the
-same model; for released models, a Gaussian matrix of the same shape as each
-$\dW$. Both follow the Marchenko--Pastur law, under which the stable rank of
-an $m \times n$ Gaussian matrix is close to $mn/(\sqrt{m}+\sqrt{n})^2$, a
-quarter of $r$ for square matrices. Our random-init pairs match this
-prediction to within 0.01 for every matrix shape
-(Appendix~\ref{app:sensitivity}). As a second reference we also measure the
+something next to its value for a matrix with no structure. For our own runs
+the baseline is the difference between two independent random initialisations
+of the same model; for released models, a Gaussian matrix of the same shape.
+The spectrum of such a matrix follows the Marchenko--Pastur law, whose upper
+edge (the Bai--Yin limit, \citealp{bai2010spectral}) gives a stable rank close
+to $mn/(\sqrt{m}+\sqrt{n})^2$, a quarter of $r$ for square matrices. Our
+random-init pairs match this to within 0.01 for every matrix shape of
+Qwen2.5-0.5B (Appendix~\ref{app:sensitivity}). A Gaussian matrix is the least
+structured baseline possible, so as a second reference we also measure the
 pretrained weights $W$ themselves.
 
+\paragraph{The rounding floor.} Released checkpoints are usually stored in
+bf16, which rounds every weight to 8 significant bits. The rounding adds a
+small noise matrix to $\dW$. For each released pair we simulate it (uniform
+error up to half a bf16 unit at each weight, for both checkpoints) and ask
+how much of a measure it could account for.
+
 \paragraph{Measures of $W$ rather than $\dW$.} Some studies measure the full
-weight matrix before and after fine-tuning instead of the update. By Weyl's
-inequality \citep{horn2012matrix}, each singular value of $W + \dW$ is within
+weight matrix before and after fine-tuning. By Weyl's inequality
+\citep{horn2012matrix}, each singular value of $W + \dW$ is within
 $\|\dW\|_2$ of the corresponding one of $W$, so when the update is small
-compared with $W$, no measure of the spectrum of $W$ can move much, whatever
-the update looks like. The right comparison is then a random perturbation of
-the same size, $W + G\,\|\dW\|_F/\|G\|_F$ with $G$ Gaussian.
+compared with $W$, no measure of the spectrum of $W$ can move much. The
+right comparison is then a random update of the same size,
+$W + G\,\|\dW\|_F/\|G\|_F$ with $G$ Gaussian.
