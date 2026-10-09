@@ -22,6 +22,11 @@ Variant names: "instruct" (unedited), or "<cutoff>_l<lambda>" with cutoff in
 {erank, stable}. Resumable: each variant appends one line per problem to
 results/timber_cutoff/<variant>.jsonl and skips problems already there.
 Summary goes to results/timber_cutoff.csv.
+
+--task gpqa runs GPQA-Diamond instead, the benchmark where Timber reports its
+largest gain for Qwen3-0.6B (non-thinking mode), into
+results/timber_cutoff_gpqa/ and results/timber_cutoff_gpqa.csv. The dataset is
+gated on the Hub: accept its terms and log in first.
 """
 
 from __future__ import annotations
@@ -29,6 +34,7 @@ from __future__ import annotations
 import argparse
 import json
 import math
+import random
 import re
 import sys
 import time
@@ -56,6 +62,42 @@ INSTRUCT = "Qwen/Qwen3-0.6B"
 DEFAULT_VARIANTS = ["instruct", "erank_l0.0", "erank_l0.5", "stable_l0.0", "stable_l0.5"]
 PROMPT = "{q}\nPlease reason step by step, and put your final answer within \\boxed{{}}."
 OUT_DIR = Path("results/timber_cutoff")
+GPQA_PROMPT = (
+    "Answer the following multiple choice question. The last line of your response "
+    "should be of the following format: 'Answer: $LETTER' (without quotes) where LETTER "
+    "is one of ABCD. Think step by step before answering.\n\n{q}\n\n"
+    "A) {A}\nB) {B}\nC) {C}\nD) {D}"
+)
+
+
+def load_task(task: str, limit: int) -> list[dict]:
+    """Problems as {"prompt", "gold"}, the same for every variant."""
+    if task == "gsm8k":
+        ds = load_dataset("openai/gsm8k", "main", split="test")
+        ds = ds.select(range(min(limit, len(ds))))
+        return [{"prompt": PROMPT.format(q=r["question"]), "gold": gold_answer(r["answer"])}
+                for r in ds]  # fmt: skip
+    ds = load_dataset("Idavidrein/gpqa", "gpqa_diamond", split="train")
+    problems = []
+    for i, r in enumerate(ds.select(range(min(limit, len(ds))))):
+        options = [r["Correct Answer"], r["Incorrect Answer 1"], r["Incorrect Answer 2"],
+                   r["Incorrect Answer 3"]]  # fmt: skip
+        order = list(range(4))
+        random.Random(i).shuffle(order)  # fixed shuffle per question
+        opts = {L: options[j].strip() for L, j in zip("ABCD", order, strict=True)}
+        gold = "ABCD"[order.index(0)]
+        problems.append({"prompt": GPQA_PROMPT.format(q=r["Question"].strip(), **opts),
+                         "gold": gold})  # fmt: skip
+    return problems
+
+
+def extract_letter(text: str) -> str | None:
+    """The chosen option: the last "Answer: X", else the last \\boxed{X}."""
+    m = re.findall(r"(?i)answer\s*[:\uff1a]\s*\(?\**\s*([ABCD])\b", text)
+    if m:
+        return m[-1].upper()
+    m = re.findall(r"\\boxed\{\s*\(?([ABCD])\)?\s*\}", text)
+    return m[-1] if m else None
 
 
 def parse_variant(name: str) -> tuple[str | None, float, bool]:
@@ -120,7 +162,7 @@ def apply_edit(model, cutoff: str, lam: float, device: str, uniform: bool = Fals
 
 
 def run_variant(name: str, problems, args, device: str) -> None:
-    out = OUT_DIR / f"{name}.jsonl"
+    out = args.out_dir / f"{name}.jsonl"
     done = set()
     if out.exists():
         done = {json.loads(line)["idx"] for line in out.read_text(encoding="utf-8").splitlines()}
@@ -136,7 +178,7 @@ def run_variant(name: str, problems, args, device: str) -> None:
     if cutoff:
         stats = apply_edit(model, cutoff, lam, device, uniform)
         stats.update(variant=name, cutoff=cutoff, lam=lam, uniform=uniform)
-        (OUT_DIR / f"{name}.edit.json").write_text(json.dumps(stats, indent=2))
+        (args.out_dir / f"{name}.edit.json").write_text(json.dumps(stats, indent=2))
         print(f"{name}: kept {stats['kept_dirs_frac']:.1%} of directions, "
               f"{stats['kept_energy_frac']:.1%} of dW energy")  # fmt: skip
 
@@ -147,7 +189,7 @@ def run_variant(name: str, problems, args, device: str) -> None:
             idxs = todo[start : start + per_batch]
             texts = [
                 tok.apply_chat_template(
-                    [{"role": "user", "content": PROMPT.format(q=problems[i]["question"])}],
+                    [{"role": "user", "content": problems[i]["prompt"]}],
                     tokenize=False,
                     add_generation_prompt=True,
                     enable_thinking=False,
@@ -169,16 +211,23 @@ def run_variant(name: str, problems, args, device: str) -> None:
             )
             outs = tok.batch_decode(gen[:, enc["input_ids"].shape[1] :], skip_special_tokens=True)
             for j, i in enumerate(idxs):
-                gold = gold_answer(problems[i]["answer"])
+                gold = problems[i]["gold"]
                 samples = outs[j * args.n : (j + 1) * args.n]
-                preds = [extract(s) for s in samples]
+                if args.task == "gpqa":
+                    preds = [extract_letter(s) for s in samples]
+                    correct = [p == gold for p in preds]
+                    answered = [p is not None for p in preds]
+                else:
+                    preds = [extract(s) for s in samples]
+                    correct = [is_correct(p, gold) for p in preds]
+                    answered = ["\\boxed{" in s for s in samples]
                 rec = {
                     "idx": i,
                     "gold": gold,
                     "preds": preds,
-                    "correct": [is_correct(p, gold) for p in preds],
-                    # no boxed answer usually means it ran out of tokens
-                    "boxed": ["\\boxed{" in s for s in samples],
+                    "correct": correct,
+                    # no final answer usually means it ran out of tokens
+                    "boxed": answered,
                     "first_sample": samples[0],
                 }
                 f.write(json.dumps(rec) + "\n")
@@ -191,10 +240,10 @@ def run_variant(name: str, problems, args, device: str) -> None:
     torch.cuda.empty_cache()
 
 
-def summarize(n_problems: int) -> None:
+def summarize(n_problems: int, out_dir: Path = OUT_DIR) -> None:
     rows = []
     per_problem = {}  # variant -> {k: per-problem pass@k}, for the paired comparison
-    for path in sorted(OUT_DIR.glob("*.jsonl")):
+    for path in sorted(out_dir.glob("*.jsonl")):
         recs = [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines()]
         recs = sorted((r for r in recs if r["idx"] < n_problems), key=lambda r: r["idx"])
         if not recs:
@@ -230,7 +279,7 @@ def summarize(n_problems: int) -> None:
                 row[f"d_pass@{k}_hi"] = np.percentile(boot, 97.5)
     if rows:
         s = pd.DataFrame(rows)
-        s.to_csv("results/timber_cutoff.csv", index=False)
+        s.to_csv(out_dir.with_suffix(".csv"), index=False)
         print()
         print(s.round(4).to_string(index=False))
 
@@ -259,7 +308,9 @@ def main() -> int:
     parser.add_argument("--seed", type=int, default=1234)
     parser.add_argument("--edit-only", action="store_true",
                         help="only recompute the .edit.json statistics, on the CPU")  # fmt: skip
+    parser.add_argument("--task", choices=["gsm8k", "gpqa"], default="gsm8k")
     args = parser.parse_args()
+    args.out_dir = OUT_DIR if args.task == "gsm8k" else Path(f"results/timber_cutoff_{args.task}")
     for v in args.variants:
         parse_variant(v)
     if args.edit_only:
@@ -268,11 +319,11 @@ def main() -> int:
         return 0
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
-    OUT_DIR.mkdir(parents=True, exist_ok=True)
-    problems = load_dataset("openai/gsm8k", "main", split="test").select(range(args.limit))
+    args.out_dir.mkdir(parents=True, exist_ok=True)
+    problems = load_task(args.task, args.limit)
     for name in args.variants:
         run_variant(name, problems, args, device)
-    summarize(args.limit)
+    summarize(len(problems), args.out_dir)
     return 0
 
 
