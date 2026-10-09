@@ -1,0 +1,33 @@
+model,run,layers,stable
+Qwen2.5-0.5B,SFT,first quarter,0.09382512441392153
+Qwen2.5-0.5B,SFT,second,0.09878905997115923
+Qwen2.5-0.5B,SFT,third,0.10344121831752143
+Qwen2.5-0.5B,SFT,last quarter,0.09143454805250258
+Qwen2.5-0.5B,wikitext,first quarter,0.0858209260983924
+Qwen2.5-0.5B,wikitext,second,0.10004467808409068
+Qwen2.5-0.5B,wikitext,third,0.10429518718507429
+Qwen2.5-0.5B,wikitext,last quarter,0.08041772845759938
+Qwen2.5-0.5B,code,first quarter,0.09093871543077414
+Qwen2.5-0.5B,code,second,0.09732714015629662
+Qwen2.5-0.5B,code,third,0.10391877624985363
+Qwen2.5-0.5B,code,last quarter,0.08445074129447361
+Qwen2.5-0.5B,shuffled words,first quarter,0.054928851568382446
+Qwen2.5-0.5B,shuffled words,second,0.039149170989814984
+Qwen2.5-0.5B,shuffled words,third,0.03408846298720467
+Qwen2.5-0.5B,shuffled words,last quarter,0.0414904356216465
+SmolLM2-360M,SFT,first quarter,0.02309277622585512
+SmolLM2-360M,SFT,second,0.026683327191999107
+SmolLM2-360M,SFT,third,0.028886077630288134
+SmolLM2-360M,SFT,last quarter,0.02101979680787941
+SmolLM2-360M,wikitext,first quarter,0.01940945534619238
+SmolLM2-360M,wikitext,second,0.023617484562574283
+SmolLM2-360M,wikitext,third,0.023329230009369064
+SmolLM2-360M,wikitext,last quarter,0.01492056828819128
+SmolLM2-360M,code,first quarter,0.029705876057972033
+SmolLM2-360M,code,second,0.038085817650385934
+SmolLM2-360M,code,third,0.042711373981457294
+SmolLM2-360M,code,last quarter,0.027134202139698683
+SmolLM2-360M,shuffled words,first quarter,0.01280451778933563
+SmolLM2-360M,shuffled words,second,0.010045152314383316
+SmolLM2-360M,shuffled words,third,0.006758290424052314
+SmolLM2-360M,shuffled words,last quarter,0.006977831509602425
