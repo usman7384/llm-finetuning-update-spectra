@@ -1,0 +1,11 @@
+run,stored_dtype,unchanged_fraction
+sft,bfloat16,0.7787013937702109
+sft_seed43,bfloat16,0.7775804596506196
+dpo,bfloat16,0.9542147318522135
+control_lm,bfloat16,0.7720004183032138
+control_lm_seed43,bfloat16,0.7688493106828068
+control_code,bfloat16,0.8221580030280592
+control_code_seed43,bfloat16,0.8223761142828525
+smollm2_sft,bfloat16,0.9640006955464681
+smollm2_control_lm,bfloat16,0.9664939912160238
+smollm2_control_code,bfloat16,0.9792895698547364
