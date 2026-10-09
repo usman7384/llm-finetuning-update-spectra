@@ -32,7 +32,10 @@ from align_geometry.analysis.svd_delta import (  # noqa: E402
 
 ROOT = Path("results/released_spectra")
 ORDER = ["smollm2-135m", "smollm2-360m", "qwen2.5-0.5b", "qwen3-0.6b", "qwen2.5-1.5b",
-         "smollm2-1.7b", "qwen3-8b"]  # fmt: skip
+         "smollm2-1.7b", "qwen3-8b",
+         # alignment stages with open data, then large non-alignment updates
+         "olmo2-1b-sft", "olmo2-1b-dpo", "olmo2-1b-rl", "olmo2-1b-instruct",
+         "qwen2.5-math-1.5b", "qwen2.5-coder-0.5b", "qwen2.5-coder-1.5b"]  # fmt: skip
 _gauss: dict[tuple[int, int], torch.Tensor] = {}
 
 
@@ -77,7 +80,9 @@ def main() -> int:
         for p in paths:
             key = p.stem
             sv = torch.load(p, weights_only=True)
-            rnd = torch.load(r_dir / p.name, weights_only=True).double()
+            r_path = r_dir / p.name
+            # no rounding floor for checkpoints that weren't stored in bf16
+            rnd = torch.load(r_path, weights_only=True).double() if r_path.exists() else None
             r = sv.numel()
             m, n = shapes[key]
             row = {"pair": pair, "key": key, "r": r}
@@ -86,8 +91,9 @@ def main() -> int:
                 {f"noise_{k}": v for k, v in measures(gaussian_spectrum(m, n), m, n).items()}
             )
             # how much of the threshold count could bf16 rounding alone produce?
-            row["rounding_over_threshold"] = float((rnd >= 0.01 * sv[0]).sum()) / r
-            row["above_rounding_floor"] = float((sv > rnd[0]).sum()) / r
+            if rnd is not None:
+                row["rounding_over_threshold"] = float((rnd >= 0.01 * sv[0]).sum()) / r
+                row["above_rounding_floor"] = float((sv > rnd[0]).sum()) / r
             per.append(row)
         df = pd.DataFrame(per)
         df.to_csv(out_dir / f"{pair}.csv", index=False)
@@ -105,7 +111,7 @@ def main() -> int:
             "noise_stable_wo_top", "real_participation", "noise_participation",
             "real_above_edge"]  # fmt: skip
     pd.set_option("display.width", 250)
-    print(s[cols].round(3).to_string(index=False))
+    print(s.reindex(columns=cols).round(3).to_string(index=False))
     return 0
 
 
