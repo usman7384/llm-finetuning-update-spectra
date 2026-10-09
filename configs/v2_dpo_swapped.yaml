@@ -1,0 +1,28 @@
+# second round (fp32 master weights), see v2_model_qwen2.5_0.5b.yaml
+# DPO on top of our fp32 SFT run. Output is W_dpo; the update is W_dpo - W_sft.
+seed: 42
+
+data:
+  dataset: "HuggingFaceH4/ultrafeedback_binarized"
+  split: "train_prefs"
+  n_examples: 10000
+  subsample_seed: 42
+  val_fraction: 0.02
+  # control: chosen and rejected swapped in a random half of the pairs, so
+  # the same prompts and responses carry no preference signal
+  swap_fraction: 0.5
+
+train:
+  model_config: "configs/v2_model_qwen2.5_0.5b.yaml"
+  init_from: "checkpoints/v2/sft"
+  beta: 0.1                    # the usual default
+  learning_rate: 5.0e-6        # lower than SFT, as is normal for DPO
+  lr_scheduler: "cosine"
+  warmup_ratio: 0.03
+  num_epochs: 1
+  max_grad_norm: 1.0
+  precompute_ref_log_probs: true   # no reference copy next to the fp32 model
+  save_dir: "checkpoints/v2/dpo_swapped"
+  log_dir: "logs/v2/dpo_swapped"
+
+expected_train_tokens: null
