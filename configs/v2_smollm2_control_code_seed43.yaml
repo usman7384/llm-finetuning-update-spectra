@@ -1,0 +1,26 @@
+# second round (fp32 master weights), see v2_model_smollm2_360m.yaml
+seed: 43
+phase: control_code
+
+data:
+  format: "text"
+  dataset: "codeparrot/codeparrot-clean-valid"
+  config_name: null
+  split: "train"
+  text_field: "content"
+  target_tokens_from: "checkpoints/v2/smollm2_sft/manifest.json"   # train that first
+  subsample_seed: 43
+  val_fraction: 0.02
+
+train:
+  model_config: "configs/v2_model_smollm2_360m.yaml"
+  learning_rate: 2.0e-5
+  lr_scheduler: "cosine"
+  warmup_ratio: 0.03
+  num_epochs: 3
+  weight_decay: 0.0
+  max_grad_norm: 1.0
+  save_dir: "checkpoints/v2/smollm2_control_code_seed43"
+  log_dir: "logs/v2/smollm2_control_code_seed43"
+
+expected_train_tokens: null
