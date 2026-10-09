@@ -22,7 +22,11 @@ import torch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
-from align_geometry.analysis.svd_delta import entropy_rank, renyi_rank  # noqa: E402
+from align_geometry.analysis.svd_delta import (  # noqa: E402
+    entropy_rank,
+    renyi_rank,
+    stable_rank_without_top,
+)
 
 FAMILIES = {
     "Qwen2.5-0.5B": {
@@ -45,7 +49,7 @@ FAMILIES = {
         "pretrained W": "weights_smollm2_base",
     },
 }
-MEASURES = ["threshold", "k90", "erank", "participation", "stable", "top1"]
+MEASURES = ["threshold", "k90", "erank", "participation", "stable", "stable_wo_top", "top1"]
 PAIRS = [("wikitext", "SFT"), ("code", "SFT"), ("wikitext", "code"), ("SFT", "shuffled words"),
          ("SFT", "SFT (seed 2)"), ("wikitext", "wikitext (seed 2)"),
          ("code", "code (seed 2)")]  # fmt: skip
@@ -69,6 +73,8 @@ def per_matrix(result_dir: str) -> pd.DataFrame:
                 "erank": entropy_rank(sv) / r,
                 "participation": renyi_rank(sv, 2) / r,
                 "stable": renyi_rank(sv, float("inf")) / r,
+                "stable_wo_top": stable_rank_without_top(sv) / r,
+                "fro2": float(e.sum()),
                 "top1": float(cum[0]),
             }
         )
@@ -106,7 +112,8 @@ def main() -> int:
     for fam, runs in FAMILIES.items():
         data = {name: per_matrix(d) for name, d in runs.items()}
         for name, df in data.items():
-            measures.append({"model": fam, "run": name, **df[MEASURES].mean().to_dict()})
+            measures.append({"model": fam, "run": name, **df[MEASURES].mean().to_dict(),
+                             "fro": float(df["fro2"].sum()) ** 0.5})  # fmt: skip
             for ref in ("noise", "pretrained W"):
                 if name in ("noise", "pretrained W"):
                     continue
