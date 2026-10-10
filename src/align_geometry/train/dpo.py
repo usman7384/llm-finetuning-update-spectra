@@ -144,19 +144,28 @@ def train_dpo(config_path: str | Path, force: bool = False) -> Path:
         report_to=["tensorboard"],
     )
 
-    trainer = DPOTrainer(
-        model=model,
-        ref_model=None,  # trainer makes its own frozen copy
-        args=dpo_config,
-        train_dataset=train_ds,
-        eval_dataset=val_ds,
-        processing_class=tokenizer,
-    )
+    # The reference log-probs are computed while the trainer is built, before it
+    # turns on bf16 autocast; with fp32 weights and the frozen embeddings already
+    # in bf16 that pass would mix dtypes, so run it under the same autocast.
+    autocast = torch.autocast(
+        "cuda", dtype=torch.bfloat16,
+        enabled=(compute_dtype == "bfloat16" and dtype == torch.float32),
+    )  # fmt: skip
+    with autocast:
+        trainer = DPOTrainer(
+            model=model,
+            ref_model=None,  # trainer makes its own frozen copy
+            args=dpo_config,
+            train_dataset=train_ds,
+            eval_dataset=val_ds,
+            processing_class=tokenizer,
+        )
 
     train_result = trainer.train(
         resume_from_checkpoint=str(resume_checkpoint) if resume_checkpoint is not None else None
     )
-    eval_metrics = trainer.evaluate()
+    with autocast:  # eval reference log-probs are computed lazily, same issue
+        eval_metrics = trainer.evaluate()
 
     trainer.save_model(str(save_dir))
     tokenizer.save_pretrained(str(save_dir))
