@@ -45,8 +45,8 @@ are public. (iii) Large updates without alignment content:
 Qwen2.5-Math-1.5B and Qwen2.5-Coder 0.5B and 1.5B against their bases.
 
 Before measuring a pair we check that the second checkpoint descends from the
-first: the cosine between the two sets of weights is 0.99 or more for the six
-smaller base/instruct pairs and 0.20--0.60 for the specialists, which were trained on
+first: the cosine between the two sets of weights is 0.99 or more for all
+seven base/instruct pairs and 0.20--0.60 for the specialists, which were trained on
 far more data. For OLMo 2 1B the released SFT checkpoint fails this check
 against the released base: the cosine is 0.00 in every matrix, so the two do
 not share an initialisation, and their difference is not a fine-tuning update.
