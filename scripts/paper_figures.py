@@ -252,7 +252,8 @@ def fig_cutoff() -> None:
     ks = [1, 2, 4, 8]
     styles = {
         "instruct": ("no edit", NOISE, "-"),
-        "erank_l0.5": ("tail edit, eRank cutoff (Timber)", "#0072B2", "-"),
+        "erank_l0.2": ("Timber, $\\lambda=0.2$", "#56B4E9", "--"),
+        "erank_l0.5": ("Timber, $\\lambda=0.5$", "#0072B2", "-"),
         "stable_l0.5": ("tail edit, stable-rank cutoff", "#009E73", "-"),
         "uniform_stable_l0.5": ("uniform scaling, same size", "#CC79A7", "-"),
         "stable_l0.0": ("tail removed, stable-rank cutoff", "#D55E00", ":"),
@@ -260,7 +261,8 @@ def fig_cutoff() -> None:
     fig, axes = plt.subplots(1, 2, figsize=(6.5, 2.3), sharey=True)
     for ax, limit, variants, title in [
         (axes[0], 300, list(styles), "first 300 problems"),
-        (axes[1], 1319, ["instruct", "erank_l0.5", "stable_l0.5", "uniform_stable_l0.5"],
+        (axes[1], 1319, ["instruct", "erank_l0.2", "erank_l0.5", "stable_l0.5",
+                         "uniform_stable_l0.5"],
          "all 1,319 problems"),
     ]:  # fmt: skip
         for v in variants:
@@ -275,8 +277,10 @@ def fig_cutoff() -> None:
         ax.set_xlabel("$k$")
         ax.set_title(title)
     axes[0].set_ylabel("GSM8K pass@$k$, %")
-    axes[0].legend(fontsize=6, loc="lower right")
-    fig.tight_layout()
+    handles, labels = axes[0].get_legend_handles_labels()
+    fig.legend(handles, labels, loc="lower center", ncol=3, fontsize=6,
+               bbox_to_anchor=(0.5, -0.12))  # fmt: skip
+    fig.tight_layout(rect=(0, 0.06, 1, 1))
     fig.savefig(OUT / "cutoff_passk.pdf", bbox_inches="tight")
     plt.close(fig)
 
