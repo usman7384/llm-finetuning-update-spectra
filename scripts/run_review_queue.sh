@@ -40,11 +40,12 @@ done
 echo "=== $(date '+%F %T') GPU free"
 
 # 1. damage test
-step scripts/random_update_tasks.py || exit 1
+step scripts/random_update_tasks.py --limit 1319
 
 # 2. Timber at lambda=0.2, full GSM8K; keep the 300-problem summary separate
-step scripts/timber_cutoff.py --limit 1319 --variants erank_l0.2 || exit 1
-cp results/timber_cutoff.csv results/timber_cutoff_full.csv
+if step scripts/timber_cutoff.py --limit 1319 --variants erank_l0.2; then
+  cp results/timber_cutoff.csv results/timber_cutoff_full.csv
+fi
 step scripts/timber_cutoff.py --limit 300 --variants instruct
 
 # 2b. DPO on our SFT model: real preferences, the same pairs with half of them
@@ -53,7 +54,7 @@ dpo() {
   local name=$1
   if ! step scripts/train_dpo.py --config "configs/v2_${name}.yaml"; then
     echo "=== retrying ${name} with shorter sequences"
-    DPO_MAX_LENGTH=384 step scripts/train_dpo.py --config "configs/v2_${name}.yaml" || return 1
+    DPO_MAX_LENGTH=384 step scripts/train_dpo.py --config "configs/v2_${name}.yaml" || return 0
   fi
   rm -rf "checkpoints/v2/${name}"/checkpoint-*
   if [ ! -f "results/v2/svd_${name}/matrix_summary.csv" ]; then

@@ -126,7 +126,8 @@ def run_variant(variant: str, problems, args, device: str) -> None:
                       padding=True).to(device)  # fmt: skip
             # a base model would go on to write the next few-shot question itself
             stop = {"stop_strings": ["\n\nQuestion:"], "tokenizer": tok} if start == "base" else {}
-            gen = model.generate(**enc, max_new_tokens=args.max_new_tokens, do_sample=False,
+            limit = args.base_max_new_tokens if start == "base" else args.max_new_tokens
+            gen = model.generate(**enc, max_new_tokens=limit, do_sample=False,
                                  pad_token_id=tok.pad_token_id or tok.eos_token_id, **stop)  # fmt: skip
             for j, i in enumerate(idxs):
                 text = tok.decode(gen[j, enc.input_ids.shape[1] :], skip_special_tokens=True)
@@ -174,7 +175,10 @@ def main() -> int:
     parser.add_argument("--variants", nargs="+", default=VARIANTS)
     parser.add_argument("--limit", type=int, default=1319)
     parser.add_argument("--batch", type=int, default=16)
-    parser.add_argument("--max-new-tokens", type=int, default=512)
+    parser.add_argument("--max-new-tokens", type=int, default=512, help="chat mode")
+    # few-shot answers are short (~130 tokens); a longer limit only lets a few
+    # rambling answers hold up their whole batch
+    parser.add_argument("--base-max-new-tokens", type=int, default=256)
     args = parser.parse_args()
     device = "cuda" if torch.cuda.is_available() else "cpu"
     OUT_DIR.mkdir(parents=True, exist_ok=True)
