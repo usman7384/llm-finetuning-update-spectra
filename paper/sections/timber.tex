@@ -85,7 +85,7 @@ edit & unscaled & pass@1 & pass@8 & $\Delta$ pass@1 & $\Delta$ pass@8 \\
 none                                       & 100\%  & 62.3 & 85.1 & -- & -- \\
 tail $\times 0.5$, eRank cutoff (Timber)   & 98.9\% & 63.1 & 85.9 & $+0.7$ ($-0.02$, $+1.6$) & $+0.8$ ($-0.6$, $+2.3$) \\
 tail $\times 0.5$, stable-rank cutoff      & 41.4\% & 62.9 & 86.9 & $+0.6$ ($-0.5$, $+1.6$) & $+1.8$ ($+0.2$, $+3.4$) \\
-whole update $\times 0.75$ (same size)     & 0\%    & XX   & XX   & XX & XX \\
+whole update $\times 0.75$ (same size)     & 0\%    & 65.8 & 87.8 & $+3.4$ ($+2.4$, $+4.5$) & $+2.7$ ($+1.1$, $+4.2$) \\
 \bottomrule
 \end{tabular}
 \end{center}
@@ -114,7 +114,15 @@ on this benchmark in this mode (Table~\ref{tab:cutoff},
 Figure~\ref{fig:cutoff}). The stable-rank edit gives a similar pass@1 and a
 pass@8 gain of $+1.8$ ($+0.2$, $+3.4$).
 
-XX: full-set result for uniform scaling, and what it implies.
+Simply scaling the whole update does better than either tail edit: pass@1
+rises by $+3.4$ points ($+2.4$, $+4.5$) and pass@8 by $+2.7$ ($+1.1$,
+$+4.2$), with the share of answered samples unchanged (96.4\% against
+97.4\%). It removes as much of the update as the stable-rank edit, but evenly
+from every direction instead of from the tail. So on this benchmark the gain
+comes from making the update smaller, and choosing which directions to shrink
+by a spectral cutoff, whether eRank or stable rank, adds nothing. Task
+arithmetic already treats the scale of an update as a knob worth tuning
+\citep{ilharco2023task}; here that knob alone beats the spectral edits.
 
 On the first 300 problems we also ran the extreme $\lambda=0$, which removes
 the tail completely (Table~\ref{tab:cutoff300}). Removing Timber's tail, 1.1\%
