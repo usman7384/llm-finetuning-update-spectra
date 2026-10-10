@@ -267,7 +267,8 @@ up to 512 new tokens. The answer is the last \verb|\boxed{}| expression, or the
 last number if there is none. The edit is applied to every attention and MLP
 projection in fp32 and the model then runs in bf16. Rounding then distorts the
 edit: the error $\|\mathrm{bf16}(W') - W'\|_F$, where $W'$ is the edited
-matrix, is on average 25\% of the intended change $\|W' - W\|_F$ for Timber's
+matrix, is on average 25\% (16\% at $\lambda=0.2$) of the intended change
+$\|W' - W\|_F$ for Timber's
 tail edit, 4\% for the stable-rank tail edit, 5.5\% for uniform scaling
 matched to the stable-rank edit and 88\% for uniform scaling matched to
 Timber's edit, which bf16 storage almost erases. The uniform scaling factor is
@@ -278,7 +279,7 @@ the unbiased estimator of
 \begin{table}[h]
 \caption{All edit variants on the first 300 GSM8K test problems. Differences
 from the unedited model in points, with 95\% paired bootstrap intervals,
-not corrected for the twelve comparisons. ``Answered'' is the share of
+not corrected for the fourteen comparisons. ``Answered'' is the share of
 samples with a final boxed answer. ``Uniform'' scales the whole update, per
 matrix, to the size of the named tail edit.}
 \label{tab:cutoff300}
@@ -289,12 +290,13 @@ matrix, to the size of the named tail edit.}
 edit & pass@1 & pass@8 & answered & $\Delta$ pass@1 & $\Delta$ pass@8 \\
 \midrule
 none                                  & 63.4 & 84.7 & 96.5\% & -- & -- \\
-tail $\times 0$, eRank cutoff         & 63.9 & 87.7 & 96.7\% & $+0.5$ ($-1.3$, $+2.3$) & $+3.0$ ($-0.3$, $+6.3$) \\
-tail $\times 0.5$, eRank cutoff       & 64.7 & 88.0 & 96.8\% & $+1.3$ ($-0.5$, $+3.0$) & $+3.3$ ($+0.3$, $+6.3$) \\
-tail $\times 0$, stable-rank cutoff   & 59.3 & 83.0 & 90.6\% & $-4.2$ ($-6.9$, $-1.4$) & $-1.7$ ($-5.7$, $+2.3$) \\
-tail $\times 0.5$, stable-rank cutoff & 64.5 & 87.3 & 95.1\% & $+1.1$ ($-1.2$, $+3.4$) & $+2.7$ ($-1.0$, $+6.3$) \\
+tail $\times 0$, eRank cutoff         & 63.9 & 87.7 & 96.7\% & $+0.5$ ($-1.3$, $+2.2$) & $+3.0$ ($-0.3$, $+6.3$) \\
+tail $\times 0.2$, eRank cutoff       & 64.0 & 85.7 & 96.8\% & $+0.5$ ($-1.3$, $+2.4$) & $+1.0$ ($-2.0$, $+4.0$) \\
+tail $\times 0.5$, eRank cutoff       & 64.7 & 88.0 & 96.8\% & $+1.3$ ($-0.5$, $+3.0$) & $+3.3$ ($+0.7$, $+6.3$) \\
+tail $\times 0$, stable-rank cutoff   & 59.3 & 83.0 & 90.6\% & $-4.2$ ($-6.9$, $-1.4$) & $-1.7$ ($-5.3$, $+2.0$) \\
+tail $\times 0.5$, stable-rank cutoff & 64.5 & 87.3 & 95.1\% & $+1.1$ ($-1.1$, $+3.3$) & $+2.7$ ($-1.0$, $+6.3$) \\
 uniform, matched to eRank edit         & 64.2 & 86.3 & 96.5\% & $+0.8$ ($-0.8$, $+2.4$) & $+1.7$ ($-1.0$, $+4.3$) \\
-uniform, matched to stable-rank edit   & 66.0 & 88.7 & 96.0\% & $+2.6$ ($+0.5$, $+4.8$) & $+4.0$ ($+1.3$, $+7.0$) \\
+uniform, matched to stable-rank edit   & 66.0 & 88.7 & 96.0\% & $+2.6$ ($+0.4$, $+4.8$) & $+4.0$ ($+1.0$, $+7.0$) \\
 \bottomrule
 \end{tabular}
 \end{center}

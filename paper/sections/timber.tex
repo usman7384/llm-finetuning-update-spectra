@@ -90,7 +90,7 @@ the question.
 \includegraphics[width=\linewidth]{figures/cutoff_passk.pdf}
 \end{center}
 \caption{GSM8K pass@$k$ for Qwen3-0.6B (non-thinking mode) with tail edits
-($\lambda=0.5$) and with uniform scaling of the whole update. Eight samples
+and with uniform scaling of the whole update. Eight samples
 per problem, the same sampling seed per problem for every variant. Left: first
 300 test problems, all variants (Table~\ref{tab:cutoff300}). Right: all
 1{,}319 (Table~\ref{tab:cutoff}).}
@@ -111,8 +111,9 @@ intervals over problems, not corrected for multiple comparisons.}
 edit & unscaled & pass@1 & pass@8 & $\Delta$ pass@1 & $\Delta$ pass@8 \\
 \midrule
 none                                       & 100\%  & 62.3 & 85.1 & -- & -- \\
+tail $\times 0.2$, eRank cutoff (Timber)   & 98.9\% & 62.3 & 85.3 & $-0.0$ ($-0.8$, $+0.8$)  & $+0.2$ ($-1.4$, $+1.8$) \\
 tail $\times 0.5$, eRank cutoff (Timber)   & 98.9\% & 63.1 & 85.9 & $+0.7$ ($-0.02$, $+1.6$) & $+0.8$ ($-0.6$, $+2.3$) \\
-tail $\times 0.5$, stable-rank cutoff      & 41.4\% & 62.9 & 86.9 & $+0.6$ ($-0.5$, $+1.6$) & $+1.8$ ($+0.2$, $+3.4$) \\
+tail $\times 0.5$, stable-rank cutoff      & 41.4\% & 62.9 & 86.9 & $+0.6$ ($-0.5$, $+1.7$) & $+1.8$ ($+0.2$, $+3.5$) \\
 whole update $\times 0.75$ (same size)     & 0\%    & 65.8 & 87.8 & $+3.4$ ($+2.4$, $+4.5$) & $+2.7$ ($+1.1$, $+4.2$) \\
 \bottomrule
 \end{tabular}
@@ -131,16 +132,17 @@ not among Wu et al.'s benchmarks, using pass@$k$ \citep{chen2021codex}:
 Timber's tail edit, the same edit with a stable-rank cutoff that scales 53
 times more of the update's energy, and simply scaling the whole update by one
 factor per matrix (0.75 on average) so that the edited update has the same
-size as the stable-rank edit. Our setup differs from Wu et al.'s in two ways:
-we use $\lambda=0.5$ rather than their recommended $0.2$, and Qwen3's
-non-thinking mode rather than thinking mode. So this is a test of the cutoff,
-not a replication of their gains.
+size as the stable-rank edit. We run Timber's edit both at its recommended
+$\lambda=0.2$ and at $\lambda=0.5$, and use Qwen3's non-thinking mode, the
+mode of Wu et al.'s main table; their thinking-mode results we do not
+attempt.
 
-On all 1{,}319 problems, Timber's edit changes pass@1 by $+0.7$ points
-($-0.02$, $+1.6$) and pass@8 by $+0.8$ ($-0.6$, $+2.3$): no detectable effect
-on this benchmark in this mode (Table~\ref{tab:cutoff},
-Figure~\ref{fig:cutoff}). The stable-rank edit gives a similar pass@1 and a
-pass@8 gain of $+1.8$ ($+0.2$, $+3.4$).
+On all 1{,}319 problems, Timber's edit has no detectable effect at either
+setting (Table~\ref{tab:cutoff}, Figure~\ref{fig:cutoff}). At $\lambda=0.2$
+pass@1 is unchanged ($-0.0$ points, $-0.8$ to $+0.8$) and pass@8 moves by
+$+0.2$ ($-1.4$, $+1.8$); at $\lambda=0.5$ the changes are $+0.7$ ($-0.02$,
+$+1.6$) and $+0.8$ ($-0.6$, $+2.3$). The stable-rank edit gives a similar
+pass@1 and a pass@8 gain of $+1.8$ ($+0.2$, $+3.5$).
 
 Simply scaling the whole update does better than either tail edit: pass@1
 rises by $+3.4$ points ($+2.4$, $+4.5$) and pass@8 by $+2.7$ ($+1.1$,
