@@ -38,21 +38,49 @@ move the effective rank of $W$ by at most 0.5\%. The real update moves it 1.6
 to 3.8 times less than the random one, so post-training does change $W$ in a
 structured way, but that is visible only next to the random comparison.
 
-An unchanged effective rank also says little about how much the model
-changed. Adding to Qwen3-0.6B base a random update of the same size as its
-real post-training update, matrix by matrix, raises its perplexity on held-out
-wikitext from 18.1 to 33.1, whether the update is Gaussian or has exactly the
-real update's singular values, while its effective rank moves by 0.5\%
-(Figure~\ref{fig:random}, right). The real update, which moves the effective
-rank by only 0.13\%, raises the perplexity further, to 50.1. That is expected:
-an instruct model is no longer a plain predictor of web text. So perplexity
-cannot tell useful change from damage, and we do not claim that the random
-update harms the model more than post-training does. The point is simpler:
-large changes in what the model predicts come with tiny changes in the
-effective rank of $W$, whether the update is structured or random, so the
-measure cannot tell a superficial change from a deep one. This does not show
-that post-training is deep; it shows that this measurement cannot decide the
-question.
+\begin{table}[t]
+\caption{GSM8K accuracy (greedy, all 1{,}319 test problems) of Qwen3-0.6B with
+a random update of the same size as its real post-training update, added to
+every attention and MLP matrix. Each pair uses the same prompt and token
+limit: the base model an 8-shot plain-text prompt, the instruct model its chat
+template. Differences in points with 95\% paired bootstrap intervals.}
+\label{tab:damage}
+\begin{center}
+\small
+\begin{tabular}{lccc}
+\toprule
+model & accuracy & difference & eRank($W$) change \\
+\midrule
+base                                           & 59.5 & --                         & -- \\
+base + Gaussian update, draw 1                 & 4.1  & $-55.4$ ($-58.2$, $-52.7$) & 0.50\% \\
+base + Gaussian update, draw 2                 & 4.8  & $-54.7$ ($-57.5$, $-52.2$) & --     \\
+base + real singular values, random directions & 5.8  & $-53.8$ ($-56.6$, $-50.9$) & 0.48\% \\
+base + real update (= instruct model)          & --   & --                         & 0.13\% \\
+\midrule
+instruct                                       & 64.5 & --                         & -- \\
+instruct + Gaussian update                     & 11.9 & $-52.6$ ($-55.3$, $-49.9$) & -- \\
+\bottomrule
+\end{tabular}
+\end{center}
+\end{table}
+
+An unchanged effective rank also says nothing about whether the model still
+works. Adding to Qwen3-0.6B base a random update of the same size as its real
+post-training update, matrix by matrix, moves its effective rank by 0.5\%, but
+its GSM8K accuracy falls from 59.5\% to 4--6\%, whether the update is Gaussian
+or has exactly the real update's singular values (Table~\ref{tab:damage};
+details in Appendix~\ref{app:damage}).
+The same random update added to the instruct model takes it from 64.5\% to
+11.9\%. The real update, which moves the effective rank even less (0.13\%),
+produces the instruct model. So an update can wreck a model or turn it into a
+working assistant and leave the effective rank of $W$ almost the same either
+way. Perplexity on wikitext tells the same story less cleanly (18.1 to 33.1
+for the random updates, Figure~\ref{fig:random}, right), because the real
+update raises it too, to 50.1: an instruct model is no longer a plain
+predictor of web text. An unchanged effective rank therefore cannot tell a
+superficial change from a deep one, or from a destructive one. This does not
+show that post-training is deep; it shows that this measurement cannot decide
+the question.
 
 \subsection{The edit does not need the effective-rank cutoff}
 \label{sec:cutoff}

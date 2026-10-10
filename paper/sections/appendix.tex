@@ -235,6 +235,28 @@ Qwen2.5-1.5B, and 39\% and 52\% for the OLMo DPO and RL stages, whose updates
 are under half a percent of the weights. For the specialists, whose updates
 are as large as the weights themselves, almost no entry is zero.
 
+\section{Random-update details}
+\label{app:damage}
+
+Each random update is drawn matrix by matrix with its own seed and scaled to
+the Frobenius norm of the real update of that matrix; embeddings and norms are
+left alone. The edit is made in fp32 and the model then runs in bf16. Answers
+are greedy, up to 256 new tokens for the base model (8-shot prompt from the
+first eight GSM8K training problems, answer after ``The answer is'') and 512
+for the instruct model (chat template, thinking off, answer in
+\verb|\boxed{}|). The randomly updated models fail rather than run out of
+tokens: on the answers that finished within the limit, the base model with a
+Gaussian update or with the real spectrum on random directions is right 7\%
+of the time, against 62\% for the unedited base.
+
+We also scored the base model plus its real update with the base model's
+8-shot prompt. It reaches only 19.9\%, but not because the update damages the
+model: post-trained weights write long chat-style reasoning in that format, and
+59\% of their answers hit the 256-token limit (on the rest they are right 42\%
+of the time). This combination also keeps the base model's embeddings, which
+post-training changed by 13\%. The fair test of the real update is the
+instruct model in its own format (Table~\ref{tab:damage}).
+
 \section{Edit experiment details}
 \label{app:cutoff}
 
