@@ -265,10 +265,11 @@ def summarize(n_problems: int, out_dir: Path = OUT_DIR) -> None:
 
     # every variant saw the same problems with the same seeds, so compare per problem
     ref = per_problem.get("instruct")
-    rng = np.random.default_rng(0)
     for row in rows:
         if ref is None or row["variant"] == "instruct" or row["problems"] != len(ref[1]):
             continue
+        # one generator per variant, so adding a variant leaves the others' intervals alone
+        rng = np.random.default_rng(0)
         idx = rng.integers(0, row["problems"], size=(5000, row["problems"]))
         for k in (1, 8):
             if k in ref and k in per_problem[row["variant"]]:
