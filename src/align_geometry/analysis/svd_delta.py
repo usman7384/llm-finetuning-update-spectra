@@ -6,6 +6,7 @@ training code, so it works on any pair of safetensors checkpoints.
 
 from __future__ import annotations
 
+import os
 import re
 from dataclasses import dataclass
 from pathlib import Path
@@ -216,6 +217,43 @@ class _PickleHandle:
         return _Slice()
 
 
+class _SeekHandle:
+    """A safetensors file read tensor by tensor with seek/read, no memory map."""
+
+    _DTYPES = {"BF16": torch.bfloat16, "F16": torch.float16, "F32": torch.float32}
+
+    def __init__(self, path: Path):
+        import json
+        import struct
+
+        self._path = path
+        with open(path, "rb") as f:
+            (n,) = struct.unpack("<Q", f.read(8))
+            header = json.loads(f.read(n))
+        header.pop("__metadata__", None)
+        self._header, self._offset = header, 8 + n
+
+    def keys(self):
+        return self._header.keys()
+
+    def get_tensor(self, key: str) -> torch.Tensor:
+        info = self._header[key]
+        start, end = info["data_offsets"]
+        with open(self._path, "rb") as f:
+            f.seek(self._offset + start)
+            buf = bytearray(f.read(end - start))
+        return torch.frombuffer(buf, dtype=self._DTYPES[info["dtype"]]).reshape(info["shape"])
+
+    def get_slice(self, key: str):
+        info = self._header[key]
+
+        class _Shape:
+            def get_shape(self_inner):
+                return info["shape"]
+
+        return _Shape()
+
+
 class LazyWeights:
     """Reads one tensor at a time from a checkpoint's safetensors files.
 
@@ -237,7 +275,12 @@ class LazyWeights:
                 return
         if not files:
             raise FileNotFoundError(f"no safetensors or pytorch_model.bin files under {path}")
-        self._handles = [safe_open(str(f), framework="pt") for f in files]
+        if os.environ.get("ALIGN_NO_MMAP"):
+            # Windows can refuse to map several 4GB shards at once ("paging file
+            # too small"); read each tensor with a plain seek instead
+            self._handles = [_SeekHandle(f) for f in files]
+        else:
+            self._handles = [safe_open(str(f), framework="pt") for f in files]
         # safe_open handles have .keys() but aren't iterable like a dict
         self._where = {k: h for h in self._handles for k in h.keys()}  # noqa: SIM118
 
