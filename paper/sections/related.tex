@@ -59,8 +59,9 @@ over the simplest edit of this kind.
 \paragraph{Low precision.} Rounding weights to bf16 cancels small updates
 \citep{zamirai2020bfloat16}, and in reinforcement learning this can make
 updates look sparse \citep{zhu2025path}. We found the same effect in our own
-first runs (\S\ref{sec:setup}) and show that it also inflates the threshold
-count of released checkpoints (\S\ref{sec:released}).
+first runs (\S\ref{sec:setup}) and show that it can also inflate the
+threshold count of released checkpoints with small updates
+(\S\ref{sec:released}).
 
 \paragraph{Why updates concentrate.} Gradient descent spends most of its
 motion in a small subspace \citep{gurari2018tiny}, and gradients of linear

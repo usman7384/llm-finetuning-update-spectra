@@ -73,10 +73,13 @@ pretrained weights $W$ themselves.
 bf16, which rounds every weight to 8 significant bits. The rounding adds a
 small noise matrix to $\dW$. For each released pair we simulate it (uniform
 error up to half a bf16 unit at each weight, independently for both
-checkpoints) and ask how much of a measure it could account for. This is an
-upper bound: when a weight barely moves, its two rounding errors are not
-independent, and the stored difference is exactly zero. So we also report the
-direct evidence, the share of entries of $\dW$ that are exactly zero.
+checkpoints). By Weyl's inequality, rounding cannot create a direction of
+$\dW$ stronger than its own largest singular value, so we report the share of
+the update's singular values above that ``rounding floor''. The simulation is
+a generous model of rounding: when a weight barely moves, its two rounding
+errors are not independent, and the stored difference is exactly zero. So we
+also report the direct evidence, the share of entries of $\dW$ that are
+exactly zero.
 
 \paragraph{Measures of $W$ rather than $\dW$.} Some studies measure the full
 weight matrix before and after fine-tuning. By Weyl's inequality

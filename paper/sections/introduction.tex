@@ -39,25 +39,25 @@ applies it to the update itself, measure by measure.
 Our findings:
 
 \begin{enumerate}
-  \item \textbf{Counting measures put updates close to noise.} On our SFT,
-  Wikipedia and code fine-tunes, the threshold count is within 2--5\% of a
-  random matrix of the same shape, and eRank and the 90\% energy rank are
-  12--36\% below it; stable rank is 78--94\% below. Across the measures, the
-  gap grows with how much weight a measure gives to the top directions
-  (\S\ref{sec:metrics}).
+  \item \textbf{Counting measures compress the gap to noise.} On our SFT,
+  Wikipedia, code and DPO fine-tunes, the threshold count is only 2--5\%
+  below a random matrix of the same shape, and eRank and the 90\% energy rank
+  are 12--35\% below it; stable rank is 78--94\% below. Along the whole family
+  of R\'enyi ranks, the gap grows with how much weight a measure gives to the
+  top directions, then levels off (\S\ref{sec:metrics}).
   \item \textbf{Updates have a few strong directions and a long tail}, and on
   average are more concentrated than the pretrained weights they are added to
   (\S\ref{sec:headtail}).
-  \item \textbf{Alignment training leaves no special mark.} With the number of
+  \item \textbf{The shape does not single out alignment training.} With the number of
   training tokens held fixed, instruction SFT, Wikipedia and Python code give
   updates of similar spectral shape, with SFT not an outlier. DPO gives the
   same shape whether it learns real preferences or randomly swapped ones that
   teach nothing. Text with its word order scrambled gives the most
   concentrated update of all (\S\ref{sec:controls}).
   \item \textbf{It holds for released models}, thirteen base/instruct,
-  post-training-stage and base/specialist pairs up to 8B parameters. On several
-  bf16 checkpoints, much of what the threshold count counts could come from
-  rounding alone (\S\ref{sec:released}).
+  post-training-stage and base/specialist pairs up to 8B parameters. On three
+  bf16 updates (Qwen2.5-1.5B and the OLMo 2 DPO and RL stages), much of what
+  the threshold count counts may be rounding (\S\ref{sec:released}).
   \item \textbf{It changes how earlier evidence reads.} An unchanged effective
   rank of $W$ after post-training, read by \citet{wu2025timber} as a sign that
   post-training is superficial, is what a random update of the same size also

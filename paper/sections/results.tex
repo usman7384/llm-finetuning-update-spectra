@@ -201,35 +201,34 @@ stages, and code/math specialists. Left: the threshold count (axis starts at
 \end{figure}
 
 \begin{table}[t]
-\caption{Released pairs. ``Rounding'' is the number of singular values of the
-simulated bf16 rounding error that pass the same threshold, as a share of the
-update's threshold count; it is an upper bound on what rounding alone could
-produce (\S\ref{sec:background}). It is 0\% for the specialists because their
-updates are far larger than a bf16 unit, and not computed (--) where one of
-the two checkpoints is not stored in bf16. The last column drops the top
-direction, to check that one outlier does not drive the result.}
+\caption{Released pairs, means over matrices. ``Above floor'' is the share of
+the update's singular values larger than the largest singular value of the
+simulated bf16 rounding error: directions that rounding alone cannot produce
+(\S\ref{sec:background}). It is not computed (--) where one of the two
+checkpoints is not stored in bf16. The last column drops the top direction, to
+check that one outlier does not drive the result.}
 \label{tab:released}
 \begin{center}
 \small
 \begin{tabular}{lcccccc}
 \toprule
-update & threshold & noise & rounding & stable rank & noise & stable w/o top \\
+update & threshold & noise & above floor & stable rank & noise & stable w/o top \\
 \midrule
-SmolLM2-135M instruct & 0.971 & 0.996 & 28\% & 0.086 & 0.354 & 0.119 \\
-SmolLM2-360M instruct & 0.964 & 0.996 & 10\% & 0.039 & 0.356 & 0.059 \\
-Qwen2.5-0.5B instruct & 0.990 & 0.996 & 76\% & 0.280 & 0.434 & 0.314 \\
-Qwen3-0.6B            & 0.989 & 0.996 & 15\% & 0.124 & 0.342 & 0.145 \\
-Qwen2.5-1.5B instruct & 0.969 & 0.996 & 94\% & 0.051 & 0.432 & 0.073 \\
-SmolLM2-1.7B instruct & 0.959 & 0.993 & 46\% & 0.075 & 0.336 & 0.090 \\
-Qwen3-8B              & 0.980 & 0.996 & 24\% & 0.082 & 0.373 & 0.098 \\
+SmolLM2-135M instruct & 0.971 & 0.996 & 96\% & 0.086 & 0.354 & 0.119 \\
+SmolLM2-360M instruct & 0.964 & 0.996 & 95\% & 0.039 & 0.356 & 0.059 \\
+Qwen2.5-0.5B instruct & 0.990 & 0.996 & 97\% & 0.280 & 0.434 & 0.314 \\
+Qwen3-0.6B            & 0.989 & 0.996 & 99\% & 0.124 & 0.342 & 0.145 \\
+Qwen2.5-1.5B instruct & 0.969 & 0.996 & 78\% & 0.051 & 0.432 & 0.073 \\
+SmolLM2-1.7B instruct & 0.959 & 0.993 & 91\% & 0.075 & 0.336 & 0.090 \\
+Qwen3-8B              & 0.980 & 0.996 & 97\% & 0.082 & 0.373 & 0.098 \\
 \midrule
 OLMo 2 1B: base $\to$ SFT & 0.939 & 0.993 & --    & 0.080 & 0.336 & 0.100 \\
-OLMo 2 1B: SFT $\to$ DPO  & 0.908 & 0.993 & 98\%  & 0.012 & 0.336 & 0.023 \\
-OLMo 2 1B: DPO $\to$ RL   & 0.922 & 0.993 & 100\% & 0.013 & 0.336 & 0.021 \\
+OLMo 2 1B: SFT $\to$ DPO  & 0.908 & 0.993 & 13\% & 0.012 & 0.336 & 0.023 \\
+OLMo 2 1B: DPO $\to$ RL   & 0.922 & 0.993 & 3\% & 0.013 & 0.336 & 0.021 \\
 \midrule
-Qwen2.5-Coder-0.5B    & 0.981 & 0.996 & 0\%  & 0.194 & 0.434 & 0.228 \\
-Qwen2.5-Math-1.5B     & 0.990 & 0.996 & 0\%  & 0.200 & 0.432 & 0.245 \\
-Qwen2.5-Coder-1.5B    & 0.987 & 0.996 & 0\%  & 0.191 & 0.432 & 0.234 \\
+Qwen2.5-Coder-0.5B    & 0.981 & 0.996 & 100\% & 0.194 & 0.434 & 0.228 \\
+Qwen2.5-Math-1.5B     & 0.990 & 0.996 & 100\% & 0.200 & 0.432 & 0.245 \\
+Qwen2.5-Coder-1.5B    & 0.987 & 0.996 & 100\% & 0.191 & 0.432 & 0.234 \\
 \bottomrule
 \end{tabular}
 \end{center}
@@ -244,13 +243,14 @@ outlier drives it. Every update also has tens to hundreds of directions above
 the largest singular value a same-size Gaussian matrix would have
 (Table~\ref{tab:released_more}).
 
-Rounding gives a second reason to distrust the threshold count. For several
-pairs, simulated bf16 rounding could account for most of what it counts: 76\%
-for Qwen2.5-0.5B, 94\% for Qwen2.5-1.5B and almost all of it for the two OLMo
-stages. The simulation is an upper bound, but the direct trace agrees: 14\% of
-the entries of the Qwen2.5-1.5B update, and 39\% and 52\% of the OLMo DPO and
-RL updates, are exactly zero (Table~\ref{tab:released_more}). Rounding adds
-many tiny singular values, which stable rank largely ignores.
+For most pairs, bf16 rounding is not a concern: 91--100\% of their
+directions are stronger than anything rounding alone can produce. For three
+it is. 14\% of the entries of the Qwen2.5-1.5B update, and 39\% and 52\% of
+the OLMo DPO and RL updates, are exactly zero, and only 78\%, 13\% and 3\% of
+their directions rise above the simulated rounding floor
+(Table~\ref{tab:released_more}). For these updates much of what the threshold
+count counts may be rounding. Rounding adds many tiny singular values, which
+stable rank largely ignores.
 
 The OLMo 2 stages show where post-training changes the weights. Almost all of
 the change is in SFT: its update is 9.8\% of the size of the weights, has

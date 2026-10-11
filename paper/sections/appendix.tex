@@ -214,33 +214,35 @@ does not explain why the shuffled-words update is the most concentrated.
 \begin{table}[h]
 \caption{More on the released pairs. Participation ratio against a Gaussian
 matrix of the same shape; ``above edge'', the number of singular values above
-the largest one such a Gaussian matrix would have (mean per matrix); ``above
-floor'', the share of directions above the simulated bf16 rounding floor (an
-upper bound on rounding, see
-\S\ref{sec:background}); the size of the update relative to the base
-weights; and the share of entries of $\dW$ that are exactly zero, the direct
-trace of rounding.}
+the largest one such a Gaussian matrix would have (mean per matrix); the
+``rounding share'', the number of singular values of the simulated bf16
+rounding error above $0.01\,\sigma_1$ of the update, as a share of the update's
+threshold count (a loose upper bound on how much of the count rounding could
+explain, as a ratio of means over matrices; compare the ``above floor''
+column of Table~\ref{tab:released}); the size of the update relative to the
+base weights; and the share of entries of $\dW$ that are exactly zero, the
+direct trace of rounding.}
 \label{tab:released_more}
 \begin{center}
 \small
 \setlength{\tabcolsep}{4pt}
 \begin{tabular}{lcccccc}
 \toprule
-update & particip.\ ratio & noise & above edge & above floor & $\|\dW\|_F/\|W\|_F$ & zero entries \\
+update & particip.\ ratio & noise & above edge & rounding share & $\|\dW\|_F/\|W\|_F$ & zero entries \\
 \midrule
-SmolLM2-135M instruct & 0.321 & 0.667 & 30  & 96\%  & 8.1\%  & 2.5\%  \\
-SmolLM2-360M instruct & 0.239 & 0.668 & 46  & 95\%  & 7.6\%  & 2.7\%  \\
-Qwen2.5-0.5B instruct & 0.657 & 0.755 & 22  & 97\%  & 7.8\%  & 2.2\%  \\
-Qwen3-0.6B            & 0.442 & 0.654 & 72  & 99\%  & 12.7\% & 1.5\%  \\
-Qwen2.5-1.5B instruct & 0.299 & 0.753 & 100 & 78\%  & 1.2\%  & 14.0\% \\
-SmolLM2-1.7B instruct & 0.375 & 0.629 & 140 & 91\%  & 6.2\%  & 3.1\%  \\
-Qwen3-8B              & 0.405 & 0.693 & 243 & 97\%  & 8.4\%  & 2.1\%  \\
+SmolLM2-135M instruct & 0.321 & 0.667 & 30  & 28\% & 8.1\%  & 2.5\%  \\
+SmolLM2-360M instruct & 0.239 & 0.668 & 46  & 10\% & 7.6\%  & 2.7\%  \\
+Qwen2.5-0.5B instruct & 0.657 & 0.755 & 22  & 76\% & 7.8\%  & 2.2\%  \\
+Qwen3-0.6B            & 0.442 & 0.654 & 72  & 15\% & 12.7\% & 1.5\%  \\
+Qwen2.5-1.5B instruct & 0.299 & 0.753 & 100 & 94\% & 1.2\%  & 14.0\% \\
+SmolLM2-1.7B instruct & 0.375 & 0.629 & 140 & 45\% & 6.2\%  & 3.1\%  \\
+Qwen3-8B              & 0.405 & 0.693 & 243 & 24\% & 8.4\%  & 2.1\%  \\
 OLMo 2 1B: base $\to$ SFT & 0.381 & 0.629 & 137 & --   & 9.8\% & 0.0\%  \\
-OLMo 2 1B: SFT $\to$ DPO  & 0.116 & 0.629 & 114 & 13\% & 0.4\% & 38.8\% \\
-OLMo 2 1B: DPO $\to$ RL   & 0.127 & 0.629 & 99  & 3\%  & 0.3\% & 51.6\% \\
-Qwen2.5-Coder-0.5B    & 0.545 & 0.755 & 44  & 100\% & 89\%   & 0.2\%  \\
-Qwen2.5-Math-1.5B     & 0.611 & 0.753 & 61  & 100\% & 156\%  & 0.1\%  \\
-Qwen2.5-Coder-1.5B    & 0.585 & 0.753 & 66  & 100\% & 92\%   & 0.1\%  \\
+OLMo 2 1B: SFT $\to$ DPO  & 0.116 & 0.629 & 114 & 98\% & 0.4\% & 38.8\% \\
+OLMo 2 1B: DPO $\to$ RL   & 0.127 & 0.629 & 99  & 100\% & 0.3\% & 51.6\% \\
+Qwen2.5-Coder-0.5B    & 0.545 & 0.755 & 44  & 0\% & 89\%   & 0.2\%  \\
+Qwen2.5-Math-1.5B     & 0.611 & 0.753 & 61  & 0\% & 156\%  & 0.1\%  \\
+Qwen2.5-Coder-1.5B    & 0.585 & 0.753 & 66  & 0\% & 92\%   & 0.1\%  \\
 \bottomrule
 \end{tabular}
 \end{center}
@@ -250,11 +252,15 @@ Qwen2.5-0.5B is the least concentrated instruct release on every rank measure
 (not on top-1 energy), and less concentrated than our own SFT of the same
 base; we do not know why.
 
-The rounding check agrees with the simulation. Where the simulated floor says
-rounding matters, many entries of the update are exactly zero: 14\% for
-Qwen2.5-1.5B, and 39\% and 52\% for the OLMo DPO and RL stages, whose updates
-are under half a percent of the weights. For the specialists, whose updates
-are as large as the weights themselves, almost no entry is zero.
+The two direct checks agree. Where few directions rise above the rounding
+floor, many entries of the update are exactly zero: 14\% for Qwen2.5-1.5B, and
+39\% and 52\% for the OLMo DPO and RL stages, whose updates are under half a
+percent of the weights. For the other instruct releases 1.5--3.1\% of entries
+are zero and 91--99\% of directions are above the floor. The rounding share is much higher for several
+of these pairs (for instance 76\% for Qwen2.5-0.5B), which shows how loose a
+bound it is: it compares rounding with $0.01\,\sigma_1$, not with the
+directions the update actually has. For the specialists, whose updates are as
+large as the weights themselves, almost no entry is zero.
 
 \section{Random-update details}
 \label{app:damage}
