@@ -35,7 +35,8 @@ ORDER = ["smollm2-135m", "smollm2-360m", "qwen2.5-0.5b", "qwen3-0.6b", "qwen2.5-
          "smollm2-1.7b", "qwen3-8b",
          # alignment stages with open data, then large non-alignment updates
          "olmo2-1b-sft", "olmo2-1b-dpo", "olmo2-1b-rl", "olmo2-1b-instruct",
-         "qwen2.5-math-1.5b", "qwen2.5-coder-0.5b", "qwen2.5-coder-1.5b"]  # fmt: skip
+         "qwen2.5-math-1.5b", "qwen2.5-coder-0.5b", "qwen2.5-coder-1.5b",
+         "olmo2-1b-sft-vs-main"]  # not a fine-tuning pair, see released_spectra.py  # fmt: skip
 _gauss: dict[tuple[int, int], torch.Tensor] = {}
 
 

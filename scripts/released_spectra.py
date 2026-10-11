@@ -52,6 +52,10 @@ PAIRS = {
     "olmo2-1b-dpo": ("allenai/OLMo-2-0425-1B-SFT", "allenai/OLMo-2-0425-1B-DPO"),
     "olmo2-1b-rl": ("allenai/OLMo-2-0425-1B-DPO", "allenai/OLMo-2-0425-1B-Instruct"),
     "olmo2-1b-instruct": (OLMO_BASE, "allenai/OLMo-2-0425-1B-Instruct"),
+    # not a fine-tuning pair: the base repo's main revision shares no
+    # initialisation with the SFT checkpoint. Kept to show that a difference of
+    # two unrelated trained models also looks "concentrated" next to noise.
+    "olmo2-1b-sft-vs-main": ("allenai/OLMo-2-0425-1B", "allenai/OLMo-2-0425-1B-SFT"),
     # large released updates with no alignment content
     "qwen2.5-math-1.5b": ("Qwen/Qwen2.5-1.5B", "Qwen/Qwen2.5-Math-1.5B"),
     "qwen2.5-coder-0.5b": ("Qwen/Qwen2.5-0.5B", "Qwen/Qwen2.5-Coder-0.5B"),
