@@ -153,10 +153,14 @@ means a similar spectral shape, not the same update: we do not compare the
 directions themselves.
 
 Preference training gives the same answer. Starting from the Qwen SFT model,
-we ran DPO on 10k UltraFeedback pairs, and a control on the same pairs with
-chosen and rejected swapped in a random half of them, so the prompts,
-responses and amount of training are identical but there is no preference to
-learn (Appendix~\ref{app:training}). On about 190 held-out pairs the DPO model
+we ran DPO \citep{rafailov2023dpo} on 10k UltraFeedback pairs
+\citep{cui2024ultrafeedback}, and a control on the same pairs with chosen and
+rejected swapped in a random half of them, in the spirit of random-label
+controls \citep{zhang2017rethinking}. The prompts, responses and amount of
+training are identical, but there is no net preference to learn; the control
+does share the unswapped half of its pairs with the DPO run, so it removes the
+preference signal, not everything the two runs see in common
+(Appendix~\ref{app:training}). On about 190 held-out pairs the DPO model
 prefers the chosen answer 65\% of the time (74\% for a second seed); the
 control is at chance, 51\%. Yet the two updates are alike on every measure
 (Table~\ref{tab:measures}): stable rank 0.053 for DPO and 0.055 for the
@@ -164,8 +168,9 @@ control, against 0.436 for noise, and the same size. The paired difference,
 $+0.002$, is larger than the gap between the two DPO seeds ($+0.001$) but
 under 4\% of the value and about $1/200$ of the distance to noise
 (Table~\ref{tab:paired}). Like the SFT update, the DPO update is more
-concentrated than the pretrained weights and far more than noise, and almost
-none of that comes from having learned the preferences.
+concentrated than the pretrained weights and far more than noise, and at the
+strength of preference learning we reach, almost none of that comes from
+having learned the preferences.
 
 The surprise is the shuffled-words control. Text with its word order
 scrambled, which has little to learn beyond word frequencies, gives the most

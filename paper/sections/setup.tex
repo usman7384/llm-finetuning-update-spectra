@@ -40,9 +40,10 @@ recommend this check to anyone measuring fine-tuning updates.
 training, in three groups. (i) Base/instruct releases: SmolLM2 135M, 360M and
 1.7B; Qwen2.5 0.5B and 1.5B; Qwen3 0.6B and 8B \citep{yang2025qwen3}, the two
 Qwen3 pairs being among those studied by \citet{wu2025timber}. (ii) The three
-post-training stages of OLMo 2 1B, base to SFT, SFT to DPO and DPO to RL,
-whose training data are public. (iii) Large updates without alignment content:
-Qwen2.5-Math-1.5B and Qwen2.5-Coder 0.5B and 1.5B against their bases.
+post-training stages of OLMo 2 1B \citep{olmo2024olmo2}, base to SFT, SFT to
+DPO and DPO to RL, whose training data are public. (iii) Large updates without
+alignment content: Qwen2.5-Math-1.5B \citep{yang2024qwenmath} and
+Qwen2.5-Coder 0.5B and 1.5B \citep{hui2024qwencoder} against their bases.
 
 Before measuring a pair we check that the second checkpoint descends from the
 first: the cosine between the two sets of weights is 0.99 or more for all

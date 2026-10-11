@@ -14,7 +14,8 @@ directions count.
   \item \textbf{Threshold count} $\thresholdrank$: how many $\sigma_i$ are at
   least $0.01\,\sigma_1$. We use it as the simplest example of counting; the
   numerical rank reported by \citet{mukherjee2025rl} counts in the same way,
-  with a tolerance set by floating-point precision.
+  with a tolerance they do not state (by default it is set by floating-point
+  precision).
   \item \textbf{Energy rank} $\energyrank$: the smallest $k$ with
   $\sum_{i\leq k} p_i \geq 0.9$, the measure of \citet{biderman2024lora}.
   \item \textbf{Entropy effective rank} $\entropyrank$

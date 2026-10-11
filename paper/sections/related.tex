@@ -33,7 +33,8 @@ a small random subspace \citep{aghajanyan2021intrinsic}, the idea behind LoRA
 approximations of the update \citep{ryu2023efficient}. Measured directly, full
 fine-tuning updates need a rank 10--100 times larger than typical LoRA ranks to
 hold 90\% of their energy \citep{biderman2024lora}, and reinforcement-learning
-updates are reported as nearly full rank, 99.2--99.8\% of the maximum
+and preference-tuning updates are reported as nearly full rank, 99.2--99.8\%
+of the maximum
 \citep{mukherjee2025rl}. Both statements count directions; our results agree
 with them and add that the same updates are far more concentrated than noise at
 the top of the spectrum. \citet{shuttleworth2025lora} compare singular vectors
@@ -47,9 +48,13 @@ to tell training objectives apart.
 \paragraph{Editing updates.} Updates can be added, scaled and merged
 \citep{ilharco2023task}, and much of an update can be dropped or trimmed at
 random or by magnitude before merging with little loss
-\citep{yu2024dare, yadav2023ties}. Timber's tail edit belongs to this family,
-and our comparison with uniform scaling (\S\ref{sec:cutoff}) asks whether its
-spectral cutoff adds anything over the simplest edit of this kind.
+\citep{yu2024dare, yadav2023ties}. Scaling an update as a whole is an old and
+effective edit: interpolating between pretrained and fine-tuned weights makes
+fine-tuning more robust \citep{wortsman2022wiseft}, and extrapolating along
+the alignment update can improve an aligned model \citep{zheng2025expo}.
+Timber's tail edit belongs to this family, and our comparison with uniform
+scaling (\S\ref{sec:cutoff}) asks whether its spectral cutoff adds anything
+over the simplest edit of this kind.
 
 \paragraph{Low precision.} Rounding weights to bf16 cancels small updates
 \citep{zamirai2020bfloat16}, and in reinforcement learning this can make
