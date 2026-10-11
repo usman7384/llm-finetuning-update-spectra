@@ -36,21 +36,23 @@ did exactly this, 77--98\% of the weights never changed, and the measured
 checked after training: at most $1.1\times10^{-5}$ of the weights are unchanged. We
 recommend this check to anyone measuring fine-tuning updates.
 
-\paragraph{Released models.} We measure twelve official pairs with no
+\paragraph{Released models.} We measure thirteen official pairs with no
 training, in three groups. (i) Base/instruct releases: SmolLM2 135M, 360M and
 1.7B; Qwen2.5 0.5B and 1.5B; Qwen3 0.6B and 8B \citep{yang2025qwen3}, the two
-Qwen3 pairs being among those studied by \citet{wu2025timber}. (ii) The
-preference stages of OLMo 2 1B, SFT to DPO and DPO to RL, whose training data
-are public. (iii) Large updates without alignment content:
+Qwen3 pairs being among those studied by \citet{wu2025timber}. (ii) The three
+post-training stages of OLMo 2 1B, base to SFT, SFT to DPO and DPO to RL,
+whose training data are public. (iii) Large updates without alignment content:
 Qwen2.5-Math-1.5B and Qwen2.5-Coder 0.5B and 1.5B against their bases.
 
 Before measuring a pair we check that the second checkpoint descends from the
 first: the cosine between the two sets of weights is 0.99 or more for all
-seven base/instruct pairs and 0.20--0.60 for the specialists, which were trained on
-far more data. For OLMo 2 1B the released SFT checkpoint fails this check
-against the released base: the cosine is 0.00 in every matrix, so the two do
-not share an initialisation, and their difference is not a fine-tuning update.
-We leave out that stage, and the base-to-instruct update with it.
+seven base/instruct pairs and the OLMo stages, and 0.20--0.60 for the
+specialists, which were trained on far more data. The check matters. The
+released OLMo 2 1B SFT checkpoint has cosine 0.00 with the main revision of
+the released base model in every matrix: the two do not even share an
+initialisation. Among the base model's published mid-training branches, the
+final checkpoint of the third mid-training run has cosine 0.995 with it, so we
+use that as the base of the SFT stage.
 
 \paragraph{What we measure.} Every attention and MLP projection
 (\texttt{q}, \texttt{k}, \texttt{v}, \texttt{o}, \texttt{gate}, \texttt{up},

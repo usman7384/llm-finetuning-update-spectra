@@ -189,7 +189,7 @@ data, not on whether the data teach instruction following or preferences.
 \includegraphics[width=\linewidth]{figures/released_pairs.pdf}
 \end{center}
 \caption{Released updates (blue) against a Gaussian matrix of the same shape
-(grey), in three groups: base/instruct releases, the OLMo 2 preference
+(grey), in three groups: base/instruct releases, the OLMo 2 post-training
 stages, and code/math specialists. Left: the threshold count (axis starts at
 0.85). Right: stable rank.}
 \label{fig:released}
@@ -200,7 +200,8 @@ stages, and code/math specialists. Left: the threshold count (axis starts at
 simulated bf16 rounding error that pass the same threshold, as a share of the
 update's threshold count; it is an upper bound on what rounding alone could
 produce (\S\ref{sec:background}). It is 0\% for the specialists because their
-updates are far larger than a bf16 unit. The last column drops the top
+updates are far larger than a bf16 unit, and not computed (--) where one of
+the two checkpoints is not stored in bf16. The last column drops the top
 direction, to check that one outlier does not drive the result.}
 \label{tab:released}
 \begin{center}
@@ -217,6 +218,7 @@ Qwen2.5-1.5B instruct & 0.969 & 0.996 & 94\% & 0.051 & 0.432 & 0.073 \\
 SmolLM2-1.7B instruct & 0.959 & 0.993 & 46\% & 0.075 & 0.336 & 0.090 \\
 Qwen3-8B              & 0.980 & 0.996 & 24\% & 0.082 & 0.373 & 0.098 \\
 \midrule
+OLMo 2 1B: base $\to$ SFT & 0.939 & 0.993 & --    & 0.080 & 0.336 & 0.100 \\
 OLMo 2 1B: SFT $\to$ DPO  & 0.908 & 0.993 & 98\%  & 0.012 & 0.336 & 0.023 \\
 OLMo 2 1B: DPO $\to$ RL   & 0.922 & 0.993 & 100\% & 0.013 & 0.336 & 0.021 \\
 \midrule
@@ -229,7 +231,7 @@ Qwen2.5-Coder-1.5B    & 0.987 & 0.996 & 0\%  & 0.191 & 0.432 & 0.234 \\
 \end{table}
 
 Released instruct models go through much larger and more varied
-post-training than our runs. The same pattern holds for all twelve pairs
+post-training than our runs. The same pattern holds for all thirteen pairs
 (Figure~\ref{fig:released}, Table~\ref{tab:released}). The threshold count
 reads 91--99\%, close to noise; stable rank puts every update 1.6 to 27 times
 below noise, and dropping the top direction changes little, so no single
@@ -245,10 +247,15 @@ the entries of the Qwen2.5-1.5B update, and 39\% and 52\% of the OLMo DPO and
 RL updates, are exactly zero (Table~\ref{tab:released_more}). Rounding adds
 many tiny singular values, which stable rank largely ignores.
 
-The OLMo DPO and RL stages are tiny, under half a percent of the weights, and
-only 13\% and 3\% of their directions rise above the simulated rounding floor.
-Their very low stable rank therefore reflects a few real directions on top of
-rounding, and we draw no conclusion about preference training from them.
+The OLMo 2 stages show where post-training changes the weights. Almost all of
+the change is in SFT: its update is 9.8\% of the size of the weights, has
+stable rank 0.080 against 0.336 for noise, and the whole base-to-instruct
+update has the same size and shape to within 0.001. The DPO and RL stages are
+tiny, under half a percent of the weights, and only 13\% and 3\% of their
+directions rise above the simulated rounding floor. Their very low stable
+rank therefore reflects a few real directions on top of rounding, and we draw
+no conclusion about preference training from them; our own DPO runs
+(\S\ref{sec:controls}) are the controlled test.
 
 The specialists give a mixed picture. Against an instruct release of the same
 base, Qwen2.5-Coder-0.5B (stable rank 0.194) is more concentrated than
