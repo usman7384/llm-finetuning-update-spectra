@@ -271,7 +271,7 @@ def summarize(n_problems: int, out_dir: Path = OUT_DIR) -> None:
         # one generator per variant, so adding a variant leaves the others' intervals alone
         rng = np.random.default_rng(0)
         idx = rng.integers(0, row["problems"], size=(5000, row["problems"]))
-        for k in (1, 8):
+        for k in (1, 4, 8):  # only the k both variants sampled enough for
             if k in ref and k in per_problem[row["variant"]]:
                 d = per_problem[row["variant"]][k] - ref[k]
                 boot = d[idx].mean(axis=1)
