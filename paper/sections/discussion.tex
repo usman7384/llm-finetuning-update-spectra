@@ -27,7 +27,7 @@ does, and costs nothing.
   parameters with about two million tokens per epoch. The measurement results
   hold on released models up to 8B, but we do not study training at that scale.
   \item \textbf{Tokens, not steps.} The runs are matched on training tokens;
-  the code runs take about 2.6 times fewer optimizer steps than the others.
+  the code runs take 2.6--2.9 times fewer optimizer steps than the others.
   \item \textbf{Which null.} A Gaussian matrix is the least structured baseline
   possible, and even the difference of two unrelated trained checkpoints beats
   it. We add the pretrained weights as a harder reference, and matched

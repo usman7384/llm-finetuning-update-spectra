@@ -17,13 +17,14 @@ and pass@$k$ on their benchmarks. We check both with the baselines of
 \begin{center}
 \includegraphics[width=\linewidth]{figures/random_update.pdf}
 \end{center}
-\caption{Left: change in the effective rank of the full weight matrix $W$ for
-the real base-to-instruct update (blue) and a random update of the same
-Frobenius norm (grey), averaged over matrices. Right: perplexity on held-out
+\caption{Left: size of the change in the effective rank of the full weight
+matrix $W$, $|\Delta\,\entropyrank(W)| / \entropyrank(W)$ averaged over
+matrices, for the real base-to-instruct update (blue) and a random update of
+the same Frobenius norm (grey). Right: perplexity on held-out
 wikitext of Qwen3-0.6B base, unchanged, after a random update of the same size
 as its real post-training update (Gaussian, or with the real update's singular
 values), and after the real update, which gives the instruct model. The
-numbers above the bars are the change in eRank($W$).}
+numbers above the bars are the same size of change in eRank($W$).}
 \label{fig:random}
 \end{figure}
 
@@ -49,7 +50,7 @@ template. Differences in points with 95\% paired bootstrap intervals.}
 \small
 \begin{tabular}{lccc}
 \toprule
-model & accuracy & difference & eRank($W$) change \\
+model & accuracy & difference & $|$change$|$ in eRank($W$) \\
 \midrule
 base                                           & 59.5 & --                         & -- \\
 base + Gaussian update, draw 1                 & 4.1  & $-55.4$ ($-58.2$, $-52.7$) & 0.50\% \\
@@ -74,10 +75,9 @@ The same random update added to the instruct model takes it from 64.5\% to
 11.9\%. The real update, which moves the effective rank even less (0.13\%),
 produces the instruct model. So an update can wreck a model or turn it into a
 working assistant and leave the effective rank of $W$ almost the same either
-way. Perplexity on wikitext tells the same story less cleanly (18.1 to 33.1
-for the random updates, Figure~\ref{fig:random}, right), because the real
-update raises it too, to 50.1: an instruct model is no longer a plain
-predictor of web text. An unchanged effective rank therefore cannot tell a
+way. Perplexity on wikitext rises from 18.1 to 33.1 with either random update
+(Figure~\ref{fig:random}, right), but the real update raises it too, to 50.1,
+because an instruct model no longer predicts plain web text well. An unchanged effective rank therefore cannot tell a
 superficial change from a deep one, or from a destructive one. This does not
 show that post-training is deep; it shows that this measurement cannot decide
 the question.
@@ -92,7 +92,7 @@ the question.
 \caption{GSM8K pass@$k$ for Qwen3-0.6B (non-thinking mode) with tail edits
 and with uniform scaling of the whole update. Eight samples
 per problem, the same sampling seed per problem for every variant. Left: first
-300 test problems, all variants (Table~\ref{tab:cutoff300}). Right: all
+300 test problems, main variants (every variant is in Table~\ref{tab:cutoff300}). Right: all
 1{,}319 (Table~\ref{tab:cutoff}).}
 \label{fig:cutoff}
 \end{figure}
@@ -124,8 +124,8 @@ Because the effective rank of $\dW$ sits close to its noise value, the cutoff
 it gives is high: on Qwen3-0.6B it keeps 83\% of the directions and 98.9\% of
 the update's energy, so the edit touches only the last 1\% (Wu et al.\ report
 98.82\% for Qwen3-8B). An edit that small is also fragile in practice: running
-the edited model in bf16 distorts it by about a quarter of its size
-(Appendix~\ref{app:cutoff}).
+the edited model in bf16 distorts it by 16\% of its size at $\lambda=0.2$ and
+25\% at $\lambda=0.5$ (Appendix~\ref{app:cutoff}).
 
 We compare edits of the same update on GSM8K \citep{cobbe2021gsm8k}, which is
 not among Wu et al.'s benchmarks, using pass@$k$ \citep{chen2021codex}:
@@ -146,8 +146,8 @@ pass@1 and a pass@8 gain of $+1.8$ ($+0.2$, $+3.5$).
 
 Simply scaling the whole update does better than either tail edit: pass@1
 rises by $+3.4$ points ($+2.4$, $+4.5$) and pass@8 by $+2.7$ ($+1.1$,
-$+4.2$), with the share of answered samples unchanged (96.4\% against
-97.4\%). It removes as much of the update as the stable-rank edit, but evenly
+$+4.2$), with nearly the same share of answered samples (96.4\% against
+97.4\%). It makes the update as small as the stable-rank edit does, but evenly
 from every direction instead of from the tail. So on this benchmark the gain
 comes from making the update smaller, and choosing which directions to shrink
 by a spectral cutoff, whether eRank or stable rank, adds nothing. Task
@@ -158,7 +158,7 @@ On the first 300 problems we also ran the extreme $\lambda=0$, which removes
 the tail completely (Table~\ref{tab:cutoff300}). Removing Timber's tail, 1.1\%
 of the update's energy, changes nothing measurable ($+0.5$ points of pass@1).
 Removing the stable-rank ``tail'', which is 59\% of the update's energy and so
-most of the update, costs 4.2 points against the unedited model and 5.2 against
+most of the update, costs 4.2 points against the unedited model and 5.3 against
 halving it. Removing most of an update hurts; this says little about the
 weakest directions alone. A uniform scaling matched in size to Timber's edit is
 almost erased by bf16 storage (88\% of the change is lost) and, like Timber's
