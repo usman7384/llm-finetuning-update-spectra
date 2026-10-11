@@ -45,6 +45,8 @@ RUN_COLORS = {
     "wikitext": "#009E73",
     "code": "#E69F00",
     "shuffled words": "#CC79A7",
+    "DPO": "#D55E00",
+    "DPO swapped": "#D55E00",
     "pretrained W": "#000000",
     "noise": NOISE,
 }
@@ -65,12 +67,15 @@ def fig_gaps() -> None:
     fig, axes = plt.subplots(1, 2, figsize=(6.5, 2.4), sharey=True)
     for ax, model in zip(axes, ["Qwen2.5-0.5B", "SmolLM2-360M"], strict=True):
         sub = gaps[gaps["model"] == model]
-        for run in ["SFT", "wikitext", "code", "shuffled words"]:
+        for run in ["SFT", "wikitext", "code", "shuffled words", "DPO", "DPO swapped"]:
+            if run not in set(sub["run"]):
+                continue  # DPO was run on Qwen only
             r = sub[sub["run"] == run].set_index("measure").loc[order]
             x = np.arange(len(order))
             yerr = [100 * (r["gap"] - r["lo"]), 100 * (r["hi"] - r["gap"])]
             ax.errorbar(x, 100 * r["gap"], yerr=yerr, marker="o", ms=3, capsize=2,
-                        color=RUN_COLORS[run], label=run)  # fmt: skip
+                        color=RUN_COLORS[run], ls="--" if run == "DPO swapped" else "-",
+                        label=run)  # fmt: skip
         ax.set_xticks(range(len(order)))
         ax.set_xticklabels([MEASURE_LABELS[m] for m in order], fontsize=7)
         ax.set_title(model)
@@ -79,6 +84,33 @@ def fig_gaps() -> None:
     axes[0].legend(fontsize=7, loc="upper left")
     fig.tight_layout()
     fig.savefig(OUT / "gaps_by_measure.pdf", bbox_inches="tight")
+    plt.close(fig)
+
+
+def fig_renyi() -> None:
+    """Gap to noise along the whole Renyi family, not just the five measures."""
+    grid = pd.read_csv("results/v2/renyi_grid.csv")
+    fig, axes = plt.subplots(1, 2, figsize=(6.5, 2.3), sharey=True)
+    for ax, model in zip(axes, ["Qwen2.5-0.5B", "SmolLM2-360M"], strict=True):
+        sub = grid[grid["model"] == model]
+        for run in ["SFT", "wikitext", "code", "shuffled words"]:
+            r = sub[sub["run"] == run].sort_values("alpha")
+            finite = r[np.isfinite(r["alpha"])]
+            ax.plot(finite["alpha"], 100 * finite["gap"], marker="o", ms=3,
+                    color=RUN_COLORS[run], label=run)  # fmt: skip
+            # stable rank (alpha = infinity) as a marker at the right edge
+            inf = r[~np.isfinite(r["alpha"])]
+            ax.plot([32], 100 * inf["gap"], marker="s", ms=4, color=RUN_COLORS[run])
+        ax.set_xscale("log", base=2)
+        ax.set_xticks([0.25, 1, 4, 16, 32])
+        ax.set_xticklabels(["1/4", "1", "4", "16", "$\\infty$"])
+        ax.set_xlabel("Rényi order $\\alpha$")
+        ax.set_title(model)
+        ax.set_ylim(0, 100)
+    axes[0].set_ylabel("how far below noise, %")
+    axes[0].legend(fontsize=6, loc="lower right")
+    fig.tight_layout()
+    fig.savefig(OUT / "renyi_grid.pdf", bbox_inches="tight")
     plt.close(fig)
 
 
@@ -289,6 +321,7 @@ def fig_cutoff() -> None:
 def main() -> int:
     OUT.mkdir(parents=True, exist_ok=True)
     fig_gaps()
+    fig_renyi()
     fig_spectrum()
     fig_released()
     fig_random_update()
