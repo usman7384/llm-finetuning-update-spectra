@@ -246,7 +246,7 @@ def fig_random_update() -> None:
     axes[0].barh(y - 0.2, [r[2] for r in rows], 0.4, color=NOISE, label="random, same size")
     axes[0].set_yticks(y)
     axes[0].set_yticklabels([r[0] for r in rows], fontsize=7)
-    axes[0].set_xlabel("change in eRank($W$), %")
+    axes[0].set_xlabel("|change| in eRank($W$), %")  # mean of absolute relative changes
     axes[0].set_title("effective rank of $W$ barely moves")
     axes[0].legend(fontsize=6, loc="lower right")
 
@@ -257,7 +257,7 @@ def fig_random_update() -> None:
     bars = axes[1].bar(range(len(order)), vals, color=["#000000", NOISE, NOISE, "#0072B2"])
     for b, (k, _) in zip(bars, order, strict=True):
         if k != "none (base)":
-            note = f"eRank\n{p.loc[k, 'erank_change_pct']:+.2f}%"
+            note = f"|Δ eRank|\n{p.loc[k, 'erank_change_pct']:.2f}%"
             axes[1].text(b.get_x() + b.get_width() / 2, b.get_height() + 0.8, note,
                          ha="center", fontsize=6)  # fmt: skip
     axes[1].set_ylim(0, 1.2 * max(vals))
