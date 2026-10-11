@@ -151,8 +151,9 @@ RELEASED = [
     ("qwen2.5-1.5b", "Qwen2.5-1.5B", "instruct release"),
     ("smollm2-1.7b", "SmolLM2-1.7B", "instruct release"),
     ("qwen3-8b", "Qwen3-8B", "instruct release"),
-    # no olmo2-1b-sft: the released SFT checkpoint is not a fine-tune of the
-    # released base (cosine of the weights ~0, results/released_sizes.csv)
+    # measured from the final mid-training checkpoint, its real parent
+    # (results/olmo_lineage.csv), not from the base repo's main revision
+    ("olmo2-1b-sft", "OLMo2-1B SFT", "OLMo 2 stage"),
     ("olmo2-1b-dpo", "OLMo2-1B DPO", "OLMo 2 stage"),
     ("olmo2-1b-rl", "OLMo2-1B RL", "OLMo 2 stage"),
     ("qwen2.5-coder-0.5b", "Coder-0.5B", "code / math"),
