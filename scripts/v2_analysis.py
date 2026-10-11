@@ -37,6 +37,10 @@ FAMILIES = {
         "SFT (seed 2)": "v2/svd_sft_seed43",
         "wikitext (seed 2)": "v2/svd_control_lm_seed43",
         "code (seed 2)": "v2/svd_control_code_seed43",
+        # DPO on top of the SFT run: dW = W_dpo - W_sft
+        "DPO": "v2/svd_dpo",
+        "DPO (seed 2)": "v2/svd_dpo_seed43",
+        "DPO swapped": "v2/svd_dpo_swapped",
         "noise": "svd_control_random",
         "pretrained W": "weights_base",
     },
@@ -52,9 +56,8 @@ FAMILIES = {
 MEASURES = ["threshold", "k90", "erank", "participation", "stable", "stable_wo_top", "top1"]
 PAIRS = [("wikitext", "SFT"), ("code", "SFT"), ("wikitext", "code"), ("SFT", "shuffled words"),
          ("SFT", "SFT (seed 2)"), ("wikitext", "wikitext (seed 2)"),
-         ("code", "code (seed 2)")]  # fmt: skip
+         ("code", "code (seed 2)"), ("DPO", "DPO (seed 2)"), ("DPO", "DPO swapped")]  # fmt: skip
 N_BOOT = 5000
-rng = np.random.default_rng(0)
 
 
 def per_matrix(result_dir: str) -> pd.DataFrame:
@@ -86,7 +89,7 @@ def boot_ratio(a: pd.DataFrame, b: pd.DataFrame, col: str) -> tuple[float, float
     j = a[[col, "layer"]].join(b[[col]], rsuffix="_b")
     g = j.groupby("layer")
     sa, sb = g[col].sum().to_numpy(), g[col + "_b"].sum().to_numpy()
-    idx = rng.integers(0, len(sa), (N_BOOT, len(sa)))
+    idx = np.random.default_rng(0).integers(0, len(sa), (N_BOOT, len(sa)))  # same draws whatever else runs
     boot = 1 - sa[idx].sum(1) / sb[idx].sum(1)
     return (
         1 - sa.sum() / sb.sum(),
@@ -101,7 +104,7 @@ def boot_diff(a: pd.DataFrame, b: pd.DataFrame, col: str) -> tuple[float, float,
     j["d"] = j[col + "_b"] - j[col]
     g = j.groupby("layer")["d"]
     s, n = g.sum().to_numpy(), g.count().to_numpy()
-    idx = rng.integers(0, len(s), (N_BOOT, len(s)))
+    idx = np.random.default_rng(0).integers(0, len(s), (N_BOOT, len(s)))  # same draws whatever else runs
     boot = s[idx].sum(1) / n[idx].sum(1)
     return float(j["d"].mean()), float(np.percentile(boot, 2.5)), float(np.percentile(boot, 97.5))
 
