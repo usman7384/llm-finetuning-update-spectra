@@ -29,8 +29,9 @@ does, and costs nothing.
   \item \textbf{Tokens, not steps.} The runs are matched on training tokens;
   the code runs take about 2.6 times fewer optimizer steps than the others.
   \item \textbf{Which null.} A Gaussian matrix is the least structured baseline
-  possible. We add the pretrained weights as a second reference, and a
-  shuffled-words fine-tune as a control for the data, but other baselines
+  possible, and even the difference of two unrelated trained checkpoints beats
+  it. We add the pretrained weights as a harder reference, and matched
+  fine-tunes without alignment content as the real test, but other baselines
   (for instance updates from other optimizers) could tell more.
   \item \textbf{Seeds.} Only the Qwen runs were repeated; the small task
   differences on SmolLM2 have no seed error bars.

@@ -50,10 +50,15 @@ first: the cosine between the two sets of weights is 0.99 or more for all
 seven base/instruct pairs and the OLMo stages, and 0.20--0.60 for the
 specialists, which were trained on far more data. The check matters. The
 released OLMo 2 1B SFT checkpoint has cosine 0.00 with the main revision of
-the released base model in every matrix: the two do not even share an
-initialisation. Among the base model's published mid-training branches, the
-final checkpoint of the third mid-training run has cosine 0.995 with it, so we
-use that as the base of the SFT stage.
+the released base model, over all 112 matrices: the two do not even share an
+initialisation. The base model's mid-training checkpoints are published as
+branches. The final checkpoint of the third mid-training run has cosine 0.995
+with the SFT model; the first two runs, which the model card describes as
+exploratory, reach 0.991. For the 1B model only the third run was used, with
+no merging, so we take its final checkpoint as the base of the SFT stage. The
+difference between the unrelated pair still looks like a fine-tuning update:
+its stable rank is 0.077 against 0.336 for noise, 4.4 times below, close to
+the 0.080 of the real SFT update.
 
 \paragraph{What we measure.} Every attention and MLP projection
 (\texttt{q}, \texttt{k}, \texttt{v}, \texttt{o}, \texttt{gate}, \texttt{up},

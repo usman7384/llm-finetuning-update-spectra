@@ -65,9 +65,17 @@ $mn/(\sqrt{m}+\sqrt{n})^2$, a quarter of $r$ for square matrices. Our
 random-init pairs match this to within 0.01 for every matrix shape of
 Qwen2.5-0.5B (Table~\ref{tab:mp} in Appendix~\ref{app:sensitivity}), and the
 two baselines agree: on Qwen2.5-0.5B the stable rank is 0.436 for the
-random-init pair and 0.434 for the Gaussian matrices. A Gaussian matrix is the least
-structured baseline possible, so as a second reference we also measure the
-pretrained weights $W$ themselves.
+random-init pair and 0.434 for the Gaussian matrices.
+
+Beating this baseline is necessary but not sufficient. A Gaussian matrix is
+the least structured baseline possible, and any difference between two
+trained matrices beats it: the pretrained weights $W$ themselves have a
+stable rank well below noise, and so does the difference between two
+\emph{unrelated} trained checkpoints (\S\ref{sec:setup}). The noise value
+tells the reader how to read a number; it does not by itself show that an
+update is special. So we use two further references: the pretrained weights
+$W$, and fine-tunes on data with no alignment content, trained the same way
+(\S\ref{sec:controls}).
 
 \paragraph{The rounding floor.} Released checkpoints are usually stored in
 bf16, which rounds every weight to 8 significant bits. The rounding adds a
