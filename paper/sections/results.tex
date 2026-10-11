@@ -8,7 +8,7 @@
 \caption{Rank measures as a fraction of the maximum rank, and the share of
 energy in the top direction, averaged over all attention and MLP matrices.
 ``Noise'' is the random-init pair; ``pretrained $W$'' is the base model's own
-weights.}
+weights. The DPO updates are measured from the SFT model they start from.}
 \label{tab:measures}
 \begin{center}
 \small
@@ -20,6 +20,8 @@ Qwen2.5-0.5B & SFT update            & 0.973 & 0.816 & 0.541 & 0.381 & 0.097 & 4
              & wikitext update       & 0.972 & 0.810 & 0.531 & 0.365 & 0.093 & 4.0\% \\
              & code update           & 0.975 & 0.817 & 0.543 & 0.374 & 0.094 & 3.8\% \\
              & shuffled-words update & 0.941 & 0.745 & 0.440 & 0.202 & 0.042 & 9.0\% \\
+             & DPO update            & 0.966 & 0.810 & 0.536 & 0.295 & 0.053 & 5.8\% \\
+             & swapped-DPO update    & 0.967 & 0.811 & 0.537 & 0.304 & 0.055 & 5.7\% \\
              & noise                 & 0.996 & 0.928 & 0.716 & 0.754 & 0.436 & 0.6\% \\
              & pretrained $W$        & 0.976 & 0.846 & 0.590 & 0.537 & 0.178 & 2.2\% \\
 \midrule
@@ -105,7 +107,7 @@ SFT update and the weights are level (Table~\ref{tab:pertype}). The threshold
 count cannot see the difference either: it puts the Qwen updates and the
 pretrained weights at the same 97--98\%.
 
-\subsection{Instruction tuning leaves no special mark}
+\subsection{Instruction and preference training leave no special mark}
 \label{sec:controls}
 
 \begin{table}[t]
@@ -124,10 +126,12 @@ SFT $-$ wikitext            & $+0.004$ ($-0.001$, $+0.010$) & $+0.005$ ($+0.003$
 SFT $-$ code                & $+0.003$ ($-0.000$, $+0.006$) & $-0.009$ ($-0.011$, $-0.008$) \\
 code $-$ wikitext           & $+0.002$ ($-0.004$, $+0.007$) & $+0.014$ ($+0.012$, $+0.016$) \\
 shuffled words $-$ SFT      & $-0.054$ ($-0.062$, $-0.047$) & $-0.016$ ($-0.018$, $-0.014$) \\
+swapped DPO $-$ DPO         & $+0.002$ ($+0.000$, $+0.004$) & -- \\
 \midrule
 second seed $-$ first, SFT      & $-0.001$ ($-0.005$, $+0.001$) & -- \\
 second seed $-$ first, wikitext & $-0.001$ ($-0.005$, $+0.003$) & -- \\
 second seed $-$ first, code     & $-0.000$ ($-0.001$, $+0.001$) & -- \\
+second seed $-$ first, DPO      & $+0.001$ ($-0.001$, $+0.002$) & -- \\
 \bottomrule
 \end{tabular}
 \end{center}
@@ -148,6 +152,21 @@ both models, though, the SFT update is not an outlier. Similar stable rank
 means a similar spectral shape, not the same update: we do not compare the
 directions themselves.
 
+Preference training gives the same answer. Starting from the Qwen SFT model,
+we ran DPO on 10k UltraFeedback pairs, and a control on the same pairs with
+chosen and rejected swapped in a random half of them, so the prompts,
+responses and amount of training are identical but there is no preference to
+learn (Appendix~\ref{app:training}). On about 190 held-out pairs the DPO model
+prefers the chosen answer 65\% of the time (74\% for a second seed); the
+control is at chance, 51\%. Yet the two updates are alike on every measure
+(Table~\ref{tab:measures}): stable rank 0.053 for DPO and 0.055 for the
+control, against 0.436 for noise, and the same size. The paired difference,
+$+0.002$, is larger than the gap between the two DPO seeds ($+0.001$) but
+under 4\% of the value and about $1/200$ of the distance to noise
+(Table~\ref{tab:paired}). Like the SFT update, the DPO update is more
+concentrated than the pretrained weights and far more than noise, and almost
+none of that comes from having learned the preferences.
+
 The surprise is the shuffled-words control. Text with its word order
 scrambled, which has little to learn beyond word frequencies, gives the most
 concentrated update on both models: stable rank 0.042 on Qwen and 0.009 on
@@ -160,7 +179,7 @@ towards frequent tokens, does not single it out: the top directions of the
 SFT and code updates line up with token frequency in late layers too
 (Appendix~\ref{app:shuffled}). We report it as an observation: the
 concentration of a fine-tuning update depends on the training process and the
-data, not on whether the data teach instruction following.
+data, not on whether the data teach instruction following or preferences.
 
 \subsection{Released models}
 \label{sec:released}

@@ -2,8 +2,10 @@
 \label{app:training}
 
 \begin{table}[h]
-\caption{Settings shared by all our fine-tunes. Each run trains on the same
-number of tokens as the SFT run of the same model, counted after truncation.}
+\caption{Settings shared by all our fine-tunes. Each language-model run trains
+on the same number of tokens as the SFT run of the same model, counted after
+truncation. DPO uses the same precision, memory settings and batch, with the
+changes listed at the bottom.}
 \label{tab:hparams}
 \begin{center}
 \small
@@ -24,6 +26,10 @@ SFT data                    & 10k examples of Alpaca-cleaned, loss on answers on
 wikitext / code data        & wikitext-103 / CodeParrot (Python), plain LM loss \\
 shuffled-words data         & wikitext documents, word order shuffled within each document \\
 training tokens per epoch   & Qwen: 1.71--1.75M; SmolLM2: 1.87--1.91M \\
+\midrule
+DPO (Qwen only)             & from the Qwen SFT run; 10k UltraFeedback pairs, 1 epoch, \\
+                            & learning rate $5\times10^{-6}$, $\beta=0.1$, reference log-probs precomputed \\
+swapped-DPO control         & same pairs, chosen and rejected swapped in a random half \\
 \bottomrule
 \end{tabular}
 \end{center}
@@ -49,6 +55,9 @@ Qwen2.5-0.5B & SFT               & 1{,}840 & 1.00 & 10.4 & 0.097 & 0.126 & 2.8 \
              & code              & 680     & 1.12 & 6.3  & 0.094 & 0.123 & 1.3 \\
              & code, seed 2      & 670     & 1.12 & 6.3  & 0.094 & 0.122 & 1.3 \\
              & shuffled words    & 1{,}920 & 5.40 & 12.3 & 0.042 & 0.072 & 2.9 \\
+             & DPO               & 570     & 0.69 & 1.37 & 0.053 & 0.088 & 6.7 \\
+             & DPO, seed 2       & 570     & 0.70 & 1.37 & 0.054 & 0.089 & 3.6 \\
+             & swapped DPO       & 570     & 0.83 & 1.37 & 0.055 & 0.093 & 8.6 \\
 \midrule
 SmolLM2-360M & SFT               & 1{,}840 & 1.18 & 14.9 & 0.025 & 0.041 & 3.4 \\
              & wikitext          & 2{,}080 & 2.52 & 17.4 & 0.020 & 0.032 & 3.7 \\
@@ -59,7 +68,10 @@ SmolLM2-360M & SFT               & 1{,}840 & 1.18 & 14.9 & 0.025 & 0.041 & 3.4 \
 \end{center}
 \end{table}
 
-Training a run took 1.3--3.7 hours on one GPU (Table~\ref{tab:runs}). The base
+Training a run took 1.3--3.7 hours on one GPU, and 3.6--8.6 hours for DPO
+(Table~\ref{tab:runs}). Held-out reward accuracy, on about 190 validation
+pairs that are never swapped, is 65\% and 74\% for the two DPO seeds and 51\%
+for the swapped control. The base
 tokenizer of SmolLM2-360M has no chat template, so SFT borrows the one from
 SmolLM2-360M-Instruct. Second seeds change both the training seed and the data
 sample. Every run records its exact training rows, token count and the
