@@ -211,8 +211,8 @@ stages, and code/math specialists. Left: the threshold count (axis starts at
 \caption{Released pairs, means over matrices. ``Above floor'' is the share of
 the update's singular values larger than the largest singular value of the
 simulated bf16 rounding error: directions that rounding alone cannot produce
-(\S\ref{sec:background}). It is not computed (--) where one of the two
-checkpoints is not stored in bf16. The last column drops the top direction, to
+(\S\ref{sec:background}). It is not computed (--) for OLMo 2 base to SFT,
+whose base, a mid-training checkpoint, is stored in fp32. The last column drops the top direction, to
 check that one outlier does not drive the result.}
 \label{tab:released}
 \begin{center}
