@@ -1,7 +1,7 @@
 \section{What the rank measures say}
 \label{sec:results}
 
-\subsection{Counting measures put updates close to noise}
+\subsection{Counting measures compress the gap to noise}
 \label{sec:metrics}
 
 \begin{table}[t]
@@ -57,13 +57,17 @@ Figure~\ref{fig:gaps} shows how the measures fit together. Ordered from the
 threshold count to stable rank, each measure puts the updates further below
 noise: about 2\% for the threshold count, 12\% for eRank, 25\% for the 90\%
 energy rank, 50\% for the participation ratio and 78\% for stable rank on
-Qwen, and the same order on SmolLM2. This is not automatic: the values for
-noise fall along the same order, and what grows is the distance between update
-and noise. Every interval excludes zero, so all five measures do detect that
-the updates are not random. The problem is the size of the gap. The two
+Qwen, and the same order on SmolLM2. The values for noise fall along the same
+order, and what grows is the distance between update and noise. Along the
+whole family of R\'enyi ranks the gap grows steadily with the order, then
+levels off (Figure~\ref{fig:renyi} in Appendix~\ref{app:sensitivity}). This is
+expected for any spectrum with a heavier head than noise, so we read it less
+as a finding than as a warning: the answer depends on which order one
+happens to pick. Every interval excludes zero, so all five measures do detect
+that the updates are not random. The problem is the size of the gap. The two
 measures used in the literature, eRank and the energy rank, put the SFT,
-wikitext and code updates 12--18\% and 24--36\% below noise; stable rank puts
-them 78--94\% below. The threshold count is also arbitrary: at
+wikitext, code and DPO updates 12--18\% and 24--35\% below noise; stable rank
+puts them 78--94\% below. The threshold count is also arbitrary: at
 $0.1\,\sigma_1$ instead of $0.01\,\sigma_1$ the Qwen SFT update sits 18\%
 below noise instead of 2\% (Table~\ref{tab:threshold}). A reader who sees
 ``97\% of full rank'' without the noise value next to it will conclude that the

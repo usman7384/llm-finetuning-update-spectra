@@ -1,12 +1,13 @@
 \begin{abstract}
 Studies of what fine-tuning does to a language model often summarise the
 weight update $\dW$ by its rank. We compare the rank measures used for this
-against the same measures on random matrices of the same shape. On our
-fine-tunes of two small models, a threshold count of singular values puts the
-update within 2--5\% of noise, and the entropy effective rank and the 90\%
-energy rank put it 12--36\% below; stable rank puts the same updates 78--94\%
-below noise. The updates have a few strong directions on top of a long tail,
-and the gap to noise grows with how much weight a measure gives to the top.
+against the same measures on random matrices of the same shape. On our SFT,
+Wikipedia, code and DPO fine-tunes of two small models, a threshold count of
+singular values puts the update only 2--5\% below noise, and the entropy
+effective rank and the 90\% energy rank put it 12--35\% below; stable rank
+puts the same updates 78--94\% below noise. The updates have a few strong
+directions on top of a long tail, and the gap to noise grows, then levels
+off, with how much weight a measure gives to the top.
 The pattern holds for thirteen released base/instruct, post-training-stage
 and base/specialist pairs up to 8B parameters. It is not a mark of alignment
 training: with the amount of training held fixed, instruction data,
