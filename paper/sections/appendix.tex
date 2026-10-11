@@ -135,28 +135,36 @@ matrix & shape & predicted & random-init pair \\
 \label{app:pertype}
 
 \begin{table}[h]
-\caption{Stable rank (fraction of maximum rank) by matrix type, Qwen2.5-0.5B.}
+\caption{Stable rank (fraction of maximum rank) by matrix type.}
 \label{tab:pertype}
 \begin{center}
 \small
-\begin{tabular}{lccccccc}
+\begin{tabular}{llccccccc}
 \toprule
- & \texttt{q} & \texttt{k} & \texttt{v} & \texttt{o} & \texttt{gate} & \texttt{up} & \texttt{down} \\
+model & matrix & \texttt{q} & \texttt{k} & \texttt{v} & \texttt{o} & \texttt{gate} & \texttt{up} & \texttt{down} \\
 \midrule
-SFT update            & 0.032 & 0.064 & 0.251 & 0.057 & 0.064 & 0.072 & 0.139 \\
-wikitext update       & 0.031 & 0.072 & 0.227 & 0.057 & 0.065 & 0.085 & 0.112 \\
-code update           & 0.031 & 0.070 & 0.243 & 0.058 & 0.057 & 0.073 & 0.127 \\
-shuffled-words update & 0.011 & 0.043 & 0.124 & 0.021 & 0.023 & 0.026 & 0.048 \\
-noise                 & 0.252 & 0.536 & 0.535 & 0.251 & 0.492 & 0.492 & 0.493 \\
-pretrained $W$        & 0.058 & 0.212 & 0.453 & 0.078 & 0.071 & 0.242 & 0.135 \\
+Qwen2.5-0.5B & SFT update            & 0.032 & 0.064 & 0.251 & 0.057 & 0.064 & 0.072 & 0.139 \\
+             & wikitext update       & 0.031 & 0.072 & 0.227 & 0.057 & 0.065 & 0.085 & 0.112 \\
+             & code update           & 0.031 & 0.070 & 0.243 & 0.058 & 0.057 & 0.073 & 0.127 \\
+             & shuffled-words update & 0.011 & 0.043 & 0.124 & 0.021 & 0.023 & 0.026 & 0.048 \\
+             & noise                 & 0.252 & 0.536 & 0.535 & 0.251 & 0.492 & 0.492 & 0.493 \\
+             & pretrained $W$        & 0.058 & 0.212 & 0.453 & 0.078 & 0.071 & 0.242 & 0.135 \\
+\midrule
+SmolLM2-360M & SFT update            & 0.017 & 0.045 & 0.032 & 0.010 & 0.021 & 0.020 & 0.028 \\
+             & wikitext update       & 0.015 & 0.037 & 0.029 & 0.010 & 0.018 & 0.016 & 0.018 \\
+             & code update           & 0.023 & 0.047 & 0.051 & 0.022 & 0.023 & 0.026 & 0.049 \\
+             & shuffled-words update & 0.005 & 0.014 & 0.013 & 0.005 & 0.008 & 0.007 & 0.013 \\
+             & noise                 & 0.251 & 0.407 & 0.407 & 0.251 & 0.387 & 0.386 & 0.387 \\
+             & pretrained $W$        & 0.056 & 0.128 & 0.312 & 0.086 & 0.087 & 0.207 & 0.106 \\
 \bottomrule
 \end{tabular}
 \end{center}
 \end{table}
 
-Every matrix type of every update is far below noise. The SFT, wikitext and
-code updates agree closely in every column; the shuffled-words update is the
-most concentrated in every column.
+Every matrix type of every update is far below noise in both models. Within a
+model the SFT, wikitext and code updates are close in every column, and the
+shuffled-words update is the most concentrated in every column. On SmolLM2
+every type of every update is also below the pretrained weights.
 
 \section{The shuffled-words update}
 \label{app:shuffled}
