@@ -48,13 +48,14 @@ Our findings:
   \item \textbf{Updates have a few strong directions and a long tail}, and on
   average are more concentrated than the pretrained weights they are added to
   (\S\ref{sec:headtail}).
-  \item \textbf{Instruction tuning leaves no special mark.} With the number of
+  \item \textbf{Alignment training leaves no special mark.} With the number of
   training tokens held fixed, instruction SFT, Wikipedia and Python code give
-  updates of similar spectral shape, with SFT not an outlier, and text with its
-  word order scrambled gives the most concentrated update of all
-  (\S\ref{sec:controls}).
-  \item \textbf{It holds for released models}, twelve base/instruct,
-  preference-stage and base/specialist pairs up to 8B parameters. On several
+  updates of similar spectral shape, with SFT not an outlier. DPO gives the
+  same shape whether it learns real preferences or randomly swapped ones that
+  teach nothing. Text with its word order scrambled gives the most
+  concentrated update of all (\S\ref{sec:controls}).
+  \item \textbf{It holds for released models}, thirteen base/instruct,
+  post-training-stage and base/specialist pairs up to 8B parameters. On several
   bf16 checkpoints, much of what the threshold count counts could come from
   rounding alone (\S\ref{sec:released}).
   \item \textbf{It changes how earlier evidence reads.} An unchanged effective
