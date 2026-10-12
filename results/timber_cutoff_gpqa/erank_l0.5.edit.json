@@ -1,0 +1,11 @@
+{
+  "matrices": 196,
+  "kept_dirs_frac": 0.8342733577806123,
+  "kept_energy_frac": 0.9889952546479751,
+  "uniform_alpha_mean": null,
+  "rounding_error_vs_edit": 0.25446445012627267,
+  "variant": "erank_l0.5",
+  "cutoff": "erank",
+  "lam": 0.5,
+  "uniform": false
+}
