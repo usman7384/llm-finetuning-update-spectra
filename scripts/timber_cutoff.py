@@ -32,6 +32,7 @@ gated on the Hub: accept its terms and log in first.
 from __future__ import annotations
 
 import argparse
+import gc
 import json
 import math
 import random
@@ -181,6 +182,10 @@ def run_variant(name: str, problems, args, device: str) -> None:
         (args.out_dir / f"{name}.edit.json").write_text(json.dumps(stats, indent=2))
         print(f"{name}: kept {stats['kept_dirs_frac']:.1%} of directions, "
               f"{stats['kept_energy_frac']:.1%} of dW energy")  # fmt: skip
+        # the edit's SVDs leave memory reserved on the GPU; on a 6GB card under
+        # Windows that pushes generation into slow shared memory, then OOM
+        gc.collect()
+        torch.cuda.empty_cache()
 
     per_batch = max(1, args.batch_seqs // args.n)
     t0 = time.time()

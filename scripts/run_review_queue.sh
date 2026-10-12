@@ -70,9 +70,9 @@ dpo dpo_seed43
 if "$UV" run python -c "from huggingface_hub import hf_hub_download as d; d('Idavidrein/gpqa','gpqa_diamond.csv',repo_type='dataset')" > /dev/null 2>&1; then
   # long answers make this slow (~9 h per variant at 8 samples), so the edits
   # get 4 samples per question; the unedited model keeps the 8 it started with
-  step scripts/timber_cutoff.py --task gpqa --limit 198 --max-new-tokens 2048 --batch-seqs 16 \
+  step scripts/timber_cutoff.py --task gpqa --limit 198 --max-new-tokens 2048 --batch-seqs 8 \
     --n 8 --variants instruct
-  step scripts/timber_cutoff.py --task gpqa --limit 198 --max-new-tokens 2048 --batch-seqs 16 \
+  step scripts/timber_cutoff.py --task gpqa --limit 198 --max-new-tokens 2048 --batch-seqs 8 \
     --n 4 --variants erank_l0.2 erank_l0.5 erank_l0.8 stable_l0.2 uniform_stable_l0.2
 else
   echo "=== $(date '+%F %T') SKIPPED GPQA: dataset not accessible (gated)"
