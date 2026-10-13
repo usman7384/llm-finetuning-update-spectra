@@ -55,6 +55,7 @@ Qwen2.5-0.5B & SFT               & 1{,}840 & 1.00 & 10.4 & 0.097 & 0.126 & 2.8 \
              & code              & 680     & 1.12 & 6.3  & 0.094 & 0.123 & 1.3 \\
              & code, seed 2      & 670     & 1.12 & 6.3  & 0.094 & 0.122 & 1.3 \\
              & shuffled words    & 1{,}920 & 5.40 & 12.3 & 0.042 & 0.072 & 2.9 \\
+             & code, steps matched & 1{,}820 & 1.13 & 10.1 & 0.114 & 0.141 & 3.5 \\
              & DPO               & 570     & 0.69 & 1.37 & 0.053 & 0.088 & 6.7 \\
              & DPO, seed 2       & 570     & 0.70 & 1.37 & 0.054 & 0.089 & 3.6 \\
              & swapped DPO       & 570     & 0.83 & 1.37 & 0.055 & 0.093 & 8.6 \\
@@ -63,6 +64,10 @@ SmolLM2-360M & SFT               & 1{,}840 & 1.18 & 14.9 & 0.025 & 0.041 & 3.4 \
              & wikitext          & 2{,}080 & 2.52 & 17.4 & 0.020 & 0.032 & 3.7 \\
              & code              & 720     & 1.28 & 8.8  & 0.034 & 0.051 & 1.4 \\
              & shuffled words    & 2{,}090 & 5.51 & 20.8 & 0.009 & 0.021 & 3.7 \\
+             & SFT, seed 2       & 1{,}840 & 1.17 & 14.8 & 0.025 & 0.041 & 3.2 \\
+             & wikitext, seed 2  & 2{,}060 & 2.52 & 17.2 & 0.020 & 0.032 & 3.6 \\
+             & code, seed 2      & 720     & 1.28 & 8.8  & 0.034 & 0.051 & 1.3 \\
+             & code, steps matched & 1{,}800 & 1.26 & 14.6 & 0.042 & 0.060 & 3.2 \\
 \bottomrule
 \end{tabular}
 \end{center}
@@ -273,6 +278,52 @@ bound it is: it compares rounding with $0.01\,\sigma_1$, not with the
 directions the update actually has. For the specialists, whose updates are as
 large as the weights themselves, almost no entry is zero.
 
+\section{Direction overlap between updates}
+\label{app:overlap}
+
+For each matrix we take the top-16 left singular vectors of each of two
+updates, $U_A$ and $U_B$, and compute $\|U_A^\top U_B\|_F^2 / 16$, which is 1
+when the two subspaces coincide and $16/m$ for two random 16-dimensional
+subspaces of $\R^m$. We report the mean over matrices with a layer-bootstrap
+interval (Table~\ref{tab:overlap}). Right singular vectors give the same
+picture.
+
+\begin{table}[h]
+\caption{Overlap of the top-16 left singular subspaces of two updates, mean
+over matrices, with 95\% layer-bootstrap intervals.}
+\label{tab:overlap}
+\begin{center}
+\small
+\begin{tabular}{lcc}
+\toprule
+pair & Qwen2.5-0.5B & SmolLM2-360M \\
+\midrule
+SFT vs SFT, seed 2                & 0.32 (0.30, 0.33) & 0.51 (0.50, 0.52) \\
+wikitext vs wikitext, seed 2      & 0.30 (0.29, 0.31) & 0.49 (0.47, 0.52) \\
+code vs code, seed 2              & 0.26 (0.25, 0.27) & 0.34 (0.33, 0.36) \\
+code vs code, steps matched       & 0.37 (0.36, 0.39) & 0.54 (0.53, 0.55) \\
+\midrule
+SFT vs wikitext                   & 0.22 (0.21, 0.23) & 0.13 (0.13, 0.14) \\
+SFT vs code                       & 0.20 (0.19, 0.21) & 0.12 (0.12, 0.12) \\
+wikitext vs code                  & 0.20 (0.19, 0.21) & 0.12 (0.12, 0.14) \\
+SFT vs shuffled words             & 0.17 (0.16, 0.18) & 0.10 (0.10, 0.11) \\
+wikitext vs shuffled words        & 0.21 (0.20, 0.23) & 0.18 (0.16, 0.20) \\
+\midrule
+DPO vs DPO, seed 2                & 0.28 (0.27, 0.29) & -- \\
+DPO vs swapped DPO                & 0.28 (0.27, 0.29) & -- \\
+\midrule
+SFT vs random subspaces           & 0.04              & 0.02 \\
+\bottomrule
+\end{tabular}
+\end{center}
+\end{table}
+
+Two things stand out. The data moves the directions more than it moves the
+shape: on SmolLM2 the overlap between runs on different data (0.12--0.13) is a
+quarter of the overlap between seeds of the same run (0.34--0.51), while their
+stable ranks differ by at most 0.014. And wikitext and shuffled words, which
+share their words, overlap more than wikitext and code do.
+
 \section{Random-update details}
 \label{app:damage}
 
@@ -303,7 +354,16 @@ fair test of the real update is the instruct model in its own format
 \section{Edit experiment details}
 \label{app:cutoff}
 
-The prompt is the GSM8K question followed by ``Please reason step by step, and
+On GPQA-Diamond the prompt gives the question and its four options, shuffled
+once per question with a fixed seed, and asks for ``Answer: \$LETTER'' as the
+last line; the answer is the last such line (or the last \verb|\boxed{}|
+letter), and the share of samples with one is 91--97\% for every variant. We
+use Wu et al.'s sampling settings for this mode (temperature 0.7, top-$p$ 0.8,
+top-$k$ 20), with up to 2{,}048 new tokens, eight samples per question for the
+unedited model and four for each edit; pass@4 is the unbiased estimate from
+those samples.
+
+On GSM8K the prompt is the question followed by ``Please reason step by step, and
 put your final answer within \verb|\boxed{}|.'', in Qwen3's chat template with
 thinking turned off, sampled at temperature 0.7, top-$p$ 0.8 and top-$k$ 20 for
 up to 512 new tokens. The answer is the last \verb|\boxed{}| expression, or the
