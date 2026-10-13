@@ -315,8 +315,12 @@ def main() -> int:
     parser.add_argument("--edit-only", action="store_true",
                         help="only recompute the .edit.json statistics, on the CPU")  # fmt: skip
     parser.add_argument("--task", choices=["gsm8k", "gpqa"], default="gsm8k")
+    parser.add_argument("--tag", default="",
+                        help="suffix for the output directory, e.g. 'long' for a rerun with a longer token limit")  # fmt: skip
     args = parser.parse_args()
     args.out_dir = OUT_DIR if args.task == "gsm8k" else Path(f"results/timber_cutoff_{args.task}")
+    if args.tag:
+        args.out_dir = Path(f"{args.out_dir}_{args.tag}")
     for v in args.variants:
         parse_variant(v)
     if args.edit_only:
