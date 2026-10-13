@@ -1,7 +1,7 @@
 \section{Training details}
 \label{app:training}
 
-\begin{table}[h]
+\begin{table}[H]
 \caption{Settings shared by all our fine-tunes. Each language-model run trains
 on the same number of tokens as the SFT run of the same model, counted after
 truncation. DPO uses the same precision, memory settings and batch, with the
@@ -35,7 +35,7 @@ swapped-DPO control         & same pairs, chosen and rejected swapped in a rando
 \end{center}
 \end{table}
 
-\begin{table}[h]
+\begin{table}[H]
 \caption{Every fine-tune. Steps are optimizer steps (rounded to 10); loss is
 the mean training loss; $\|\dW\|_F$ is over all attention and MLP matrices.
 The second SFT seed was interrupted and resumed from step 1{,}600 with its
@@ -87,7 +87,7 @@ driven by a single outlying direction.
 \section{Threshold sensitivity and the noise baseline}
 \label{app:sensitivity}
 
-\begin{table}[h]
+\begin{table}[H]
 \caption{The threshold count at three cut-offs. At $0.01\,\sigma_1$ every
 update looks almost like noise; at $0.1\,\sigma_1$ the gap is large. The verdict
 depends on an arbitrary choice.}
@@ -116,7 +116,7 @@ SmolLM2-360M & SFT update            & 0.951 & 0.757 & 0.458 \\
 \end{center}
 \end{table}
 
-\begin{table}[h]
+\begin{table}[H]
 \caption{Stable rank of the random-init pair against the prediction
 $mn/(\sqrt{m}+\sqrt{n})^2/r$ for a Gaussian matrix of the same shape,
 Qwen2.5-0.5B, mean over layers.}
@@ -136,7 +136,7 @@ matrix & shape & predicted & random-init pair \\
 \end{center}
 \end{table}
 
-\begin{figure}[h]
+\begin{figure}[H]
 \begin{center}
 \includegraphics[width=\linewidth]{figures/renyi_grid.pdf}
 \end{center}
@@ -150,7 +150,7 @@ the order and levels off from about $\alpha = 8$.}
 \section{Stable rank by matrix type}
 \label{app:pertype}
 
-\begin{table}[h]
+\begin{table}[H]
 \caption{Stable rank (fraction of maximum rank) by matrix type.}
 \label{tab:pertype}
 \begin{center}
@@ -185,7 +185,7 @@ every type of every update is also below the pretrained weights.
 \section{The shuffled-words update}
 \label{app:shuffled}
 
-\begin{table}[h]
+\begin{table}[H]
 \caption{Stable rank by quarter of the network.}
 \label{tab:shuffled}
 \begin{center}
@@ -227,7 +227,7 @@ does not explain why the shuffled-words update is the most concentrated.
 \section{Released pairs: more measures}
 \label{app:released}
 
-\begin{table}[h]
+\begin{table}[H]
 \caption{More on the released pairs. Participation ratio against a Gaussian
 matrix of the same shape; ``above edge'', the number of singular values above
 the largest one such a Gaussian matrix would have (mean per matrix); the
@@ -288,7 +288,7 @@ subspaces of $\R^m$. We report the mean over matrices with a layer-bootstrap
 interval (Table~\ref{tab:overlap}). Right singular vectors give the same
 ordering, with smaller overlaps between runs on different data.
 
-\begin{table}[h]
+\begin{table}[H]
 \caption{Overlap of the top-16 left singular subspaces of two updates, mean
 over matrices, with 95\% layer-bootstrap intervals.}
 \label{tab:overlap}
@@ -357,11 +357,14 @@ fair test of the real update is the instruct model in its own format
 On GPQA-Diamond the prompt gives the question and its four options, shuffled
 once per question with a fixed seed, and asks for ``Answer: \$LETTER'' as the
 last line; the answer is the last such line (or the last \verb|\boxed{}|
-letter), and the share of samples with one is 91--97\% for every variant. We
-use Wu et al.'s sampling settings for this mode (temperature 0.7, top-$p$ 0.8,
-top-$k$ 20), with up to 2{,}048 new tokens, eight samples per question for the
-unedited model and four for each edit; pass@4 is the unbiased estimate from
-those samples.
+letter). We use Wu et al.'s sampling settings for this mode (temperature 0.7,
+top-$p$ 0.8, top-$k$ 20), with up to 2{,}048 new tokens where they allow
+8{,}192, eight samples per question for the unedited model and four for each
+edit where they run three full repeats; pass@4 is the unbiased estimate from
+those samples. The share of samples that reach the limit without a final
+answer is 3.5\% unedited, 3.8\%, 4.2\% and 3.4\% for Timber's edit at
+$\lambda = 0.2$, $0.5$ and $0.8$, and 8.8\% and 8.7\% for the stable-rank
+cutoff and uniform scaling, which make the model answer at length.
 
 On GSM8K the prompt is the question followed by ``Please reason step by step, and
 put your final answer within \verb|\boxed{}|.'', in Qwen3's chat template with
@@ -379,7 +382,7 @@ computed per matrix; its mean is 0.75 for the stable-rank match. pass@$k$ uses
 the unbiased estimator of
 \citet{chen2021codex} with $n=8$.
 
-\begin{table}[h]
+\begin{table}[H]
 \caption{All edit variants on the first 300 GSM8K test problems. Differences
 from the unedited model in points, with 95\% paired bootstrap intervals,
 not corrected for the fourteen comparisons. ``Answered'' is the share of

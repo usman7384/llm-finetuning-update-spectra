@@ -184,9 +184,16 @@ mean accuracy of 28.79\% against 23.74\% unedited, $+5.1$ points. Our
 unedited model scores 25.9\%, close to theirs, so the setups are comparable.
 Timber's edit, at each of the three $\lambda$ values they searched, moves
 accuracy by under a point, and every interval includes zero
-(Table~\ref{tab:gpqa}). With 198 questions the intervals are about $\pm3$
-points, so a gain of one or two points cannot be ruled out, but the reported
-$+5.1$ does not reproduce. The larger edits behave differently here than on
+(Table~\ref{tab:gpqa}). Our setup differs from theirs in two ways that could
+matter. We allow 2{,}048 new tokens against their 8{,}192, and we draw four
+samples per question against their three full repeats. Truncation does not
+explain the missing gain: the share of samples that end without a final
+answer is 3.5\% for the unedited model and 3.4--4.2\% for Timber's three
+edits (8.7--8.8\% for the two larger edits), so at most a few percent of
+answers are cut short, and no more for Timber's edits than for no edit
+(Appendix~\ref{app:cutoff}). With 198 questions the intervals are about
+$\pm3$ points, so a gain of one or two points cannot be ruled out, but the
+reported $+5.1$ does not reproduce. The larger edits behave differently here than on
 GSM8K: shrinking most of the update, whether by the stable-rank cutoff or
 evenly, costs 3--5 points of mean accuracy (intervals just reaching zero) and
 makes the model answer at length, while the uniform version's pass@4 rises.
