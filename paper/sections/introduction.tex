@@ -33,9 +33,13 @@ holds 6.6 times as much of the energy (4.2\% against 0.6\%). The two answers
 differ because the
 measures weigh different parts of the spectrum, and because measures of $W$
 cannot see much of $\dW$ at all. Comparing against noise is an old idea in
-statistics \citep{horn1965parallel, gavish2014optimal} and has been used to
-study trained weights \citep{martin2021implicit, thamm2022random}; this paper
-applies it to the update itself, measure by measure.
+statistics \citep{horn1965parallel, gavish2014optimal}, has been used to
+study trained weights \citep{martin2021implicit, thamm2022random}, and has
+been applied to fine-tuning updates before: \citet{ryu2023efficient} plot the
+spectrum of an update against a Marchenko--Pastur reference, and
+\citet{biderman2024lora} against Gaussian noise. What has not been done is to
+apply it measure by measure, which is where the disagreement is, with matched
+controls for what the update was trained on. That is what this paper does.
 
 Our findings:
 
@@ -44,15 +48,17 @@ Our findings:
   Wikipedia, code and DPO fine-tunes, the threshold count is only 2--5\%
   below a random matrix of the same shape, and eRank and the 90\% energy rank
   are 12--35\% below it; stable rank is 78--94\% below. Along the whole family
-  of R\'enyi ranks, the gap grows with how much weight a measure gives to the
-  top directions, then levels off (\S\ref{sec:metrics}).
+  of R\'enyi ranks the gap grows with how much weight a measure gives to the
+  top directions, then levels off, as it must for any spectrum with a heavier
+  head than noise; the point is how large the disagreement is
+  (\S\ref{sec:metrics}).
   \item \textbf{Updates have a few strong directions and a long tail}, and on
   average are more concentrated than the pretrained weights they are added to
   (\S\ref{sec:headtail}).
   \item \textbf{The shape does not single out alignment training.} With the
   amount of training held fixed, the data does shape an update (code is the
   least concentrated, the more so with more training), but instruction SFT
-  sits inside the range of Wikipedia and Python code. DPO gives the same shape,
+  does not stand out from Wikipedia or Python code. DPO gives the same shape,
   and the same directions, whether it learns real preferences or randomly
   swapped ones that teach nothing. Text with its word order scrambled gives
   the most concentrated update of all (\S\ref{sec:controls}).
@@ -64,8 +70,9 @@ Our findings:
   rank of $W$ after post-training, read by \citet{wu2025timber} as a sign that
   post-training is superficial, is what a random update of the same size also
   produces, even one that cuts the model's GSM8K accuracy from 60\% to 5\%.
-  The edit they build on that effective rank has no measurable effect on
-  GSM8K or on their own benchmark, GPQA-Diamond (\S\ref{sec:timber}).
+  The edit they build on the effective rank of the update has no measurable
+  effect on GSM8K, nor, within about three points, on their own benchmark,
+  GPQA-Diamond (\S\ref{sec:timber}).
 \end{enumerate}
 
 The practical message is short: report rank measures of weight updates next to
