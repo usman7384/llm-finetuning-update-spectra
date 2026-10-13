@@ -204,17 +204,27 @@ def run_variant(name: str, problems, args, device: str) -> None:
             enc = tok(texts, return_tensors="pt", padding=True).to(device)
             # same seed per problem for every variant, so differences come from the weights
             torch.manual_seed(args.seed + idxs[0])
-            gen = model.generate(
-                **enc,
-                do_sample=True,
-                temperature=0.7,
-                top_p=0.8,
-                top_k=20,
-                max_new_tokens=args.max_new_tokens,
-                num_return_sequences=args.n,
-                pad_token_id=tok.pad_token_id,
-            )
-            outs = tok.batch_decode(gen[:, enc["input_ids"].shape[1] :], skip_special_tokens=True)
+            settings = dict(do_sample=True, temperature=0.7, top_p=0.8, top_k=20,
+                            max_new_tokens=args.max_new_tokens, pad_token_id=tok.pad_token_id)  # fmt: skip
+            if args.samples_per_call >= args.n:
+                gen = model.generate(**enc, num_return_sequences=args.n, **settings)
+                outs = tok.batch_decode(gen[:, enc["input_ids"].shape[1]:], skip_special_tokens=True)
+            else:
+                # long answers: a question's samples in several smaller calls, so
+                # the growing KV cache of one rambling sample cannot overflow a
+                # small GPU. The draws differ from the single-call case, so a run
+                # must use one setting throughout.
+                outs = []
+                for k in range(0, args.n, args.samples_per_call):
+                    m = min(args.samples_per_call, args.n - k)
+                    gen = model.generate(**enc, num_return_sequences=m, **settings)
+                    outs.append(tok.batch_decode(gen[:, enc["input_ids"].shape[1]:],
+                                                 skip_special_tokens=True))  # fmt: skip
+                    del gen
+                    torch.cuda.empty_cache()
+                # regroup from [call][question*m] to [question*n]
+                outs = [s for j in range(len(idxs)) for part in outs
+                        for s in part[j * len(part) // len(idxs):(j + 1) * len(part) // len(idxs)]]  # fmt: skip
             for j, i in enumerate(idxs):
                 gold = problems[i]["gold"]
                 samples = outs[j * args.n : (j + 1) * args.n]
@@ -315,9 +325,13 @@ def main() -> int:
     parser.add_argument("--edit-only", action="store_true",
                         help="only recompute the .edit.json statistics, on the CPU")  # fmt: skip
     parser.add_argument("--task", choices=["gsm8k", "gpqa"], default="gsm8k")
+    parser.add_argument("--samples-per-call", type=int, default=0,
+                        help="generate a question's samples in calls of this size (default: all at once)")  # fmt: skip
     parser.add_argument("--tag", default="",
                         help="suffix for the output directory, e.g. 'long' for a rerun with a longer token limit")  # fmt: skip
     args = parser.parse_args()
+    if args.samples_per_call <= 0:
+        args.samples_per_call = args.n
     args.out_dir = OUT_DIR if args.task == "gsm8k" else Path(f"results/timber_cutoff_{args.task}")
     if args.tag:
         args.out_dir = Path(f"{args.out_dir}_{args.tag}")
