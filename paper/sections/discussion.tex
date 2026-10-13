@@ -39,8 +39,9 @@ does, and costs nothing.
   it. We add the pretrained weights as a harder reference, and matched
   fine-tunes without alignment content as the real test, but other baselines
   (for instance updates from other optimizers) could tell more.
-  \item \textbf{Seeds.} Each run was repeated once; two seeds bound the
-  run-to-run variation only roughly.
+  \item \textbf{Seeds.} The SFT, wikitext, code and DPO runs were repeated
+  once; the shuffled-words and step-matched runs were not. Two seeds bound
+  the run-to-run variation only roughly.
   \item \textbf{Released models are black boxes,} apart from OLMo 2. Their
   data and recipes differ in many ways at once, so they test the measurement,
   not any claim about alignment.
