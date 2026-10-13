@@ -48,11 +48,15 @@ far each measure puts an update below noise.
 
 \paragraph{The gap to noise.} For each measure we report
 $1 - \bar{x}_{\text{update}}/\bar{x}_{\text{noise}}$, where $\bar{x}$ is the
-mean of the measure over all matrices of a model: 0 means the update looks
-like noise, values near 1 mean it is far more concentrated. Intervals come
-from a bootstrap over layers (\S\ref{sec:setup}). The measures have different
-ceilings (the threshold count of noise is already 0.996), so the gap is best
-compared across updates for one measure, and only roughly across measures.
+mean of the measure over all matrices of a model, whatever their shape (the
+noise value itself depends on the shape, from 0.25 to 0.53 for stable rank,
+Table~\ref{tab:mp}; Table~\ref{tab:pertype} gives the values by matrix type):
+0 means the update looks like noise, values near 1 mean it is far more
+concentrated. Intervals come from a bootstrap over layers (\S\ref{sec:setup}),
+and ratios quoted in the text, such as ``4.5 times below noise'', use the
+unrounded means. The measures have different ceilings (the threshold count of
+noise is already 0.996), so the gap is best compared across updates for one
+measure, and only roughly across measures.
 
 \paragraph{The noise baseline.} A value of any of these measures only means
 something next to its value for a matrix with no structure. For our own runs

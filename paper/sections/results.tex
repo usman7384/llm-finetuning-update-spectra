@@ -43,7 +43,8 @@ SmolLM2-360M & SFT update            & 0.951 & 0.755 & 0.439 & 0.145 & 0.025 & 8
 \caption{How far below noise each measure puts each update,
 $1-\text{update}/\text{noise}$, with 95\% layer-bootstrap intervals. Measures
 are ordered by how much weight they give to the top directions. The gap grows
-from a few percent for the threshold count to 78--97\% for stable rank.}
+from a few percent for the threshold count to 78--94\% for stable rank, and
+to 90--97\% for the shuffled-words updates.}
 \label{fig:gaps}
 \end{figure}
 
@@ -162,7 +163,7 @@ code for as many steps as SFT, which is 2.5--2.7 times more code tokens, moves t
 code update further from SFT, not closer, on both models (stable rank 0.114
 on Qwen, 0.042 on SmolLM2). So what the data teaches, and how much of it, does
 shape the update. What it does not do is single out instruction tuning: in
-both models SFT sits inside the range of the ordinary language-model runs.
+both models SFT does not stand out from the ordinary language-model runs.
 
 Similar stable rank means a similar spectral shape, not the same update, so we
 also compared the directions. For each pair of runs we measured the overlap of

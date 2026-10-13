@@ -18,8 +18,9 @@ truncation, for three epochs):
   scrambled inside each document, so the words and their frequencies are
   unchanged but there is no structure left to learn.
 \end{itemize}
-On Qwen, SFT, wikitext and code were each run twice, with a different seed
-and a different data sample; on SmolLM2, SFT, wikitext and code were as well.
+SFT, wikitext and code were each run twice on both models, and DPO
+(\S\ref{sec:controls}) twice on Qwen, with a different seed and a different
+data sample each time.
 Matching tokens does not match optimizer steps: Python files are long, so the
 code runs take about 700 steps against about 1,850 for SFT and 1,900--2,100
 for wikitext and shuffled words. A further code run on each model matches the
@@ -62,7 +63,9 @@ describes as exploratory, reach 0.991. For the 1B model only the third run was u
 no merging, so we take its final checkpoint as the base of the SFT stage. The
 difference between the unrelated pair still looks like a fine-tuning update:
 its stable rank is 0.077 against 0.336 for noise, 4.4 times below, close to
-the 0.080 of the real SFT update.
+the 0.080 of the real SFT update. The model card does not explain the
+difference, and we have not confirmed its cause with the maintainers; we
+report what the public checkpoints contain.
 
 \paragraph{What we measure.} Every attention and MLP projection
 (\texttt{q}, \texttt{k}, \texttt{v}, \texttt{o}, \texttt{gate}, \texttt{up},

@@ -31,7 +31,7 @@ does, and costs nothing.
   parameters with about two million tokens per epoch. The measurement results
   hold on released models up to 8B, but we do not study training at that scale.
   \item \textbf{Tokens or steps.} Matching the training tokens leaves the
-  code runs with 2.6--2.9 times fewer optimizer steps; matching the steps
+  code runs with 2.6--2.7 times fewer optimizer steps than SFT; matching the steps
   gives them 2.5--2.7 times more tokens. No single control matches both, and the
   two give different code updates.
   \item \textbf{Which null.} A Gaussian matrix is the least structured baseline
@@ -70,13 +70,14 @@ that weigh the top directions show the same updates to be far more
 concentrated than noise, and more concentrated than the pretrained weights.
 Both are right: the updates have a few strong directions and a long tail that
 holds most of the energy. With the amount of training held fixed, the data
-shapes an update somewhat, but instruction tuning sits inside the range of
-Wikipedia and code, DPO gives the same shape and directions with real or
-randomly swapped preferences, and scrambled text gives the most concentrated
+shapes an update somewhat, but instruction tuning does not stand out from
+Wikipedia or code, DPO gives the same shape and directions with real or
+half-swapped preferences, and scrambled text gives the most concentrated
 update, so the shape is a property of fine-tuning rather than a mark of
 alignment. An unchanged effective rank of the weights after post-training is
 what a random update of the same size also produces, and an edit built on
-that effective rank does nothing measurable on two benchmarks. Our
+the effective rank of the update does nothing measurable on two benchmarks.
+Our
 recommendation is simple: report any rank measure of a weight update next to
 its value on a random matrix of the same shape, check that low-precision
 training or storage did not erase the update, check that the two checkpoints
@@ -90,6 +91,9 @@ practical consequence is caution about reading weight-space statistics as
 evidence that alignment is shallow or deep, since such claims can affect how
 much trust is placed in alignment training.
 
-% Reproducibility: code, configs, exact training rows, run manifests, result
-% CSVs and the saved singular-value spectra will be released with the
-% camera-ready version (kept out of the anonymous submission).
+\subsubsection*{Reproducibility}
+Every run records its configuration, its exact training rows, its seed, its
+token count and the fraction of weights left unchanged. We will release the
+code, the configurations and run manifests, the saved singular-value spectra
+of every update, the random-update seeds, the edit scripts and the evaluation
+prompts; they are kept out of the anonymous submission.
