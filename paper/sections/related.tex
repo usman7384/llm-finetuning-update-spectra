@@ -9,7 +9,9 @@ singular values from Gaussian noise. Random matrix theory has also been used to
 study trained weight matrices: their spectra depart from those of random
 matrices in heavy-tailed ways that track training quality
 \citep{martin2021implicit}, while much of the bulk still follows random-matrix
-statistics \citep{thamm2022random}. For fine-tuning, \citet{biderman2024lora}
+statistics \citep{thamm2022random}, which \citet{staats2023boundary} use to
+separate the noise part of a weight matrix from its information. For
+fine-tuning, \citet{biderman2024lora}
 compared the spectrum of a fully fine-tuned weight matrix with that of the
 pretrained matrix plus Gaussian noise and found them alike. We compare the
 update itself with noise, measure by measure, and find that the answer depends
@@ -41,7 +43,9 @@ the top of the spectrum. \citet{shuttleworth2025lora} compare singular vectors
 of fine-tuned and pretrained $W$ and find that LoRA introduces new dominant
 directions that full fine-tuning does not. Delta-CoMe \citep{ping2024deltacome}
 observes that update spectra are long-tailed and compresses them by giving more
-bits to the top singular vectors, finding that plain low-rank truncation hurts.
+bits to the top singular vectors, finding that plain low-rank truncation hurts;
+BitDelta \citep{liu2024bitdelta} goes further and keeps only the sign of each
+entry of the update plus one scale per matrix, with little loss.
 \citet{paul2026spectral} use stable rank among other features of LoRA updates
 to tell training objectives apart.
 

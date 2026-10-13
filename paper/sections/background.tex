@@ -61,7 +61,10 @@ of the same model; for released models, one Gaussian draw for each matrix,
 with the same shape. The spectrum of such a matrix follows the
 Marchenko--Pastur law, whose upper edge (the Bai--Yin limit,
 \citealp{bai2010spectral}) gives a stable rank close to
-$mn/(\sqrt{m}+\sqrt{n})^2$, a quarter of $r$ for square matrices. Our
+\[
+  \frac{mn}{(\sqrt{m}+\sqrt{n})^2},
+\]
+a quarter of $r$ for square matrices. Our
 random-init pairs match this to within 0.01 for every matrix shape of
 Qwen2.5-0.5B (Table~\ref{tab:mp} in Appendix~\ref{app:sensitivity}), and the
 two baselines agree: on Qwen2.5-0.5B the stable rank is 0.436 for the
@@ -87,7 +90,8 @@ the update's singular values above that ``rounding floor''. The simulation is
 a generous model of rounding: when a weight barely moves, its two rounding
 errors are not independent, and the stored difference is exactly zero. So we
 also report the direct evidence, the share of entries of $\dW$ that are
-exactly zero.
+exactly zero, meaning that the two checkpoints store the identical bf16
+value.
 
 \paragraph{Measures of $W$ rather than $\dW$.} Some studies measure the full
 weight matrix before and after fine-tuning. By Weyl's inequality

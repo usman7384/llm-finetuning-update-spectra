@@ -20,7 +20,7 @@ batch                       & 1 sequence $\times$ 16 accumulation steps \\
 sequence length             & 512 tokens \\
 embeddings                  & frozen (tied with the output head; not analysed) \\
 memory                      & gradient checkpointing, one 6\,GB GPU \\
-check after training        & at most $1.1\times10^{-5}$ of attention/MLP weights unchanged \\
+check after training        & at most $1.01\times10^{-5}$ of attention/MLP weights unchanged \\
 \midrule
 SFT data                    & 10k examples of Alpaca-cleaned, loss on answers only \\
 wikitext / code data        & wikitext-103 / CodeParrot (Python), plain LM loss \\
