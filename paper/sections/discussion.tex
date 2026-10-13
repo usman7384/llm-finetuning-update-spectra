@@ -5,9 +5,13 @@
 wrong; they answer different questions. Counting measures say how many
 directions an update touches, and for fine-tuning the answer is ``almost
 all''. Stable rank and the participation ratio say how unevenly the energy is
-spread, and the answer is ``very''. The mistake is to read either number
-without the value for noise next to it, or to take a property of all
-fine-tuning as evidence about alignment.
+spread, and the answer is ``very''. We do not recommend stable rank over the
+others: it depends on a single direction, it is as high for the pretrained
+weights and for the difference of two unrelated checkpoints as for a real
+update, and a cutoff built on it edited a model no better than one built on
+eRank. The mistake is to read any one of these numbers without the value for
+noise next to it, or to take a property of all fine-tuning as evidence about
+alignment.
 
 \paragraph{Check where a checkpoint comes from.} The obvious base for the
 OLMo 2 1B SFT checkpoint, the main revision of the released base model, is not
@@ -26,15 +30,17 @@ does, and costs nothing.
   \item \textbf{Scale of our own training.} Our fine-tunes are 0.36B and 0.5B
   parameters with about two million tokens per epoch. The measurement results
   hold on released models up to 8B, but we do not study training at that scale.
-  \item \textbf{Tokens, not steps.} The runs are matched on training tokens;
-  the code runs take 2.6--2.9 times fewer optimizer steps than the others.
+  \item \textbf{Tokens or steps.} Matching the training tokens leaves the
+  code runs with 2.6--2.9 times fewer optimizer steps; matching the steps
+  gives them 2.7 times more tokens. No single control matches both, and the
+  two give different code updates.
   \item \textbf{Which null.} A Gaussian matrix is the least structured baseline
   possible, and even the difference of two unrelated trained checkpoints beats
   it. We add the pretrained weights as a harder reference, and matched
   fine-tunes without alignment content as the real test, but other baselines
   (for instance updates from other optimizers) could tell more.
-  \item \textbf{Seeds.} Only the Qwen runs were repeated; the small task
-  differences on SmolLM2 have no seed error bars.
+  \item \textbf{Seeds.} Each run was repeated once; two seeds bound the
+  run-to-run variation only roughly.
   \item \textbf{Released models are black boxes,} apart from OLMo 2. Their
   data and recipes differ in many ways at once, so they test the measurement,
   not any claim about alignment.
@@ -43,11 +49,12 @@ does, and costs nothing.
   trained on are not.
   \item \textbf{The shuffled-words result is unexplained.} The one explanation
   we tested, alignment with token frequency, is shared by other runs.
-  \item \textbf{Shape, not direction.} We compare the spectra of updates, not
-  the subspaces they occupy; two updates with the same stable rank can point
-  in different directions.
-  \item \textbf{The edit experiment is narrow:} one model and non-thinking
-  mode only.
+  \item \textbf{Directions, measured coarsely.} The overlap of top-16
+  subspaces shows that the data steers the directions of an update; it does
+  not say which directions, or what they do.
+  \item \textbf{The edit experiment is narrow:} one model, non-thinking mode
+  only, and 198 GPQA questions, which leaves intervals of about $\pm3$
+  points.
   \item \textbf{One random-update test.} The damage test uses one model,
   Qwen3-0.6B, and one task, GSM8K.
 \end{itemize}
@@ -61,12 +68,14 @@ Measures
 that weigh the top directions show the same updates to be far more
 concentrated than noise, and more concentrated than the pretrained weights.
 Both are right: the updates have a few strong directions and a long tail that
-holds most of the energy. With the amount of training held fixed,
-instruction tuning, Wikipedia and code give updates of similar shape, DPO
-gives the same shape with real or randomly swapped preferences, and scrambled
-text gives the most concentrated update, so the shape is a property of
-fine-tuning rather than a mark of alignment. An unchanged effective rank of the weights after
-post-training is what a random update of the same size also produces. Our
+holds most of the energy. With the amount of training held fixed, the data
+shapes an update somewhat, but instruction tuning sits inside the range of
+Wikipedia and code, DPO gives the same shape and directions with real or
+randomly swapped preferences, and scrambled text gives the most concentrated
+update, so the shape is a property of fine-tuning rather than a mark of
+alignment. An unchanged effective rank of the weights after post-training is
+what a random update of the same size also produces, and an edit built on
+that effective rank does nothing measurable on two benchmarks. Our
 recommendation is simple: report any rank measure of a weight update next to
 its value on a random matrix of the same shape, check that low-precision
 training or storage did not erase the update, check that the two checkpoints

@@ -10,12 +10,14 @@ directions on top of a long tail, and the gap to noise grows, then levels
 off, with how much weight a measure gives to the top.
 The pattern holds for thirteen released base/instruct, post-training-stage
 and base/specialist pairs up to 8B parameters. It is not a mark of alignment
-training: with the amount of training held fixed, instruction data,
-Wikipedia and Python code give updates of similar shape, DPO gives the same
-shape whether its preference labels are real or randomly swapped, and
-scrambled text gives the most concentrated update of all. Applying the baselines to a recent claim that post-training
-is superficial because the effective rank of the weights barely changes, we
-find that a random update of the same size leaves it almost unchanged too,
-while cutting the model's GSM8K accuracy from 60\% to 5\%.
-Rank measures of weight updates should be reported against a noise baseline.
+training: with the amount of training held fixed, instruction data sits
+inside the range of Wikipedia and Python code, DPO gives the same shape and
+directions whether its preference labels are real or randomly swapped, and
+scrambled text gives the most concentrated update of all. Applying the
+baselines to a recent claim that post-training is superficial because the
+effective rank of the weights barely changes, we find that a random update
+of the same size leaves it almost unchanged too, while cutting the model's
+GSM8K accuracy from 60\% to 5\%, and that the edit built on that effective
+rank has no measurable effect on GSM8K or on its own benchmark, GPQA. Rank
+measures of weight updates should be reported against a noise baseline.
 \end{abstract}

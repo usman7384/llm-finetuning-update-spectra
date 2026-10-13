@@ -48,12 +48,13 @@ Our findings:
   \item \textbf{Updates have a few strong directions and a long tail}, and on
   average are more concentrated than the pretrained weights they are added to
   (\S\ref{sec:headtail}).
-  \item \textbf{The shape does not single out alignment training.} With the number of
-  training tokens held fixed, instruction SFT, Wikipedia and Python code give
-  updates of similar spectral shape, with SFT not an outlier. DPO gives the
-  same shape whether it learns real preferences or randomly swapped ones that
-  teach nothing. Text with its word order scrambled gives the most
-  concentrated update of all (\S\ref{sec:controls}).
+  \item \textbf{The shape does not single out alignment training.} With the
+  amount of training held fixed, the data does shape an update (code is the
+  least concentrated, the more so with more training), but instruction SFT
+  sits inside the range of Wikipedia and Python code. DPO gives the same shape,
+  and the same directions, whether it learns real preferences or randomly
+  swapped ones that teach nothing. Text with its word order scrambled gives
+  the most concentrated update of all (\S\ref{sec:controls}).
   \item \textbf{It holds for released models}, thirteen base/instruct,
   post-training-stage and base/specialist pairs up to 8B parameters. On three
   bf16 updates (Qwen2.5-1.5B and the OLMo 2 DPO and RL stages), much of what
@@ -61,8 +62,9 @@ Our findings:
   \item \textbf{It changes how earlier evidence reads.} An unchanged effective
   rank of $W$ after post-training, read by \citet{wu2025timber} as a sign that
   post-training is superficial, is what a random update of the same size also
-  produces, even one that cuts the model's GSM8K accuracy from 60\% to 5\%
-  (\S\ref{sec:timber}).
+  produces, even one that cuts the model's GSM8K accuracy from 60\% to 5\%.
+  The edit they build on that effective rank has no measurable effect on
+  GSM8K or on their own benchmark, GPQA-Diamond (\S\ref{sec:timber}).
 \end{enumerate}
 
 The practical message is short: report rank measures of weight updates next to
