@@ -37,6 +37,7 @@ FAMILIES = {
         "SFT (seed 2)": "v2/svd_sft_seed43",
         "wikitext (seed 2)": "v2/svd_control_lm_seed43",
         "code (seed 2)": "v2/svd_control_code_seed43",
+        "code (steps matched)": "v2/svd_control_code_steps",
         # DPO on top of the SFT run: dW = W_dpo - W_sft
         "DPO": "v2/svd_dpo",
         "DPO (seed 2)": "v2/svd_dpo_seed43",
@@ -49,6 +50,10 @@ FAMILIES = {
         "wikitext": "v2/svd_smollm2_control_lm",
         "code": "v2/svd_smollm2_control_code",
         "shuffled words": "v2/svd_smollm2_control_shuffled",
+        "SFT (seed 2)": "v2/svd_smollm2_sft_seed43",
+        "wikitext (seed 2)": "v2/svd_smollm2_control_lm_seed43",
+        "code (seed 2)": "v2/svd_smollm2_control_code_seed43",
+        "code (steps matched)": "v2/svd_smollm2_control_code_steps",
         "noise": "svd_smollm2_random",
         "pretrained W": "weights_smollm2_base",
     },
@@ -56,7 +61,8 @@ FAMILIES = {
 MEASURES = ["threshold", "k90", "erank", "participation", "stable", "stable_wo_top", "top1"]
 PAIRS = [("wikitext", "SFT"), ("code", "SFT"), ("wikitext", "code"), ("SFT", "shuffled words"),
          ("SFT", "SFT (seed 2)"), ("wikitext", "wikitext (seed 2)"),
-         ("code", "code (seed 2)"), ("DPO", "DPO (seed 2)"), ("DPO", "DPO swapped")]  # fmt: skip
+         ("code", "code (seed 2)"), ("DPO", "DPO (seed 2)"), ("DPO", "DPO swapped"),
+         ("code", "code (steps matched)"), ("SFT", "code (steps matched)")]  # fmt: skip
 N_BOOT = 5000
 
 
