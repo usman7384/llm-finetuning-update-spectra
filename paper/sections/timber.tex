@@ -56,9 +56,8 @@ base                                           & 59.5 & --                      
 base + Gaussian update, draw 1                 & 4.1  & $-55.4$ ($-58.2$, $-52.7$) & 0.50\% \\
 base + Gaussian update, draw 2                 & 4.8  & $-54.7$ ($-57.5$, $-52.2$) & --     \\
 base + real singular values, random directions & 5.8  & $-53.8$ ($-56.6$, $-50.9$) & 0.48\% \\
-base + real update (= instruct model)          & --   & --                         & 0.13\% \\
 \midrule
-instruct                                       & 64.5 & --                         & -- \\
+instruct (= base + real update)                & 64.5 & --                         & 0.13\% \\
 instruct + Gaussian update                     & 11.9 & $-52.6$ ($-55.3$, $-49.9$) & -- \\
 \bottomrule
 \end{tabular}
@@ -100,21 +99,23 @@ per problem, the same sampling seed per problem for every variant. Left: first
 \begin{table}[t]
 \caption{Edits of the Qwen3-0.6B update on all 1{,}319 GSM8K test problems.
 ``Unscaled'' is the share of the update's energy the edit leaves at full
-strength (uniform scaling shrinks every direction by the same factor).
-Differences from the unedited model in points, with 95\% paired bootstrap
-intervals over problems, not corrected for multiple comparisons.}
+strength (uniform scaling shrinks every direction by the same factor);
+``answered'' is the share of samples with a final boxed answer. Differences
+from the unedited model in points, with 95\% paired bootstrap intervals over
+problems, not corrected for multiple comparisons.}
 \label{tab:cutoff}
 \begin{center}
 \small
-\begin{tabular}{lccccc}
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{lcccccc}
 \toprule
-edit & unscaled & pass@1 & pass@8 & $\Delta$ pass@1 & $\Delta$ pass@8 \\
+edit & unscaled & pass@1 & pass@8 & answered & $\Delta$ pass@1 & $\Delta$ pass@8 \\
 \midrule
-none                                       & 100\%  & 62.3 & 85.1 & -- & -- \\
-tail $\times 0.2$, eRank cutoff (Timber)   & 98.9\% & 62.3 & 85.3 & $-0.0$ ($-0.8$, $+0.8$)  & $+0.2$ ($-1.4$, $+1.8$) \\
-tail $\times 0.5$, eRank cutoff (Timber)   & 98.9\% & 63.1 & 85.9 & $+0.7$ ($-0.02$, $+1.6$) & $+0.8$ ($-0.6$, $+2.3$) \\
-tail $\times 0.5$, stable-rank cutoff      & 41.4\% & 62.9 & 86.9 & $+0.6$ ($-0.5$, $+1.7$) & $+1.8$ ($+0.2$, $+3.5$) \\
-whole update $\times 0.75$ (same size)     & 0\%    & 65.8 & 87.8 & $+3.4$ ($+2.4$, $+4.5$) & $+2.7$ ($+1.1$, $+4.2$) \\
+none                                       & 100\%  & 62.3 & 85.1 & 97.4\% & -- & -- \\
+tail $\times 0.2$, eRank cutoff (Timber)   & 98.9\% & 62.3 & 85.3 & 97.1\% & $-0.0$ ($-0.8$, $+0.8$)  & $+0.2$ ($-1.4$, $+1.8$) \\
+tail $\times 0.5$, eRank cutoff (Timber)   & 98.9\% & 63.1 & 85.9 & 97.1\% & $+0.7$ ($-0.02$, $+1.6$) & $+0.8$ ($-0.6$, $+2.3$) \\
+tail $\times 0.5$, stable-rank cutoff      & 41.4\% & 62.9 & 86.9 & 96.0\% & $+0.6$ ($-0.5$, $+1.7$) & $+1.8$ ($+0.2$, $+3.5$) \\
+whole update $\times 0.75$ (same size)     & 0\%    & 65.8 & 87.8 & 96.4\% & $+3.4$ ($+2.4$, $+4.5$) & $+2.7$ ($+1.1$, $+4.2$) \\
 \bottomrule
 \end{tabular}
 \end{center}
@@ -181,23 +182,24 @@ whole update scaled to the same size      & 22.9 & $-3.1$ ($-7.1$, $+0.9$)  & 54
 
 GPQA-Diamond is where Wu et al.\ report their largest gain for this model: a
 mean accuracy of 28.79\% against 23.74\% unedited, $+5.1$ points. Our
-unedited model scores 25.9\%, close to theirs, so the setups are comparable.
-Timber's edit, at each of the three $\lambda$ values they searched, moves
-accuracy by under a point, and every interval includes zero
-(Table~\ref{tab:gpqa}). Our setup differs from theirs in two ways that could
-matter. We allow 2{,}048 new tokens against their 8{,}192, and we draw four
-samples per question against their three full repeats. Truncation does not
-explain the missing gain. The share of samples that end without a final
-answer is 3.5\% for the unedited model and 3.4--4.2\% for Timber's three
-edits (8.7--8.8\% for the two larger edits), so at most a few percent of
-answers are cut short, and no more for Timber's edits than for no edit. We
-also reran the unedited model and Timber's recommended $\lambda=0.2$ with the
-limit doubled to 4{,}096 tokens, the most this model's samples fit on our GPU
-(Appendix~\ref{app:cutoff}). The unedited model scores 25.6\% and the edit
-25.4\%, a difference of $-0.3$ points ($-3.5$, $+3.0$), with 2.7--2.9\% of
-samples unfinished. With 198 questions the intervals are about $\pm3$
-points, so a gain of one or two points cannot be ruled out, but the reported
-$+5.1$ does not reproduce at either limit. The larger edits behave differently here than on
+unedited model scores 25.9\%, within two points of theirs. Timber's edit, at
+each of the three $\lambda$ values they searched, moves accuracy by under a
+point, and every interval includes zero (Table~\ref{tab:gpqa}). We do not
+observe their gain, but our setup is our own, not their evaluation harness:
+our prompt and answer format, our answer extraction, four samples per
+question against their three full repeats, and 2{,}048 new tokens against
+their 8{,}192. Truncation, at least, does not explain the difference. The
+share of samples that end without a final answer is 3.5\% for the unedited
+model and 3.4--4.2\% for Timber's three edits (8.7--8.8\% for the two larger
+edits), no more for Timber's edits than for no edit, and a rerun of the
+unedited model and the recommended $\lambda=0.2$ with the limit doubled to
+4{,}096 tokens, the most this model's samples fit on our GPU, gives 25.6\%
+against 25.4\%, a difference of $-0.3$ points ($-3.5$, $+3.0$), with
+2.7--2.9\% of samples unfinished (Appendix~\ref{app:cutoff}). With 198
+questions our intervals are about $\pm3$ points, and their $+5.1$, from the
+same 198 questions, carries a similar uncertainty. Under our settings the
+intervals exclude a gain of five points; a gain of one to three points is not
+ruled out. The larger edits behave differently here than on
 GSM8K: shrinking most of the update, whether by the stable-rank cutoff or
 evenly, costs 3--5 points of mean accuracy (intervals just reaching zero) and
 makes the model answer at length, while the uniform version's pass@4 rises.
