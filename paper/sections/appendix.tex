@@ -366,6 +366,18 @@ answer is 3.5\% unedited, 3.8\%, 4.2\% and 3.4\% for Timber's edit at
 $\lambda = 0.2$, $0.5$ and $0.8$, and 8.8\% and 8.7\% for the stable-rank
 cutoff and uniform scaling, which make the model answer at length.
 
+To check that the limit is not hiding a gain, we reran the unedited model and
+the $\lambda = 0.2$ edit with 4{,}096 new tokens, four samples per question
+for both. Wu et al.'s 8{,}192 does not fit: on a few questions this model
+writes answers so long that the memory for four samples exceeds our 6\,GB
+GPU, so at that limit the samples were generated one at a time, and the first
+111 questions of the unedited model were run that way before the limit was
+lowered to 4{,}096. All of those finished well within either limit. At the
+longer limit the unedited model scores 25.6\% (pass@4 44.9) and the edit
+25.4\% (pass@4 47.5), differences of $-0.3$ ($-3.5$, $+3.0$) and $+2.5$
+($-3.5$, $+8.6$) points, and 2.9\% and 2.7\% of samples are unfinished.
+Doubling the limit changes neither model's score by more than a point.
+
 On GSM8K the prompt is the question followed by ``Please reason step by step, and
 put your final answer within \verb|\boxed{}|.'', in Qwen3's chat template with
 thinking turned off, sampled at temperature 0.7, top-$p$ 0.8 and top-$k$ 20 for

@@ -187,13 +187,17 @@ accuracy by under a point, and every interval includes zero
 (Table~\ref{tab:gpqa}). Our setup differs from theirs in two ways that could
 matter. We allow 2{,}048 new tokens against their 8{,}192, and we draw four
 samples per question against their three full repeats. Truncation does not
-explain the missing gain: the share of samples that end without a final
+explain the missing gain. The share of samples that end without a final
 answer is 3.5\% for the unedited model and 3.4--4.2\% for Timber's three
 edits (8.7--8.8\% for the two larger edits), so at most a few percent of
-answers are cut short, and no more for Timber's edits than for no edit
-(Appendix~\ref{app:cutoff}). With 198 questions the intervals are about
-$\pm3$ points, so a gain of one or two points cannot be ruled out, but the
-reported $+5.1$ does not reproduce. The larger edits behave differently here than on
+answers are cut short, and no more for Timber's edits than for no edit. We
+also reran the unedited model and Timber's recommended $\lambda=0.2$ with the
+limit doubled to 4{,}096 tokens, the most this model's samples fit on our GPU
+(Appendix~\ref{app:cutoff}). The unedited model scores 25.6\% and the edit
+25.4\%, a difference of $-0.3$ points ($-3.5$, $+3.0$), with 2.7--2.9\% of
+samples unfinished. With 198 questions the intervals are about $\pm3$
+points, so a gain of one or two points cannot be ruled out, but the reported
+$+5.1$ does not reproduce at either limit. The larger edits behave differently here than on
 GSM8K: shrinking most of the update, whether by the stable-rank cutoff or
 evenly, costs 3--5 points of mean accuracy (intervals just reaching zero) and
 makes the model answer at length, while the uniform version's pass@4 rises.
