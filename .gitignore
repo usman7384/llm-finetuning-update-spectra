@@ -20,6 +20,9 @@ logs/
 # local HF dataset cache, if it ends up here
 data/raw/
 
+# the paper zipped for Overleaf, rebuilt from paper/ whenever needed
+paper*.zip
+
 # editor / OS / local tools
 .vscode/
 .idea/
