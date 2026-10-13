@@ -8,12 +8,12 @@
 % Optional math commands from https://github.com/goodfeli/dlbook_notation.
 \input{math_commands.tex}
 
+\usepackage{float}  % [H] for appendix floats; loaded before hyperref so float links resolve
 \usepackage{hyperref}
 \usepackage{url}
 \usepackage{graphicx}
 \usepackage{booktabs}
 \usepackage{amssymb}
-\usepackage{float}  % [H] for appendix floats, so a table never drifts out of its section
 
 % notation used throughout
 \newcommand{\dW}{\Delta W}
