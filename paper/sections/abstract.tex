@@ -1,26 +1,25 @@
 \begin{abstract}
 Studies of what fine-tuning does to a language model often summarise the
 weight update $\dW$ by its rank. We compare the rank measures used for this
-against the same measures on random matrices of the same shape. On our SFT,
-Wikipedia, code and DPO fine-tunes of two small models, a threshold count of
-singular values puts the update only 2--5\% below noise, and the entropy
-effective rank and the 90\% energy rank put it 12--35\% below; stable rank
-puts the same updates 78--94\% below noise. The updates have a few strong
-directions on top of a long tail, and the gap to noise grows, then levels
-off, with how much weight a measure gives to the top.
-The pattern holds for thirteen released base/instruct, post-training-stage
-and base/specialist pairs up to 8B parameters. It is not a mark of alignment
-training: with the amount of training held fixed, instruction data sits
-inside the range of Wikipedia and Python code, DPO on one model gives the
-same shape and directions whether its preference labels are real or half
-randomly swapped, at the modest strength of preference learning we reach,
-and scrambled text gives the most concentrated update of all. Applying the
-baselines to a recent claim that post-training is superficial because the
-effective rank of the weights barely changes, we find that a random update
-of the same size leaves it almost unchanged too, while cutting the model's
-GSM8K accuracy from 60\% to 5\%, and that the edit built on that effective
-rank has no measurable effect on GSM8K, nor, within intervals of about three
-points, on its own benchmark, GPQA, in the non-thinking mode of its main
-results. Rank
-measures of weight updates should be reported against a noise baseline.
+against the same measures on a random matrix of the same shape, and against
+two harder references: the pretrained weights, and fine-tunes without
+alignment content. Measures that count directions put our fine-tuning
+updates only a little below noise; stable rank, computed from the same
+singular values, puts them far below. Both are right: an update has a few
+strong directions on top of a long tail, and the gap to noise grows with how
+much weight a measure gives to the top. The pattern holds for thirteen
+released pairs up to 8B parameters, and it is not a mark of alignment: with
+the amount of training held fixed, instruction data does not stand out from
+Wikipedia or Python code; DPO on one model gives the same update whether its
+preference labels are real or half swapped at random, at the modest strength
+of preference learning we reach; and scrambled text gives the most
+concentrated update of all. Applied to a recent claim that post-training is
+superficial because the effective rank of the weights barely changes, the
+baselines show that a random update of the same size leaves that rank almost
+unchanged too while cutting GSM8K accuracy from 60\% to 5\%, and that an edit
+built on the effective rank of the update has no measurable effect on GSM8K
+or, within about three points, on GPQA in non-thinking mode, while simply
+shrinking the whole update helps on GSM8K. Rank measures of weight updates
+need a noise baseline, and claims about alignment need a control without
+alignment content.
 \end{abstract}
