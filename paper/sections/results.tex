@@ -107,7 +107,7 @@ The pretrained weights are a harder reference than noise, since they are
 themselves far from random, and the updates are more concentrated than them
 too, on average. The stable rank of the pretrained weights is 0.178 on Qwen
 and 0.140 on SmolLM2, against 0.09--0.10 and 0.020--0.034 for the SFT,
-wikitext and code updates: 46--48\% below the weights on Qwen and 76--86\% on
+wikitext and code updates: 46--48\% below the weights on Qwen and 75--86\% on
 SmolLM2, with layer-bootstrap intervals well clear of zero. This does not hold
 for every matrix type: on Qwen, for \texttt{down\_proj}, the SFT update and the
 weights are level (Table~\ref{tab:pertype}). The threshold count cannot see
@@ -122,7 +122,7 @@ the same 97--98\%.
 matrix by matrix, with 95\% layer-bootstrap intervals. The intervals describe
 the spread over layers within one run, not between training runs; ``second
 seed'' repeats a run with a different seed and data sample. ``Steps matched''
-trains on code for as many optimizer steps as SFT, 2.7 times more code
+trains on code for as many optimizer steps as SFT, 2.5--2.7 times more code
 tokens.}
 \label{tab:paired}
 \begin{center}
@@ -140,7 +140,7 @@ swapped DPO $-$ DPO         & $+0.002$ ($+0.000$, $+0.004$) & -- \\
 \midrule
 second seed $-$ first, SFT      & $-0.001$ ($-0.005$, $+0.001$) & $-0.000$ ($-0.001$, $-0.000$) \\
 second seed $-$ first, wikitext & $-0.001$ ($-0.005$, $+0.003$) & $+0.000$ ($-0.000$, $+0.000$) \\
-second seed $-$ first, code     & $-0.000$ ($-0.001$, $+0.001$) & $-0.000$ ($-0.000$, $+0.000$) \\
+second seed $-$ first, code     & $-0.000$ ($-0.001$, $+0.001$) & $-0.000$ ($-0.001$, $+0.000$) \\
 second seed $-$ first, DPO      & $+0.001$ ($-0.001$, $+0.002$) & -- \\
 \bottomrule
 \end{tabular}
@@ -157,8 +157,8 @@ SmolLM2 the data does leave a mark: code is the least concentrated (0.034),
 wikitext the most (0.020) and SFT sits between them (0.025). These
 differences are real, not seed noise: a second seed of each SmolLM2 run moves
 its stable rank by at most 0.0003. Nor are they an artefact of the code runs
-taking 2.6--2.9 times fewer optimizer steps (\S\ref{sec:setup}): training on
-code for as many steps as SFT, which is 2.7 times more code tokens, moves the
+taking 2.6--2.7 times fewer optimizer steps than SFT (\S\ref{sec:setup}): training on
+code for as many steps as SFT, which is 2.5--2.7 times more code tokens, moves the
 code update further from SFT, not closer, on both models (stable rank 0.114
 on Qwen, 0.042 on SmolLM2). So what the data teaches, and how much of it, does
 shape the update. What it does not do is single out instruction tuning: in
@@ -171,7 +171,7 @@ matrices (1 would be identical subspaces; two random subspaces give 0.02--0.04;
 Appendix~\ref{app:overlap}). Two runs on the same kind of data with different
 seeds overlap by 0.26--0.32 on Qwen and 0.34--0.51 on SmolLM2. Runs on
 different data overlap less, 0.20--0.22 on Qwen and 0.12--0.13 on SmolLM2, but
-still five to nine times more than random. So the data steers which directions
+still four to six times more than random. So the data steers which directions
 an update uses, more than it changes the update's shape.
 
 Preference training gives the same answer. Starting from the Qwen SFT model,
@@ -190,8 +190,8 @@ control, against 0.436 for noise, and the same size. The paired difference,
 $+0.002$, is larger than the gap between the two DPO seeds ($+0.001$) but
 under 4\% of the value and about $1/200$ of the distance to noise
 (Table~\ref{tab:paired}). The directions agree too: the real DPO update
-overlaps with the swapped control (0.28) exactly as much as with a second
-seed of itself (0.28). Like the SFT update, the DPO update is more
+overlaps with the swapped control (0.27) almost exactly as much as with a
+second seed of itself (0.28). Like the SFT update, the DPO update is more
 concentrated than the pretrained weights and far more than noise, and at the
 strength of preference learning we reach, almost none of that, in shape or in
 direction, comes from having learned the preferences.
