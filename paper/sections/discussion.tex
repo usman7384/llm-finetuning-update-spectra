@@ -6,10 +6,10 @@ wrong; they answer different questions. Counting measures say how many
 directions an update touches, and for fine-tuning the answer is ``almost
 all''. Stable rank and the participation ratio say how unevenly the energy is
 spread, and the answer is ``very''. We do not recommend stable rank over the
-others: it depends on a single direction, it is as high for the pretrained
-weights and for the difference of two unrelated checkpoints as for a real
-update, and a cutoff built on it edited a model no better than one built on
-eRank. The mistake is to read any one of these numbers without the value for
+others: it depends on a single direction, it is also far below noise for the
+pretrained weights and for the difference of two unrelated checkpoints, not
+only for a real update, and a cutoff built on it edited a model no better than
+one built on eRank. The mistake is to read any one of these numbers without the value for
 noise next to it, or to take a property of all fine-tuning as evidence about
 alignment.
 
@@ -42,7 +42,7 @@ does, and costs nothing.
   \item \textbf{Seeds.} The SFT, wikitext, code and DPO runs were repeated
   once; the shuffled-words and step-matched runs were not. Two seeds bound
   the run-to-run variation only roughly.
-  \item \textbf{Released models are black boxes,} apart from OLMo 2. Their
+  \item \textbf{Released models are black boxes.} Apart from OLMo 2, their
   data and recipes differ in many ways at once, so they test the measurement,
   not any claim about alignment.
   \item \textbf{Loss masking differs.} SFT computes the loss on answer tokens
@@ -71,10 +71,10 @@ concentrated than noise, and more concentrated than the pretrained weights.
 Both are right: the updates have a few strong directions and a long tail that
 holds most of the energy. With the amount of training held fixed, the data
 shapes an update somewhat, but instruction tuning does not stand out from
-Wikipedia or code, DPO gives the same shape and directions with real or
-half-swapped preferences, and scrambled text gives the most concentrated
-update, so the shape is a property of fine-tuning rather than a mark of
-alignment. An unchanged effective rank of the weights after post-training is
+Wikipedia or code; DPO gives the same shape and directions with real or
+half-swapped preferences; and scrambled text gives the most concentrated
+update. The shape is a property of fine-tuning, not a mark of alignment. An
+unchanged effective rank of the weights after post-training is
 what a random update of the same size also produces, and an edit built on
 the effective rank of the update does nothing measurable on two benchmarks.
 Our
