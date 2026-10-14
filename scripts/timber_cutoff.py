@@ -208,7 +208,9 @@ def run_variant(name: str, problems, args, device: str) -> None:
                             max_new_tokens=args.max_new_tokens, pad_token_id=tok.pad_token_id)  # fmt: skip
             if args.samples_per_call >= args.n:
                 gen = model.generate(**enc, num_return_sequences=args.n, **settings)
-                outs = tok.batch_decode(gen[:, enc["input_ids"].shape[1]:], skip_special_tokens=True)
+                outs = tok.batch_decode(
+                    gen[:, enc["input_ids"].shape[1] :], skip_special_tokens=True
+                )
             else:
                 # long answers: a question's samples in several smaller calls, so
                 # the growing KV cache of one rambling sample cannot overflow a

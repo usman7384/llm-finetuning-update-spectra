@@ -95,7 +95,9 @@ def boot_ratio(a: pd.DataFrame, b: pd.DataFrame, col: str) -> tuple[float, float
     j = a[[col, "layer"]].join(b[[col]], rsuffix="_b")
     g = j.groupby("layer")
     sa, sb = g[col].sum().to_numpy(), g[col + "_b"].sum().to_numpy()
-    idx = np.random.default_rng(0).integers(0, len(sa), (N_BOOT, len(sa)))  # same draws whatever else runs
+    idx = np.random.default_rng(0).integers(
+        0, len(sa), (N_BOOT, len(sa))
+    )  # same draws whatever else runs
     boot = 1 - sa[idx].sum(1) / sb[idx].sum(1)
     return (
         1 - sa.sum() / sb.sum(),
@@ -110,7 +112,9 @@ def boot_diff(a: pd.DataFrame, b: pd.DataFrame, col: str) -> tuple[float, float,
     j["d"] = j[col + "_b"] - j[col]
     g = j.groupby("layer")["d"]
     s, n = g.sum().to_numpy(), g.count().to_numpy()
-    idx = np.random.default_rng(0).integers(0, len(s), (N_BOOT, len(s)))  # same draws whatever else runs
+    idx = np.random.default_rng(0).integers(
+        0, len(s), (N_BOOT, len(s))
+    )  # same draws whatever else runs
     boot = s[idx].sum(1) / n[idx].sum(1)
     return float(j["d"].mean()), float(np.percentile(boot, 2.5)), float(np.percentile(boot, 97.5))
 
