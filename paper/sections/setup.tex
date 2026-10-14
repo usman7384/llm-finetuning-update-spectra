@@ -11,7 +11,7 @@ truncation, for three epochs):
   community-cleaned version of Alpaca \citep{taori2023alpaca}, with the loss
   on answer tokens only;
   \item \textbf{wikitext}: plain language-model training on wikitext-103
-  \citep{merity2017pointer};
+  \citep{merity2017pointer}, a corpus of Wikipedia articles;
   \item \textbf{code}: the same on deduplicated Python files from CodeParrot
   \citep{codeparrot};
   \item \textbf{shuffled words}: the same wikitext documents with the word order
@@ -44,7 +44,8 @@ training, in three groups. (i) Base/instruct releases: SmolLM2 135M, 360M and
 1.7B; Qwen2.5 0.5B and 1.5B; Qwen3 0.6B and 8B \citep{yang2025qwen3}, the two
 Qwen3 pairs being among those studied by \citet{wu2025timber}. (ii) The three
 post-training stages of OLMo 2 1B \citep{olmo2024olmo2}, base to SFT, SFT to
-DPO and DPO to RL, whose training data are public. (iii) Large updates without
+DPO and DPO to reinforcement learning (RL), whose training data is public.
+(iii) Large updates without
 alignment content: Qwen2.5-Math-1.5B \citep{yang2024qwenmath} and
 Qwen2.5-Coder 0.5B and 1.5B \citep{hui2024qwencoder} against their bases.
 
@@ -67,10 +68,10 @@ the 0.080 of the real SFT update. The model card does not explain the
 difference, and we have not confirmed its cause with the maintainers; we
 report what the public checkpoints contain.
 
-\paragraph{What we measure.} Every attention and MLP projection
+\paragraph{What we measure.} We measure every attention and MLP projection
 (\texttt{q}, \texttt{k}, \texttt{v}, \texttt{o}, \texttt{gate}, \texttt{up},
-\texttt{down}), 168 matrices per Qwen2.5-0.5B model up to 252 for Qwen3-8B;
-embeddings and the output head are excluded. We report means over matrices.
+\texttt{down}): 168 matrices per Qwen2.5-0.5B model, up to 252 for Qwen3-8B.
+Embeddings and the output head are excluded. We report means over matrices.
 Matrices in the same layer are not independent, so 95\% intervals come from a
 bootstrap that resamples whole layers, and comparisons between runs on the
 same model are paired matrix by matrix. These intervals describe the spread

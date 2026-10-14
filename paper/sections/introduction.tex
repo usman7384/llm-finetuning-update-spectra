@@ -22,7 +22,8 @@ of the energy \citep{biderman2024lora}, or the entropy effective rank
 against noise: the spectrum of a fully fine-tuned weight matrix looks like that
 of the pretrained one plus low-magnitude Gaussian noise, and they concluded
 that nothing about it is unusual. We began this project with the same
-impression. Counting the singular values of an SFT update above 1\% of the
+impression. Counting the singular values of a supervised fine-tuning (SFT)
+update above 1\% of the
 largest gave 97\% of full rank, and the difference between two random
 initialisations of the same model, which is pure noise, gave 99.6\%. By that
 measure, fine-tuning looks almost like noise.
@@ -45,7 +46,8 @@ Our findings:
 
 \begin{enumerate}
   \item \textbf{Counting measures compress the gap to noise.} On our SFT,
-  Wikipedia, code and DPO fine-tunes, the threshold count is only 2--5\%
+  Wikipedia, code and direct preference optimisation (DPO) fine-tunes, the
+  threshold count is only 2--5\%
   below a random matrix of the same shape, and eRank and the 90\% energy rank
   are 12--35\% below it; stable rank is 78--94\% below. Along the whole family
   of R\'enyi ranks the gap grows with how much weight a measure gives to the

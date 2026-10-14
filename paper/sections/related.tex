@@ -9,10 +9,10 @@ singular values from Gaussian noise. Random matrix theory has also been used to
 study trained weight matrices: their spectra depart from those of random
 matrices in heavy-tailed ways that track training quality
 \citep{martin2021implicit}, while much of the bulk still follows random-matrix
-statistics \citep{thamm2022random}, which \citet{staats2023boundary} use to
-separate the noise part of a weight matrix from its information, and
-\citet{hartford2024spectrum} use the same statistics to choose which layers to
-train. For fine-tuning, \citet{biderman2024lora}
+statistics \citep{thamm2022random}. \citet{staats2023boundary} use those
+statistics to separate the noise part of a weight matrix from its information,
+and \citet{hartford2024spectrum} use them to choose which layers to train. For
+fine-tuning, \citet{biderman2024lora}
 compared the spectrum of a fully fine-tuned weight matrix with that of the
 pretrained matrix plus Gaussian noise and found them alike. We compare the
 update itself with noise, measure by measure, and find that the answer depends
@@ -26,16 +26,16 @@ can be confined to the first few output tokens \citep{qi2025safety}, and
 post-training keeps improving reasoning with more data
 \citep{raghavendra2024revisiting}. \citet{wu2025timber} looked for
 weight-level evidence through the effective rank of released models
-(\S\ref{sec:timber}). \citet{chaudhury2025alignment} locate the effect of
+(\S\ref{sec:timber}). \citet{chaudhury2025alignment} locates the effect of
 preference tuning in a few middle layers by activation patching, a question
 about activations that our weight analysis does not address.
 
 \paragraph{The rank of fine-tuning updates.} Fine-tuning can be carried out in
 a small random subspace \citep{aghajanyan2021intrinsic}, the idea behind LoRA
 \citep{hu2022lora}, and fine-tuned models can be stored as low-rank
-approximations of the update \citep{ryu2023efficient}, who also plot the
-singular values of an update against a Marchenko--Pastur reference and find
-them more concentrated. \citet{zhang2023tiny} find that fine-tuning moves the
+approximations of the update; \citet{ryu2023efficient} also plot the singular
+values of an update against a Marchenko--Pastur reference and find them more
+concentrated. \citet{zhang2023tiny} find that fine-tuning moves the
 weights within a small task-specific subspace. Measured directly, full
 fine-tuning updates need a rank 10--100 times larger than typical LoRA ranks to
 hold 90\% of their energy \citep{biderman2024lora}, and reinforcement-learning
@@ -50,7 +50,7 @@ observes that update spectra are long-tailed and compresses them by giving more
 bits to the top singular vectors, finding that plain low-rank truncation hurts;
 BitDelta \citep{liu2024bitdelta} goes further and keeps only the sign of each
 entry of the update plus one scale per matrix, with little loss.
-\citet{paul2026spectral} use stable rank among other features of LoRA updates
+\citet{paul2026spectral} uses stable rank among other features of LoRA updates
 to tell training objectives apart.
 
 \paragraph{Editing updates.} Updates can be added, scaled and merged
