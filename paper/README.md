@@ -6,19 +6,26 @@ license is in `TMLR-STYLE-LICENSE`.
 
 ## Building
 
-On Overleaf: zip this folder and upload it as a new project, main file
-`main.tex`. Locally: `latexmk -pdf main.tex`.
+On Overleaf: zip this folder (`main.tex` at the top level) and upload it as a
+new project. Locally, with MiKTeX or TeX Live: pdflatex, bibtex, then pdflatex
+until the labels are stable (this document needs three passes after bibtex).
 
 ## Versions
 
-`main.tex` loads `\usepackage{tmlr}`, which is the anonymous submission
-version: no author names, "Under review" header. Keep it that way for
-OpenReview, and don't add the repository link.
+`main.tex` loads `\usepackage{tmlr}`, the anonymous submission version: no
+author block, "Under review as submission to TMLR" header. Keep it that way
+for OpenReview, and never link the repository or the preprint from it.
 
-- **arXiv / preprint:** switch to `\usepackage[preprint]{tmlr}`, fill in the
-  email in `\author`, and add the code link in the conclusion.
-- **Camera-ready:** `\usepackage[accepted]{tmlr}`, plus `\month`, `\year` and
-  the OpenReview link.
+- **arXiv / preprint:** `uv run python scripts/build_arxiv.py --out <dir>`
+  builds the package from a copy of this folder with
+  `\usepackage[preprint]{tmlr}` (author block shown, header removed), includes
+  the generated `main.bbl`, and checks that it compiles with pdflatex alone, as
+  arXiv does. The `\author` block already carries the name, email and
+  affiliation. Two optional edits for the preprint are off by default; see the
+  script's `--help`.
+- **Camera-ready:** `\usepackage[accepted]{tmlr}`, then set `\month`, `\year`
+  and the OpenReview link in `main.tex`, and put the repository link in the
+  Reproducibility paragraph of `sections/discussion.tex`.
 
 ## Layout
 
@@ -29,6 +36,6 @@ figures/          vector PDFs from scripts/paper_figures.py
 main.bib          references
 ```
 
-Every number in the text comes from the CSVs in `results/`, and the figures
-are regenerated with `uv run python scripts/paper_figures.py`. `docs/report.md`
-has the longer write-up the paper was cut down from.
+Every number in the text comes from the CSVs in `results/` (the top-level
+README maps each table and figure to its script and file), and the figures are
+regenerated with `uv run python scripts/paper_figures.py`.
