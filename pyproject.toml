@@ -1,12 +1,12 @@
 [project]
 name = "align-geometry"
 version = "0.1.0"
-description = "Weight-space geometry of fine-tuning: SFT, DPO and LoRA deltas, noise baselines for rank metrics, and a check of Timber's eRank evidence."
+description = "Rank measures of fine-tuning weight updates against a noise baseline: fp32 SFT/DPO/LM fine-tunes with non-alignment controls, released base/instruct pairs, and a check of Timber's effective-rank evidence."
 readme = "README.md"
 requires-python = ">=3.11"
 license = { file = "LICENSE" }
 authors = [{ name = "Muhammad Usman Altaf" }]
-keywords = ["llm", "fine-tuning", "alignment", "sft", "dpo", "lora", "svd", "stable-rank"]
+keywords = ["llm", "fine-tuning", "alignment", "sft", "dpo", "svd", "stable-rank", "effective-rank", "noise-baseline"]
 classifiers = [
     "Programming Language :: Python :: 3.11",
     "License :: OSI Approved :: MIT License",

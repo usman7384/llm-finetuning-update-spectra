@@ -1,15 +1,28 @@
 cff-version: 1.2.0
-message: "If you use this code or the results, please cite it as below."
-title: "Does alignment training change behavior, or just style? Weight geometry of fine-tuning with noise baselines"
+message: "If you use this code or these results, please cite the paper below."
+type: software
+title: "Rank Measures of Fine-Tuning Updates Need a Noise Baseline: code and results"
 authors:
   - family-names: Altaf
     given-names: Muhammad Usman
+    affiliation: Independent Researcher
 license: MIT
-date-released: 2026-10-07
+# set when the repository is made public
+date-released: 2026-10-14
 keywords:
   - fine-tuning
-  - alignment
+  - weight updates
   - stable rank
   - effective rank
-  - LoRA
-  - DPO
+  - noise baseline
+  - alignment
+preferred-citation:
+  type: unpublished
+  title: "Rank Measures of Fine-Tuning Updates Need a Noise Baseline"
+  authors:
+    - family-names: Altaf
+      given-names: Muhammad Usman
+      affiliation: Independent Researcher
+  year: 2026
+  status: submitted
+  notes: "Under review at Transactions on Machine Learning Research (TMLR). No DOI yet."
