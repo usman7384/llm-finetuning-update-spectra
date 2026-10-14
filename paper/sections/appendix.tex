@@ -61,12 +61,12 @@ Qwen2.5-0.5B & SFT               & 1{,}840 & 1.00 & 10.4 & 0.097 & 0.126 & 2.8 \
              & swapped DPO       & 570     & 0.83 & 1.37 & 0.055 & 0.093 & 8.6 \\
 \midrule
 SmolLM2-360M & SFT               & 1{,}840 & 1.18 & 14.9 & 0.025 & 0.041 & 3.4 \\
-             & wikitext          & 2{,}080 & 2.52 & 17.4 & 0.020 & 0.032 & 3.7 \\
-             & code              & 720     & 1.28 & 8.8  & 0.034 & 0.051 & 1.4 \\
-             & shuffled words    & 2{,}090 & 5.51 & 20.8 & 0.009 & 0.021 & 3.7 \\
              & SFT, seed 2       & 1{,}840 & 1.17 & 14.8 & 0.025 & 0.041 & 3.2 \\
+             & wikitext          & 2{,}080 & 2.52 & 17.4 & 0.020 & 0.032 & 3.7 \\
              & wikitext, seed 2  & 2{,}060 & 2.52 & 17.2 & 0.020 & 0.032 & 3.6 \\
+             & code              & 720     & 1.28 & 8.8  & 0.034 & 0.051 & 1.4 \\
              & code, seed 2      & 720     & 1.28 & 8.8  & 0.034 & 0.051 & 1.3 \\
+             & shuffled words    & 2{,}090 & 5.51 & 20.8 & 0.009 & 0.021 & 3.7 \\
              & code, steps matched & 1{,}800 & 1.26 & 14.6 & 0.042 & 0.060 & 3.2 \\
 \bottomrule
 \end{tabular}
@@ -81,14 +81,15 @@ tokenizer of SmolLM2-360M has no chat template, so SFT borrows the one from
 SmolLM2-360M-Instruct. Second seeds change both the training seed and the data
 sample. Every run records its exact training rows, token count and the
 fraction of unchanged weights. Dropping the top direction leaves every update
-far below noise (0.440 for Qwen, 0.357 for SmolLM2), so stable rank is not
-driven by a single outlying direction.
+far below noise, whose stable rank without its own top direction is 0.440 for
+Qwen and 0.357 for SmolLM2, so stable rank is not driven by a single outlying
+direction.
 
 \section{Threshold sensitivity and the noise baseline}
 \label{app:sensitivity}
 
 \begin{table}[H]
-\caption{The threshold count at three cut-offs. At $0.01\,\sigma_1$ every
+\caption{The threshold count at three cutoffs. At $0.01\,\sigma_1$ every
 update looks almost like noise; at $0.1\,\sigma_1$ the gap is large. The verdict
 depends on an arbitrary choice.}
 \label{tab:threshold}
@@ -210,7 +211,7 @@ SmolLM2-360M & SFT            & 0.023 & 0.027 & 0.029 & 0.021 \\
 
 We tested one possible explanation: that the shuffled-words update mainly
 shifts the output towards frequent tokens. For each layer's
-\texttt{down\_proj} update on Qwen, we map the top left singular vector to the
+\texttt{down} projection update on Qwen, we map the top left singular vector to the
 vocabulary through the final norm and the tied unembedding (ignoring the
 layers in between, as the logit lens does) and correlate the resulting logit
 shift with the log frequency of each token in the run's training data,
@@ -228,15 +229,16 @@ does not explain why the shuffled-words update is the most concentrated.
 \label{app:released}
 
 \begin{table}[H]
-\caption{More on the released pairs. Participation ratio against a Gaussian
-matrix of the same shape; ``above edge'', the number of singular values above
-the largest one such a Gaussian matrix would have (mean per matrix); the
-``rounding share'', the number of singular values of the simulated bf16
-rounding error above $0.01\,\sigma_1$ of the update, as a share of the update's
-threshold count (a loose upper bound on how much of the count rounding could
-explain, as a ratio of means over matrices; compare the ``above floor''
-column of Table~\ref{tab:released}); the size of the update relative to the
-base weights; and the share of entries of $\dW$ that are exactly zero, the
+\caption{More on the released pairs. ``Particip.\ ratio'': the participation
+ratio, next to its value for a Gaussian matrix of the same shape. ``Above
+edge'': the number of singular values above the largest one such a Gaussian
+matrix would have (mean per matrix). ``Rounding share'': the number of
+singular values of the simulated bf16 rounding error above $0.01\,\sigma_1$ of
+the update, as a share of the update's threshold count; a loose upper bound on
+how much of the count rounding could explain, as a ratio of means over
+matrices (compare the ``above floor'' column of Table~\ref{tab:released}).
+$\|\dW\|_F/\|W\|_F$: the size of the update relative to the base weights.
+``Zero entries'': the share of entries of $\dW$ that are exactly zero, the
 direct trace of rounding.}
 \label{tab:released_more}
 \begin{center}
@@ -368,11 +370,11 @@ cutoff and uniform scaling, which make the model answer at length.
 
 To check that the limit is not hiding a gain, we reran the unedited model and
 the $\lambda = 0.2$ edit with 4{,}096 new tokens, four samples per question
-for both. Wu et al.'s 8{,}192 does not fit: on a few questions this model
-writes answers so long that the memory for four samples exceeds our 6\,GB
-GPU, so at that limit the samples were generated one at a time, and the first
-111 questions of the unedited model were run that way before the limit was
-lowered to 4{,}096. All of those finished well within either limit. At the
+for both. Wu et al.'s 8{,}192 does not fit on our 6\,GB GPU with four samples
+at once, because on a few questions this model writes very long answers. We
+began the unedited model at that limit with samples generated one at a time,
+ran the first 111 questions that way, then lowered the limit to 4{,}096; all
+111 finished well within either limit. At the
 longer limit the unedited model scores 25.6\% (pass@4 44.9) and the edit
 25.4\% (pass@4 47.5), differences of $-0.3$ ($-3.5$, $+3.0$) and $+2.5$
 ($-3.5$, $+8.6$) points, and 2.9\% and 2.7\% of samples are unfinished.
@@ -390,12 +392,12 @@ $\|W' - W\|_F$ for Timber's
 tail edit, 4\% for the stable-rank tail edit, 5.5\% for uniform scaling
 matched to the stable-rank edit and 88\% for uniform scaling matched to
 Timber's edit, which bf16 storage almost erases. The uniform scaling factor is
-computed per matrix; its mean is 0.75 for the stable-rank match. pass@$k$ uses
-the unbiased estimator of
-\citet{chen2021codex} with $n=8$.
+computed per matrix; its mean is 0.75 for the stable-rank match. The pass@$k$
+values use the unbiased estimator of \citet{chen2021codex} with $n=8$.
 
 \begin{table}[H]
-\caption{All edit variants on the first 300 GSM8K test problems. Differences
+\caption{All edit variants on the first 300 GSM8K test problems, pass@$k$ in
+percent. Differences
 from the unedited model in points, with 95\% paired bootstrap intervals,
 not corrected for the fourteen comparisons. ``Answered'' is the share of
 samples with a final boxed answer. ``Uniform'' scales the whole update, per

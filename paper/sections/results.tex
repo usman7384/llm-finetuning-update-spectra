@@ -102,15 +102,16 @@ concentrated. Long-tailed update spectra have been noted before, in work on
 compressing updates \citep{ping2024deltacome}; what the noise baseline adds is
 how far from random the head of the spectrum is. Nor is the result driven by
 one outlying direction: without the top direction, stable rank is 0.126 for
-the Qwen SFT update against 0.440 for noise (Table~\ref{tab:runs}).
+the Qwen SFT update against 0.440 for noise (Table~\ref{tab:runs}; the noise
+value is in Appendix~\ref{app:training}).
 
 The pretrained weights are a harder reference than noise, since they are
 themselves far from random, and the updates are more concentrated than them
 too, on average. The stable rank of the pretrained weights is 0.178 on Qwen
-and 0.140 on SmolLM2, against 0.09--0.10 and 0.020--0.034 for the SFT,
+and 0.140 on SmolLM2, against 0.093--0.097 and 0.020--0.034 for the SFT,
 wikitext and code updates: 46--48\% below the weights on Qwen and 75--86\% on
 SmolLM2, with layer-bootstrap intervals well clear of zero. This does not hold
-for every matrix type: on Qwen, for \texttt{down\_proj}, the SFT update and the
+for every matrix type: on Qwen, for the \texttt{down} projection, the SFT update and the
 weights are level (Table~\ref{tab:pertype}). The threshold count cannot see
 the difference either: it puts the Qwen updates and the pretrained weights at
 the same 97--98\%.
@@ -123,7 +124,7 @@ the same 97--98\%.
 matrix by matrix, with 95\% layer-bootstrap intervals. The intervals describe
 the spread over layers within one run, not between training runs; ``second
 seed'' repeats a run with a different seed and data sample. ``Steps matched''
-trains on code for as many optimizer steps as SFT, 2.5--2.7 times more code
+trains on code for as many optimizer steps as SFT, which is 2.5--2.7 times more code
 tokens.}
 \label{tab:paired}
 \begin{center}
@@ -187,7 +188,8 @@ preference signal, not everything the two runs see in common
 prefers the chosen answer 65\% of the time (74\% for a second seed); the
 control is at chance, 51\%. Yet the two updates are alike on every measure
 (Table~\ref{tab:measures}): stable rank 0.053 for DPO and 0.055 for the
-control, against 0.436 for noise, and the same size. The paired difference,
+control, against 0.436 for noise, and the two updates have the same size
+(Table~\ref{tab:runs}). The paired difference,
 $+0.002$, is larger than the gap between the two DPO seeds ($+0.001$) but
 under 4\% of the value and about $1/200$ of the distance to noise
 (Table~\ref{tab:paired}). The directions agree too: the real DPO update
@@ -209,7 +211,7 @@ towards frequent tokens, does not single it out: the top directions of the
 SFT and code updates line up with token frequency in late layers too
 (Appendix~\ref{app:shuffled}). We report it as an observation: the
 concentration of a fine-tuning update depends on the training process and the
-data, not on whether the data teach instruction following or preferences.
+data, not on whether the data teaches instruction following or preferences.
 
 \subsection{Released models}
 \label{sec:released}
@@ -270,10 +272,11 @@ the largest singular value a same-size Gaussian matrix would have
 
 For most pairs, bf16 rounding is not a concern: 91--100\% of their
 directions are stronger than anything rounding alone can produce. For three
-it is. 14\% of the entries of the Qwen2.5-1.5B update, and 39\% and 52\% of
+it is: 14\% of the entries of the Qwen2.5-1.5B update, and 39\% and 52\% of
 the OLMo DPO and RL updates, are exactly zero, and only 78\%, 13\% and 3\% of
 their directions rise above the simulated rounding floor
-(Table~\ref{tab:released_more}). For these updates much of what the threshold
+(Tables~\ref{tab:released} and~\ref{tab:released_more}). For these updates
+much of what the threshold
 count counts may be rounding. Rounding adds many tiny singular values, which
 stable rank largely ignores.
 

@@ -1,9 +1,9 @@
 \section{Case study: is post-training superficial?}
 \label{sec:timber}
 
-\citet{wu2025timber} compare released base and instruct models (Llama~3.1 and
-3.2 \citep{grattafiori2024llama3}, and Qwen3) through the entropy effective rank of each weight matrix $W$ (not of
-$\dW$). They find it almost unchanged by post-training, at about 85\% of full
+\citet{wu2025timber} compare released base and instruct models (Llama~3.1 and 3.2,
+\citealp{grattafiori2024llama3}, and Qwen3) through the entropy effective rank
+(eRank, \S\ref{sec:background}) of each weight matrix $W$ (not of $\dW$). They find it almost unchanged by post-training, at about 85\% of full
 rank, and read this as weight-level evidence that post-training is
 superficial. They also propose an edit, Timber: keep the top
 $\lceil \entropyrank(\dW)\rceil$ singular directions of the update and scale
@@ -24,7 +24,8 @@ the same Frobenius norm (grey). Right: perplexity on held-out
 wikitext of Qwen3-0.6B base, unchanged, after a random update of the same size
 as its real post-training update (Gaussian, or with the real update's singular
 values), and after the real update, which gives the instruct model. The
-numbers above the bars are the same size of change in eRank($W$).}
+numbers above the bars give the size of the change in eRank($W$) for each
+update, as in the left panel.}
 \label{fig:random}
 \end{figure}
 
@@ -40,7 +41,7 @@ to 3.8 times less than the random one, so post-training does change $W$ in a
 structured way, but that is visible only next to the random comparison.
 
 \begin{table}[t]
-\caption{GSM8K accuracy (greedy, all 1{,}319 test problems) of Qwen3-0.6B with
+\caption{GSM8K accuracy, in percent (greedy, all 1{,}319 test problems), of Qwen3-0.6B with
 a random update of the same size as its real post-training update, added to
 every attention and MLP matrix. Each pair uses the same prompt and token
 limit: the base model an 8-shot plain-text prompt, the instruct model its chat
@@ -97,10 +98,12 @@ per problem, the same sampling seed per problem for every variant. Left: first
 \end{figure}
 
 \begin{table}[t]
-\caption{Edits of the Qwen3-0.6B update on all 1{,}319 GSM8K test problems.
+\caption{Edits of the Qwen3-0.6B update on all 1{,}319 GSM8K test problems;
+pass@$k$ in percent.
 ``Unscaled'' is the share of the update's energy the edit leaves at full
 strength (uniform scaling shrinks every direction by the same factor);
-``answered'' is the share of samples with a final boxed answer. Differences
+``answered'' is the share of samples with a final boxed answer; ``same
+size'' means scaled to the size of the stable-rank edit. Differences
 from the unedited model in points, with 95\% paired bootstrap intervals over
 problems, not corrected for multiple comparisons.}
 \label{tab:cutoff}
@@ -113,7 +116,7 @@ edit & unscaled & pass@1 & pass@8 & answered & $\Delta$ pass@1 & $\Delta$ pass@8
 \midrule
 none                                       & 100\%  & 62.3 & 85.1 & 97.4\% & -- & -- \\
 tail $\times 0.2$, eRank cutoff (Timber)   & 98.9\% & 62.3 & 85.3 & 97.1\% & $-0.0$ ($-0.8$, $+0.8$)  & $+0.2$ ($-1.4$, $+1.8$) \\
-tail $\times 0.5$, eRank cutoff (Timber)   & 98.9\% & 63.1 & 85.9 & 97.1\% & $+0.7$ ($-0.02$, $+1.6$) & $+0.8$ ($-0.6$, $+2.3$) \\
+tail $\times 0.5$, eRank cutoff (Timber)   & 98.9\% & 63.1 & 85.9 & 97.1\% & $+0.7$ ($-0.0$, $+1.6$)  & $+0.8$ ($-0.6$, $+2.3$) \\
 tail $\times 0.5$, stable-rank cutoff      & 41.4\% & 62.9 & 86.9 & 96.0\% & $+0.6$ ($-0.5$, $+1.7$) & $+1.8$ ($+0.2$, $+3.5$) \\
 whole update $\times 0.75$ (same size)     & 0\%    & 65.8 & 87.8 & 96.4\% & $+3.4$ ($+2.4$, $+4.5$) & $+2.7$ ($+1.1$, $+4.2$) \\
 \bottomrule
@@ -129,20 +132,20 @@ the edited model in bf16 distorts it by 16\% of its size at $\lambda=0.2$ and
 25\% at $\lambda=0.5$ (Appendix~\ref{app:cutoff}).
 
 We compare edits of the same update on two benchmarks: GSM8K
-\citep{cobbe2021gsm8k}, which is not among Wu et al.'s, and GPQA-Diamond,
-which is. On GSM8K we score with pass@$k$ \citep{chen2021codex} and compare:
+\citep{cobbe2021gsm8k}, which is not among Wu et al.'s, and GPQA-Diamond
+\citep{rein2024gpqa}, which is. On GSM8K we score with pass@$k$
+\citep{chen2021codex} and compare:
 Timber's tail edit, the same edit with a stable-rank cutoff that scales 53
 times more of the update's energy, and simply scaling the whole update by one
 factor per matrix (0.75 on average) so that the edited update has the same
 size as the stable-rank edit. We run Timber's edit both at its recommended
 $\lambda=0.2$ and at $\lambda=0.5$, and use Qwen3's non-thinking mode, the
-mode of Wu et al.'s main table; their thinking-mode results we do not
-attempt.
+mode of Wu et al.'s main table.
 
 On all 1{,}319 problems, Timber's edit has no detectable effect at either
 setting (Table~\ref{tab:cutoff}, Figure~\ref{fig:cutoff}). At $\lambda=0.2$
-pass@1 is unchanged ($-0.0$ points, $-0.8$ to $+0.8$) and pass@8 moves by
-$+0.2$ ($-1.4$, $+1.8$); at $\lambda=0.5$ the changes are $+0.7$ ($-0.02$,
+pass@1 is unchanged ($-0.0$ points; $-0.8$, $+0.8$) and pass@8 moves by
+$+0.2$ ($-1.4$, $+1.8$); at $\lambda=0.5$ the changes are $+0.7$ ($-0.0$,
 $+1.6$) and $+0.8$ ($-0.6$, $+2.3$). The stable-rank edit gives a similar
 pass@1 and a pass@8 gain of $+1.8$ ($+0.2$, $+3.5$).
 
@@ -159,12 +162,14 @@ arithmetic already treats the scale of an update as a knob worth tuning
 \begin{table}[t]
 \caption{The same edits on GPQA-Diamond \citep{rein2024gpqa}, Wu et al.'s
 benchmark, 198 questions, non-thinking mode with their sampling settings.
-``Accuracy'' is the mean over samples (their Mean@$k$); eight samples per
+``Accuracy'' is the mean over samples (their Mean@$k$), in percent, as is
+pass@4; eight samples per
 question for the unedited model, four for each edit. Differences in points
 with 95\% paired bootstrap intervals over questions.}
 \label{tab:gpqa}
 \begin{center}
 \small
+\setlength{\tabcolsep}{4pt}
 \begin{tabular}{lcccc}
 \toprule
 edit & accuracy & $\Delta$ accuracy & pass@4 & $\Delta$ pass@4 \\
@@ -174,7 +179,7 @@ tail $\times 0.2$, eRank cutoff (Timber)  & 26.9 & $+0.9$ ($-2.1$, $+4.0$)  & 46
 tail $\times 0.5$, eRank cutoff (Timber)  & 26.4 & $+0.4$ ($-2.5$, $+3.5$)  & 47.5 & $+0.9$ ($-4.2$, $+6.4$) \\
 tail $\times 0.8$, eRank cutoff (Timber)  & 26.9 & $+0.9$ ($-2.0$, $+3.9$)  & 47.0 & $+0.4$ ($-4.8$, $+5.6$) \\
 tail $\times 0.2$, stable-rank cutoff     & 21.3 & $-4.6$ ($-9.3$, $+0.2$)  & 48.0 & $+1.4$ ($-6.4$, $+9.4$) \\
-whole update scaled to the same size      & 22.9 & $-3.1$ ($-7.1$, $+0.9$)  & 54.0 & $+7.5$ ($+0.5$, $+14.3$) \\
+whole update, scaled to the stable-rank edit's size & 22.9 & $-3.1$ ($-7.1$, $+0.9$)  & 54.0 & $+7.5$ ($+0.5$, $+14.3$) \\
 \bottomrule
 \end{tabular}
 \end{center}
@@ -182,7 +187,7 @@ whole update scaled to the same size      & 22.9 & $-3.1$ ($-7.1$, $+0.9$)  & 54
 
 GPQA-Diamond is where Wu et al.\ report their largest gain for this model: a
 mean accuracy of 28.79\% against 23.74\% unedited, $+5.1$ points. Our
-unedited model scores 25.9\%, within two points of theirs. Timber's edit, at
+unedited model scores 25.9\%, about two points above theirs. Timber's edit, at
 each of the three $\lambda$ values they searched, moves accuracy by under a
 point, and every interval includes zero (Table~\ref{tab:gpqa}). We do not
 observe their gain, but our setup is our own, not their evaluation harness:
@@ -191,16 +196,16 @@ question against their three full repeats, and 2{,}048 new tokens against
 their 8{,}192. Truncation, at least, does not explain the difference. The
 share of samples that end without a final answer is 3.5\% for the unedited
 model and 3.4--4.2\% for Timber's three edits (8.7--8.8\% for the two larger
-edits), no more for Timber's edits than for no edit, and a rerun of the
-unedited model and the recommended $\lambda=0.2$ with the limit doubled to
-4{,}096 tokens, the most this model's samples fit on our GPU, gives 25.6\%
+edits), so Timber's edits are cut off no more often than no edit. A rerun of
+the unedited model and the recommended $\lambda=0.2$ with the limit doubled
+to 4{,}096 tokens, the most this model's samples fit on our GPU, gives 25.6\%
 against 25.4\%, a difference of $-0.3$ points ($-3.5$, $+3.0$), with
 2.7--2.9\% of samples unfinished (Appendix~\ref{app:cutoff}). With 198
 questions our intervals are about $\pm3$ points, and their $+5.1$, from the
 same 198 questions, carries a similar uncertainty. Under our settings the
 intervals exclude a gain of five points; a gain of one to three points is not
-ruled out. The larger edits behave differently here than on
-GSM8K: shrinking most of the update, whether by the stable-rank cutoff or
+ruled out. Here, unlike on GSM8K, the larger edits hurt: shrinking most of
+the update, whether by the stable-rank cutoff or
 evenly, costs 3--5 points of mean accuracy (intervals just reaching zero) and
 makes the model answer at length, while the uniform version's pass@4 rises.
 That pattern, worse single answers but more varied ones, is a change in
@@ -221,7 +226,7 @@ most of the update, costs 4.2 points against the unedited model and 5.3 against
 halving it. Removing most of an update hurts; this says little about the
 weakest directions alone. A uniform scaling matched in size to Timber's edit is
 almost erased by bf16 storage (88\% of the change is lost) and, like Timber's
-edit, has no clear effect ($+0.8$, interval $-0.8$ to $+2.4$).
+edit, has no clear effect ($+0.8$; $-0.8$, $+2.4$).
 
 We did not test thinking mode, where Wu et al.\ also report gains, and our
 GPQA intervals are wide. Within those limits, the effective-rank cutoff is not
