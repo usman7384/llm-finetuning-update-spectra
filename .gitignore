@@ -4,6 +4,8 @@ __pycache__/
 *.pyc
 .ruff_cache/
 .pytest_cache/
+dist/
+*.egg-info/
 
 # model weights are tens of GB, so checkpoints/ stays out of git except for
 # each run's manifest.json and the sweep summary
@@ -25,6 +27,7 @@ paper*.zip
 
 # editor / OS / local tools
 .vscode/
+.claude/
 .idea/
 .DS_Store
 Thumbs.db
