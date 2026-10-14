@@ -45,7 +45,7 @@ def main() -> int:
     for pair in args.pairs:
         base, inst = (LazyWeights(weights_dir(m)) for m in PAIRS[pair])
         sums: dict[str, list[float]] = {}
-        for k in base.keys():
+        for k in base:
             if is_analyzable_matrix(k) or k not in inst:
                 continue
             b, a = base[k].double(), inst[k].double()

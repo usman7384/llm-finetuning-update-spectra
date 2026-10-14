@@ -46,7 +46,7 @@ def main() -> int:
             continue
         base, after = LazyWeights(weights_dir(base_id)), LazyWeights(path)
         same = total = 0
-        for k in base.keys():
+        for k in base:
             if not is_analyzable_matrix(k) or k not in after:
                 continue
             a, b = after[k], base[k]

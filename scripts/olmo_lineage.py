@@ -41,7 +41,7 @@ def main() -> int:
         dot = nb = ns = 0.0
         n = 0
         with safe_open(path, "pt") as f:
-            for key in f.keys():
+            for key in f.keys():  # noqa: SIM118  (safe_open handles are not iterable)
                 if not is_analyzable_matrix(key) or key not in sft:
                     continue
                 wb, ws = f.get_tensor(key).double(), sft[key].double()

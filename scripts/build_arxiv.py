@@ -248,7 +248,7 @@ def page_count(log: str) -> int:
     return int(m.group(1))
 
 
-def pdflatex_until_stable(tex: "Tex", cwd: Path, first_pass: int = 1) -> tuple[str, int]:
+def pdflatex_until_stable(tex: Tex, cwd: Path, first_pass: int = 1) -> tuple[str, int]:
     """Run pdflatex at least MIN_PASSES times (counting from first_pass) and
     then until the log no longer asks for a rerun. Returns (log, passes run)."""
     pass_no = first_pass

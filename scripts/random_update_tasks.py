@@ -83,7 +83,7 @@ def apply_update(model, kind: str, seed: int, device: str) -> None:
     """Add a same-size update to every attention/MLP matrix of the loaded model."""
     base, inst = LazyWeights(weights_dir(BASE)), LazyWeights(weights_dir(INSTRUCT))
     params = dict(model.named_parameters())
-    for key in base.keys():
+    for key in base:
         if key not in params or key not in inst or not is_analyzable_matrix(key):
             continue
         w_b = base[key].to(device, torch.float32)

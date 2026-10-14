@@ -44,7 +44,7 @@ def main() -> int:
     for pair in args.pairs:
         base_id, inst_id = PAIRS[pair]
         base, inst = LazyWeights(weights_dir(base_id)), LazyWeights(weights_dir(inst_id))
-        keys = [k for k in base.keys() if is_analyzable_matrix(k) and k in inst]
+        keys = [k for k in base if is_analyzable_matrix(k) and k in inst]
         d2 = w2 = a2 = dot = zeros = total = 0.0
         dtype = None
         for k in keys:

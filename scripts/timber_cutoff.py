@@ -204,8 +204,8 @@ def run_variant(name: str, problems, args, device: str) -> None:
             enc = tok(texts, return_tensors="pt", padding=True).to(device)
             # same seed per problem for every variant, so differences come from the weights
             torch.manual_seed(args.seed + idxs[0])
-            settings = dict(do_sample=True, temperature=0.7, top_p=0.8, top_k=20,
-                            max_new_tokens=args.max_new_tokens, pad_token_id=tok.pad_token_id)  # fmt: skip
+            settings = {"do_sample": True, "temperature": 0.7, "top_p": 0.8, "top_k": 20,
+                            "max_new_tokens": args.max_new_tokens, "pad_token_id": tok.pad_token_id}  # fmt: skip
             if args.samples_per_call >= args.n:
                 gen = model.generate(**enc, num_return_sequences=args.n, **settings)
                 outs = tok.batch_decode(

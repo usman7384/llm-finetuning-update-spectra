@@ -60,7 +60,7 @@ PAIRS = [("SFT", "SFT (seed 2)"), ("wikitext", "wikitext (seed 2)"), ("code", "c
 def top_subspaces(base: LazyWeights, run: Path) -> dict[str, tuple[torch.Tensor, torch.Tensor]]:
     after = LazyWeights(run)
     out = {}
-    for key in base.keys():
+    for key in base:
         if not is_analyzable_matrix(key) or key not in after:
             continue
         d = after[key].double() - base[key].double()
