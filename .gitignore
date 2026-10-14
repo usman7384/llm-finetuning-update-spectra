@@ -24,6 +24,7 @@ data/raw/
 
 # the paper zipped for Overleaf, rebuilt from paper/ whenever needed
 paper*.zip
+paper*.pdf
 
 # editor / OS / local tools
 .vscode/
