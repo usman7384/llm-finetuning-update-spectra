@@ -1,401 +1,348 @@
-# Does alignment training change behavior, or just style?
+# Rank Measures of Fine-Tuning Updates Need a Noise Baseline
 
-Alignment training (SFT, then DPO) is what turns a raw base model into
-something that follows instructions and talks like an assistant. What it
-actually does to the weights is still an open question. The "superficial
-alignment hypothesis" from LIMA says the model learned everything it knows
-during pretraining, and alignment just picks the style to answer in. If that's
-right, the weight change should be small and structured rather than spread out
-everywhere.
+Code, configurations, run manifests, exact training rows, saved singular-value
+spectra and evaluation logs for the paper *Rank Measures of Fine-Tuning Updates
+Need a Noise Baseline* (Muhammad Usman Altaf, Independent Researcher; under
+review at TMLR, 2026). The LaTeX sources are in [paper/](paper/).
 
-This repo tests that on one laptop GPU: full SFT, DPO and a LoRA sweep on
-Qwen2.5-0.5B, token-matched non-alignment controls, a second model family
-(SmolLM2-360M), and seven publicly released base/instruct pairs from 135M
-to 8B.
+> **Status.** The paper is under double-blind review. This repository stays
+> private until a decision and must not be linked from the anonymous
+> submission.
 
-Short answer: the weight change *is* structured, but there's nothing
-alignment-specific about it. Fine-tuning on Wikipedia or Python code produces
-the same structure. The more useful finding turned out to be about measurement:
-the rank measures used in this area, including the one behind a 2025 claim that
-post-training is superficial, can't tell a fine-tuning update from random
-noise. Stable rank can.
+The paper measures the weight update ΔW of fine-tuning with five rank
+measures (threshold count, entropy effective rank, 90%-energy rank,
+participation ratio, stable rank) and compares each against the same measure
+on a random matrix of the same shape, on the pretrained weights, and on
+fine-tunes without alignment content. It does this on our own fp32 fine-tunes
+of Qwen2.5-0.5B and SmolLM2-360M (SFT, wikitext, Python code, shuffled words,
+DPO with a swapped-preference control, second seeds, step-matched code), on
+thirteen released pairs up to 8B, and on the Timber paper's evidence that
+post-training is superficial.
 
-![stable rank across runs](results/stable_rank.png)
+## What is in the repository, and what is not
 
-- Full write-up with every number: [docs/report.md](docs/report.md)
-- The plan and predictions, written before training: [docs/plan.md](docs/plan.md)
-- Prior work: [docs/related-work.md](docs/related-work.md)
-- The paper (TMLR format, LaTeX): [paper/](paper/)
+Tracked in git (everything a reader needs to recompute every table and figure
+without a GPU):
 
-## What came out of it
-
-Roughly in order of how much I trust each one.
-
-**The usual ways of measuring "is this update low-rank" can't see the answer.**
-Counting singular values above 0.01·σ₁ puts the SFT weight delta at 99.07% of
-max rank and two random initializations at 99.62%. The rank needed for 90% of
-the energy gives 0.66 vs 0.72. Stable rank (‖ΔW‖²_F / ‖ΔW‖²₂) on the same saved
-spectra says the SFT delta is 3x more concentrated than the random pair, with
-8x more energy in its top direction. Both are true at once: ΔW has a long,
-slowly decaying tail (so counting measures call it high rank) and a top few
-directions that carry far more energy than noise would. This held for every
-fine-tuning run I tried, on both model families.
-
-**The concentration isn't about alignment.** I expected this one to go the
-other way. A plain language-modeling run on wikitext, and another on Python
-code, both matched to the SFT run's token count and settings, land in the same
-band:
-
-| Run | stable rank / max rank | vs noise | ‖ΔW‖_F |
-|---|---|---|---|
-| wikitext LM | 0.110 | 4.0x | 0.349 |
-| DPO (on top of SFT) | 0.144 | 3.0x | 0.019 |
-| Alpaca SFT | 0.145 | 3.0x | 0.280 |
-| Python code LM | 0.154 | 2.8x | 0.127 |
-| two random inits | 0.436 | | 35.28 |
-
-Two kinds of training objective, three kinds of data, one narrow band. The
-sizes of the changes differ 18x while the concentration barely moves.
-
-**The differences inside that band are real.** Rerunning SFT and both controls
-with a different seed and a different data sample moves stable rank by at most
-0.0026. The gap between the code and wikitext runs is about 0.044, 17x bigger,
-with a paired bootstrap interval of 0.033-0.054. SFT lands inside the range
-the two controls span, though where inside it isn't consistent: on Qwen it
-can't be told apart from code.
-
-**It's not a Qwen quirk.** The same SFT and controls on SmolLM2-360M give the
-same picture: every fine-tune 4-8x below its own noise floor, SFT inside the
-range of the two controls, wikitext again more concentrated than code. The
-threshold count reads 94-98% for all of them.
-
-**The released instruct models show the same measurement problem.** For the
-official base → instruct pairs of Qwen2.5 (0.5B, 1.5B), SmolLM2 (135M, 360M,
-1.7B) and Qwen3 (0.6B, 8B), the threshold count reads 96-99%, within a few
-points of a random matrix, while stable rank is 1.6x to 9x below it. That
-includes Qwen3-8B: 98.0% vs 99.6% on the threshold count, 4.5x below noise on
-stable rank.
-
-**The entropy effective rank used by Timber has the same blind spot, milder.**
-Timber's evidence for superficial post-training is that eRank of each weight
-matrix barely changes between base and instruct. A random perturbation of the
-same size leaves it just as unchanged (every change, real or random, is under
-0.5%). And eRank of ΔW sits within 3-18% of a random matrix, where stable rank
-is 1.6-9x away. Checked on Qwen3-0.6B and Qwen3-8B, two of their own pairs,
-where the eRank of the base weights matches what they report (0.84 and 0.86
-of full rank vs their ~0.85; that number is about W, not ΔW).
-
-**A rank-1 LoRA adapter points the same way full fine-tuning does.** Comparing
-ΔW_sft's top singular directions with the matching LoRA adapter's A/B matrices,
-the overlap is about 11x what random subspaces give at rank 1, and stays above
-random up to rank 128.
-
-What didn't go as predicted is in [docs/report.md](docs/report.md). Briefly:
-the LoRA rank sweep showed no style/capability crossover because rank 1 already
-captured all of the style gain, GSM8K got steadily worse as rank went up, and
-DPO's change had the same shape as SFT's at about 1/15th the size.
-
-**Timber's edit doesn't depend on its cutoff, and does little on GSM8K.** On
-Qwen3-0.6B, all 1,319 GSM8K problems × 8 samples: their eRank cutoff keeps
-99% of ΔW's energy, and halving the tail past it changes pass@1 by +0.8 and
-pass@8 by +0.8 points, both within noise. (The first 300 problems had shown
-+3.3 on pass@8, which mostly didn't survive the full set.) A stable-rank cutoff
-that halves 59% of the update can't be told apart from it. Dropping that 59%
-outright costs 4 points of pass@1, so the long tail of ΔW still matters to
-the model.
-
-Still open: whether the LoRA GSM8K trend survives lower learning rates.
-
-## The machine
-
-Everything ran locally, no cloud. The specs matter here because the 6GB of VRAM
-drove almost every design decision.
-
-| | |
+| What | Where |
 |---|---|
-| GPU | NVIDIA GeForce RTX 3060 Laptop, 6144 MiB VRAM |
-| Driver | 592.00 |
-| CPU | AMD Ryzen 9 5900HS, 8 cores / 16 threads |
-| RAM | 15.4 GB |
-| OS | Windows 11 Home, build 26200 |
-| Python | 3.11.9 |
-| PyTorch | 2.14.0+cu130 (CUDA 13.0 build) |
-| Package manager | [uv](https://docs.astral.sh/uv/) |
-| Disk | ~70 GB free if you run everything |
+| run configurations | `configs/v2_*.yaml` (the runs in the paper); `configs/*.yaml` without the prefix are the first round, see below |
+| run manifests: config hashes, seed, git commit, token count, loss, runtime, fraction of unchanged weights, package versions, DPO reward accuracy | `checkpoints/**/manifest.json` |
+| the exact source rows every run trained and validated on | `data/processed/*_indices.json` |
+| full singular-value spectrum of every attention/MLP update, one `.pt` per matrix | `results/v2/svd_<run>/spectra/`, `results/released_spectra/<pair>/{delta,rounding}/` |
+| noise baselines (two random inits of each architecture) and pretrained-weight spectra | `results/svd_control_random/`, `results/svd_smollm2_random/`, `results/weights_base/`, `results/weights_smollm2_base/` |
+| every number the paper quotes, as CSV | `results/v2/*.csv`, `results/released_*.csv`, `results/timber_*.csv`, `results/v1_unchanged.csv`, `results/olmo_lineage.csv`, `results/embedding_change.csv` |
+| per-problem generations and scores for the edit and damage experiments | `results/timber_cutoff*/`, `results/random_update_tasks/` (`.jsonl`), plus `*.edit.json` with each edit's kept directions, kept energy and bf16 distortion |
+| the paper's figures as vector PDFs | `paper/figures/` |
 
-### Fitting a full fine-tune in 6GB
+Not tracked, and regenerated by the steps below: model weights
+(`checkpoints/**/*.safetensors`; 28 GB for the second-round runs, 74 GB with
+the first round), the Hugging Face cache for the released models (about 80 GB
+for all fifteen pairs, 33 GB of it the Qwen3-8B pair), TensorBoard and driver
+logs (`logs/`).
 
-Full fine-tuning a 0.5B model in bf16 needs the weights (~1GB), the gradients
-(~1GB) and the AdamW states (~4GB in fp32). That's already over 6GB before any
-activations. Three things make it fit, and you need all three:
+Whole repository: about 94 MB in 11,400 files, of which 66 MB are the 11,000
+spectra (6 KB each on average). The largest file is 1.5 MB, so Git LFS is not
+needed.
 
-- 8-bit AdamW from `bitsandbytes`, which cuts the optimizer states by about 4x
-- gradient checkpointing, which recomputes activations on the backward pass
-  instead of keeping them (costs maybe 30% speed)
-- batch size 1 with 16 steps of gradient accumulation, for an effective batch
-  of 16 without holding 16 sequences of activations at once
+## Requirements
 
-They're in [configs/model_qwen2.5_0.5b.yaml](configs/model_qwen2.5_0.5b.yaml).
-Take any one out and it OOMs.
+**Hardware.** Everything in the paper ran on one laptop: NVIDIA RTX 3060
+Laptop GPU with 6 GB of VRAM, 16 GB of RAM, Windows 11. The fine-tunes fit in
+6 GB only with all of the following, which the `configs/v2_model_*.yaml` files
+set: fp32 master weights with bf16 autocast for the compute, 8-bit AdamW from
+`bitsandbytes`, gradient checkpointing, batch 1 with 16 accumulation steps,
+512-token sequences and frozen (tied) embeddings. Keeping the weights
+themselves in bf16 is *not* an option: our first round of runs did that and
+77--98% of the weights never moved (`results/v1_unchanged.csv`; paper, Setup).
+Every run checks the fraction of unchanged weights after training and fails if
+it is above `max_unchanged_fraction`.
 
-LoRA needs none of that, since only the adapters have optimizer state. The
-sweep uses plain AdamW, batch 4 and no checkpointing, which is why a LoRA step
-is quicker than a full fine-tuning step even though the forward pass is the
-same.
+A larger GPU runs the same configs faster; nothing depends on the 6 GB except
+the batch and sequence settings. The released-pair measurements need no GPU
+(weights are read one matrix at a time, so 16 GB of RAM is enough for Qwen3-8B)
+but need disk for the downloads.
 
-Qwen2.5-1.5B doesn't fit for full fine-tuning at all (the optimizer states alone
-want 20GB+). That's why my own training runs stop at 0.5B; the released pairs
-go up to 8B because measuring them needs no training, and the scripts read
-weights one matrix at a time so RAM isn't the limit.
+**Software.** Python 3.11, [uv](https://docs.astral.sh/uv/), a CUDA build of
+PyTorch. `pyproject.toml` pins torch to PyTorch's cu130 wheel index because the
+default Windows wheel on PyPI is CPU-only; change the index URL to match your
+driver. `uv.lock` records the exact versions used.
+
+**Platform notes.** The code was written and run on Windows 11. The two driver
+scripts (`scripts/run_v2.sh`, `scripts/run_review_queue.sh`) are bash and were
+run from Git Bash; `run_review_queue.sh` calls PowerShell once to wait for a
+running job, which is Windows-only and can be removed elsewhere. All paths in
+configs and scripts are relative to the repository root, so run every command
+from the root. `.gitattributes` keeps text files LF in the repository
+(`git ls-files --eol` reports `i/lf` for every text file), so a fresh clone is
+LF on every OS; the scripts do not care either way. Manifests written on
+Windows record relative paths with backslashes (`configs\v2_sft.yaml`), which
+is cosmetic.
+
+**Gated data.** GPQA-Diamond (`Idavidrein/gpqa`) is gated on the Hub: accept
+its terms on the dataset page and log in (`uv run hf auth login`, or
+`huggingface-cli login` on older `huggingface_hub`) before running
+`timber_cutoff.py --task gpqa`. Everything else (Alpaca-cleaned, UltraFeedback,
+wikitext-103, CodeParrot, GSM8K, and all model checkpoints) is public.
 
 ## Setup
 
 ```bash
-uv sync --extra eval --extra quant --extra dev
-uv run python scripts/check_env.py
+uv sync --extra quant --extra dev        # add --extra eval only for the first-round lm-eval runs
+uv run python scripts/check_env.py       # imports, GPU visible, VRAM
+uv run pytest -q                         # 35 CPU tests, about 15 s
 ```
 
-`check_env.py` checks the imports, that torch can see the GPU, and how much VRAM
-you have, so you find out early if your machine doesn't match the configs.
+## Reproducing the paper
 
-What the extras are for:
+The steps are in dependency order. Step 0 and step 3 run on the CPU from the
+tracked files; steps 1, 2, 5 and the `timber_check.py` part of step 4 use the
+GPU for minutes to many hours; the rest of step 4 is downloads. Every script is
+resumable: running it again skips finished work.
 
-- `eval`: `lm-eval`, plus `langdetect` and `immutabledict`. IFEval needs those
-  two but lm-eval doesn't list them, which I found out from a crashed run.
-- `quant`: `bitsandbytes`, for the 8-bit optimizer.
-- `dev`: pytest and ruff. `uv run pytest` runs the tests (no GPU or downloads
-  needed), `uv run ruff check .` the linter. CI runs both on every push.
+### 0. Analysis only, from the tracked files (no GPU, no downloads)
 
-`pyproject.toml` pulls torch from PyTorch's cu130 index, because the default
-Windows wheel on PyPI is CPU-only. Change that URL to match your own driver.
-
-## Running it
-
-Everything can be stopped and restarted. Run the same command again and it
-continues from the last checkpoint, or skips the step if it's already done.
+Every number in the paper is in a tracked CSV. The tables built from spectra
+and all six figures can be recomputed from git alone:
 
 ```bash
-# reference weights for the SVD comparisons (--random adds the noise floor pair)
-uv run python scripts/save_reference_models.py --random
-
-# baseline evals on the untouched model
-uv run python scripts/run_evals.py --checkpoint Qwen/Qwen2.5-0.5B --label base
-
-# full SFT, evals, and SVD of the delta
-uv run python scripts/train_sft.py --config configs/sft.yaml
-uv run python scripts/run_evals.py --checkpoint checkpoints/sft --label sft
-uv run python scripts/svd_deltas.py --before checkpoints/base --after checkpoints/sft --tag sft --out results/svd_sft
-uv run python scripts/svd_deltas.py --before checkpoints/random_init_a --after checkpoints/random_init_b --tag random --out results/svd_control_random
-
-# LoRA sweep (24 runs), evals on each rank's best run, then the plot
-uv run python scripts/lora_sweep.py --config configs/lora_sweep.yaml
-for r in 1 2 4 8 16 32 64 128; do
-  uv run python scripts/run_evals.py --checkpoint checkpoints/lora_sweep/r${r}_lr1e-04 --label lora_r${r}
-done
-uv run python scripts/plot_lora_sweep.py
-
-# DPO on top of SFT, measured against W_sft rather than base
-uv run python scripts/train_dpo.py --config configs/dpo.yaml
-uv run python scripts/run_evals.py --checkpoint checkpoints/dpo --label dpo
-uv run python scripts/svd_deltas.py --before checkpoints/sft --after checkpoints/dpo --tag dpo --out results/svd_dpo
-uv run python scripts/plot_sft_vs_dpo.py
-
-# does LoRA find the same directions as full fine-tuning?
-uv run python scripts/lora_overlap.py
-
-# controls and the second seed (same trainer, different configs)
-uv run python scripts/train_sft.py --config configs/control_lm.yaml
-uv run python scripts/train_sft.py --config configs/control_code.yaml
-uv run python scripts/train_sft.py --config configs/sft_seed43.yaml
-uv run python scripts/train_sft.py --config configs/control_lm_seed43.yaml
-uv run python scripts/train_sft.py --config configs/control_code_seed43.yaml
-# ...then svd_deltas.py on each against checkpoints/base, into results/svd_<name>
-
-# stable rank across everything above, and a check that the report's files exist
-uv run python scripts/stable_rank.py
-uv run python scripts/check_artifacts.py
-
-# released base/instruct pairs (no training, ~17GB of downloads)
-uv run python scripts/released_pairs.py
-
-# Timber's entropy eRank on all of the above, with same-size random perturbations
-uv run python scripts/timber_check.py
-
-# 95% intervals (layer bootstrap) for all of the spectral numbers
-uv run python scripts/error_bars.py
-
-# spectra of the pretrained weights, the second reference point besides noise
-uv run python scripts/weight_spectra.py --checkpoint checkpoints/base --out results/weights_base
-uv run python scripts/weight_spectra.py --checkpoint checkpoints/smollm2_base --out results/weights_smollm2_base
-
-# the paper's figures, as vector PDFs in paper/figures
-uv run python scripts/paper_figures.py
-
-# Timber's edit with an eRank vs a stable-rank cutoff, pass@k on GSM8K (~9.5 h)
-uv run python scripts/timber_cutoff.py --limit 300
-uv run python scripts/timber_cutoff.py --limit 1319 --variants instruct erank_l0.5 stable_l0.5  # ~16 h more
+uv run python scripts/v2_analysis.py        # results/v2/{measures,gaps,paired,layer_groups}.csv
+uv run python scripts/renyi_grid.py         # results/v2/renyi_grid.csv
+uv run python scripts/released_measures.py  # results/released_measures.csv, results/released_measures/<pair>.csv
+uv run python scripts/paper_figures.py      # paper/figures/*.pdf
 ```
 
-The SmolLM2-360M runs and their SVDs are listed in
-[docs/next-runs.md](docs/next-runs.md), ending with
-`scripts/stable_rank.py --family smollm2`.
+`timber_cutoff.py` and `random_update_tasks.py` recompute their summary CSVs
+from the tracked `.jsonl` files when run with the same arguments and nothing
+left to generate (they load no model in that case). The other CSVs
+(`update_overlap`, `frequency_direction`, `timber_check`, `random_update_check`,
+`released_sizes`, `olmo_lineage`, `embedding_change`, `v1_unchanged`) are
+tracked too, but regenerating them needs the weights from steps 1, 2 or 4.
 
-The `for` loop is bash. In PowerShell it's
-`foreach ($r in 1,2,4,8,16,32,64,128) { ... "r${r}_lr1e-04" ... }`.
+### 1. Reference weights and noise baselines
 
-The controls and the second seed go through `train_sft.py` like the main run.
-The control configs set `data.format: text`, which switches it to plain
-language modeling with no chat template and no prompt masking.
+`save_reference_models.py` saves the untouched base model as bf16 safetensors
+under `checkpoints/`, so every update is measured against the same file, and
+with `--random` two freshly initialised copies of the architecture (seeds 1
+and 2), whose difference is the noise baseline.
 
-### How long things take
+```bash
+uv run python scripts/save_reference_models.py --random
+uv run python scripts/save_reference_models.py --model HuggingFaceTB/SmolLM2-360M --prefix smollm2_ --random
+uv run python scripts/svd_deltas.py --before checkpoints/random_init_a --after checkpoints/random_init_b --tag random --out results/svd_control_random
+uv run python scripts/svd_deltas.py --before checkpoints/smollm2_random_init_a --after checkpoints/smollm2_random_init_b --tag smollm2_random --out results/svd_smollm2_random
+uv run python scripts/weight_spectra.py --checkpoint checkpoints/base --out results/weights_base
+uv run python scripts/weight_spectra.py --checkpoint checkpoints/smollm2_base --out results/weights_smollm2_base
+```
 
-Measured on the machine above:
+### 2. Our fine-tunes (about 45 GPU hours, plus about 19 for DPO)
 
-| | |
-|---|---|
-| base model evals | ~4 h (IFEval alone was 2h19m) |
-| SFT, 3 epochs, 1.75M tokens | 2h25m |
-| LoRA sweep, 24 runs | ~37 h |
-| evals per LoRA rank | ~4 h each |
-| DPO, 1 epoch | 12h19m |
-| wikitext control | ~2h25m |
-| code control | ~2 h |
-| SFT second seed | 2h10m |
-| control second seeds | 2h28m (wikitext), 1h16m (code) |
-| SmolLM2-360M SFT / wikitext / code | 2h47m / 3h06m / 57m |
-| released pairs, first five | ~1 h, mostly downloading |
-| Qwen3-8B pair | ~2-4 h to download 33GB, then ~45 min (`released_pairs.py`) |
-| `timber_check.py`, first 13 | ~1.5 h (SVDs of full W, mostly CPU-bound loading) |
-| `timber_check.py`, Qwen3-8B | ~3.5 h (three SVDs of each full 4096×12288 W) |
-| `timber_cutoff.py`, 300 problems × 5 variants | ~7.5 h (~75 s per 4 problems × 8 samples) |
-| any SVD or plotting script | seconds to a few minutes |
+`scripts/run_v2.sh` trains the sixteen SFT / wikitext / code / shuffled-words /
+second-seed / step-matched runs on both models in the right order (the
+controls read their token budget from the SFT manifest of the same model),
+deletes each run's intermediate checkpoints, and saves the SVD of each update
+to `results/v2/svd_<run>/`. Progress goes to `logs/run_v2.log`.
 
-DPO is slow because every step does four forward passes (the policy and the
-frozen reference model, each on the chosen and the rejected answer) instead of
-one.
+```bash
+bash scripts/run_v2.sh
+```
 
-All in, that's several days of GPU time. I ran it in chunks over about two
-weeks, which is why resuming got built early.
+The three DPO runs start from the Qwen SFT run and are measured against it
+(this is step 2b of `scripts/run_review_queue.sh`):
+
+```bash
+for name in dpo dpo_swapped dpo_seed43; do
+  uv run python scripts/train_dpo.py --config configs/v2_${name}.yaml
+  uv run python scripts/svd_deltas.py --before checkpoints/v2/sft --after checkpoints/v2/${name} --tag v2_${name} --out results/v2/svd_${name}
+done
+```
+
+Each run writes `checkpoints/v2/<run>/manifest.json` and
+`data/processed/v2_<run>_indices.json`. Times on the 3060: 1.3--3.7 h per
+fine-tune, 3.6--8.6 h per DPO run (paper, Table `tab:runs`). A manifest's
+`observed_train_runtime_sec` covers only the segment after the last resume
+(`resumed_from_checkpoint`), so an interrupted run reports less than it took;
+`sft_seed43` is one such run.
+
+### 3. Analysis of our runs
+
+```bash
+uv run python scripts/v2_analysis.py          # measures, gaps to noise and to W, paired differences, layer quarters
+uv run python scripts/renyi_grid.py           # gap to noise along the Renyi family
+uv run python scripts/update_overlap.py       # top-16 subspace overlap between updates; CPU, about 1 h, needs the weights from step 2
+uv run python scripts/frequency_direction.py  # top direction vs token frequency (shuffled-words appendix); CPU, needs the weights
+uv run python scripts/v1_unchanged.py         # share of unchanged weights in the first-round bf16 runs; needs those checkpoints
+```
+
+`v1_unchanged.py` reads the first-round checkpoints, which are not in the
+repository; its output `results/v1_unchanged.csv` is tracked.
+
+### 4. Released pairs (downloads, no training)
+
+`released_spectra.py` saves the spectrum of every update W_after − W_base and,
+for bf16 checkpoints, of one simulated bf16 rounding error, for the fifteen
+pairs in its `PAIRS` table (seven base/instruct releases, the OLMo 2 1B stages
+including the unrelated SFT-vs-main pair, and the Qwen2.5 Math/Coder
+specialists). Downloads total about 80 GB, of which the Qwen3-8B pair is 33 GB;
+set `HF_HUB_CACHE` to a drive with room and run a few pairs at a time with
+`--pairs`. `--device cuda` speeds up the SVDs when the GPU is free.
+
+```bash
+uv run python scripts/released_spectra.py                     # or --pairs qwen3-0.6b smollm2-135m ...
+uv run python scripts/released_measures.py                    # every measure from the saved spectra
+uv run python scripts/released_sizes.py                       # |dW|_F / |W|_F, exactly-zero share, base cosine (lineage check)
+uv run python scripts/olmo_lineage.py                         # which OLMo 2 1B mid-training checkpoint the SFT model descends from
+uv run python scripts/embedding_change.py --pairs qwen3-0.6b  # how much post-training moved the embeddings and norms
+uv run python scripts/timber_check.py --runs qwen3-0.6b qwen3-8b qwen2.5-0.5b qwen2.5-1.5b smollm2-135m smollm2-360m smollm2-1.7b
+```
+
+`timber_check.py` computes Timber's eRank of the full weight matrices before
+and after post-training, and after a Gaussian perturbation of the same size
+(paper Figure `fig:random`, left). It SVDs every full W, so Qwen3-8B alone
+takes about 3.5 h on the CPU.
+
+### 5. The Timber case study (GPU)
+
+```bash
+# eRank(W) and wikitext perplexity after same-size random updates of Qwen3-0.6B (minutes)
+uv run python scripts/random_update_check.py
+
+# the same updates scored on GSM8K, all 1,319 problems, seven variants (hours)
+uv run python scripts/random_update_tasks.py --limit 1319
+
+# Timber's edit with an eRank or a stable-rank cutoff, pass@k on GSM8K (about 1.9 h per variant per 300 problems)
+uv run python scripts/timber_cutoff.py --limit 300 --variants instruct erank_l0.0 erank_l0.2 erank_l0.5 stable_l0.0 stable_l0.5 uniform_erank_l0.5 uniform_stable_l0.5
+uv run python scripts/timber_cutoff.py --limit 1319 --variants instruct erank_l0.2 erank_l0.5 stable_l0.5 uniform_stable_l0.5
+cp results/timber_cutoff.csv results/timber_cutoff_full.csv   # the summary covers whatever --limit was last run; keep both
+
+# GPQA-Diamond, Timber's benchmark (gated dataset, see above; about 9 h per variant at 8 samples)
+uv run python scripts/timber_cutoff.py --task gpqa --limit 198 --max-new-tokens 2048 --batch-seqs 8 --n 8 --variants instruct
+uv run python scripts/timber_cutoff.py --task gpqa --limit 198 --max-new-tokens 2048 --batch-seqs 8 --n 4 --variants erank_l0.2 erank_l0.5 erank_l0.8 stable_l0.2 uniform_stable_l0.2
+# the rerun with a doubled token limit, into results/timber_cutoff_gpqa_long/
+uv run python scripts/timber_cutoff.py --task gpqa --tag long --limit 198 --max-new-tokens 4096 --n 4 --variants instruct erank_l0.2
+```
+
+Variant names are `instruct` (unedited) or `<cutoff>_l<lambda>` with cutoff in
+`{erank, stable}`; a `uniform_` prefix scales the whole update to the size the
+named tail edit leaves. The random-update seeds are fixed inside
+`random_update_check.py` and `random_update_tasks.py` (one seed per matrix and
+draw); the GSM8K and GPQA prompts, sampling settings and answer extraction are
+in `timber_cutoff.py` and `random_update_tasks.py`; the sampling seed per
+problem is `--seed` (default 1234), so every variant sees the same draws and
+the comparisons are paired.
+
+### 6. Figures
+
+```bash
+uv run python scripts/paper_figures.py   # reads results/, writes paper/figures/*.pdf
+```
+
+## Where each table and figure comes from
+
+Labels are the LaTeX labels in `paper/sections/`. Figure rows go through
+`scripts/paper_figures.py`.
+
+| Paper | Script | Result file(s) |
+|---|---|---|
+| `tab:measures`, five measures and top-1 energy for our runs | `v2_analysis.py` | `results/v2/measures.csv` |
+| `fig:gaps`, gap to noise per measure with intervals | `v2_analysis.py` | `results/v2/gaps.csv` → `paper/figures/gaps_by_measure.pdf` |
+| `fig:spectrum`, energy share and decay curves | (spectra) | `results/v2/svd_{sft,control_lm,control_code,control_shuffled}/spectra/`, `results/svd_control_random/spectra/`, `results/weights_base/spectra/` → `spectrum_head_tail.pdf` |
+| `tab:paired`, paired stable-rank differences, seeds, steps matched | `v2_analysis.py` | `results/v2/paired.csv` |
+| direction overlaps (controls section) and `tab:overlap` | `update_overlap.py` | `results/v2/update_overlap.csv` |
+| DPO held-out reward accuracy 65% / 74% / 51% | `train_dpo.py` | `checkpoints/v2/{dpo,dpo_seed43,dpo_swapped}/manifest.json`, key `observed_eval_reward_accuracy` |
+| `fig:released`, `tab:released`, `tab:released_more` | `released_spectra.py`, `released_measures.py`, `released_sizes.py` | `results/released_spectra/<pair>/`, `results/released_measures.csv`, `results/released_sizes.csv` → `released_pairs.pdf` |
+| lineage check (cosines, OLMo 2 parent) | `released_sizes.py`, `olmo_lineage.py` | `results/released_sizes.csv` (`base_cosine`), `results/olmo_lineage.csv` |
+| `fig:random` left, eRank(W) change real vs random, seven pairs | `timber_check.py` | `results/timber_check/<pair>.csv` |
+| `fig:random` right, perplexity after same-size random updates | `random_update_check.py` | `results/v2/random_update_check.csv` → `random_update.pdf` |
+| `tab:damage`, GSM8K after random updates | `random_update_tasks.py` | `results/random_update_tasks/*.jsonl`, `results/v2/random_update_tasks.csv` (eRank column from `random_update_check.csv`) |
+| embeddings moved 13% (`app:damage`) | `embedding_change.py` | `results/embedding_change.csv` |
+| `fig:cutoff`, `tab:cutoff` (1,319 problems), `tab:cutoff300` | `timber_cutoff.py` | `results/timber_cutoff/*.jsonl`, `*.edit.json`, `results/timber_cutoff.csv` (300), `results/timber_cutoff_full.csv` (1,319) → `cutoff_passk.pdf` |
+| `tab:gpqa` and the 4,096-token rerun (`app:cutoff`) | `timber_cutoff.py --task gpqa` | `results/timber_cutoff_gpqa/`, `results/timber_cutoff_gpqa.csv`, `results/timber_cutoff_gpqa_long/`, `results/timber_cutoff_gpqa_long.csv` |
+| `tab:hparams` | (configs) | `configs/v2_model_*.yaml`, `configs/v2_*.yaml` |
+| `tab:runs`, steps, loss, size, stable rank, hours per run | `v2_analysis.py`, manifests | `results/v2/measures.csv` (`fro`, `stable`, `stable_wo_top`); `checkpoints/v2/<run>/manifest.json` (`observed_train_loss`, `observed_train_runtime_sec`, `expected_train_tokens`) |
+| unchanged-weight check, at most 1.01e-5 | `train_sft.py`, `train_dpo.py` | `checkpoints/v2/*/manifest.json`, key `unchanged_weight_fraction` |
+| first round: 77--98% of weights unchanged | `v1_unchanged.py` | `results/v1_unchanged.csv` |
+| `tab:threshold`, counts at 0.01 / 0.05 / 0.1 | `v2_analysis.py` (0.01); `svd_deltas.py` (0.05, 0.1 per matrix) | `results/v2/measures.csv`; `results/v2/svd_<run>/matrix_summary.csv` columns `effective_rank_0.05`, `effective_rank_0.1` |
+| `tab:mp`, random-init pair vs the Gaussian prediction by matrix type | `svd_deltas.py`, `stable_rank.py` | `results/svd_control_random/matrix_summary.csv`, `results/stable_rank.csv` |
+| `fig:renyi` | `renyi_grid.py` | `results/v2/renyi_grid.csv` → `renyi_grid.pdf` |
+| `tab:pertype`, stable rank by matrix type | (spectra) | means by matrix type over `results/v2/svd_<run>/spectra/*.pt`, `results/svd_*random/spectra/`, `results/weights_*/spectra/` |
+| `tab:shuffled`, stable rank by network quarter | `v2_analysis.py` | `results/v2/layer_groups.csv` |
+| frequency-direction correlations (`app:shuffled`) | `frequency_direction.py` | `results/v2/frequency_direction.csv` |
+
+Three appendix tables (`tab:threshold` at 0.05 and 0.1, `tab:mp`, `tab:pertype`)
+are means over the tracked per-matrix files rather than the output of one
+script; `v2_analysis.py` is the natural place to add them.
+
+## The first round of runs
+
+The first round of our fine-tunes (configs without the `v2_` prefix, results
+in `results/svd_*` without `v2/`, `results/stable_rank*`, `results/eval_table.csv`,
+the LoRA sweep and its overlap plots, `results/released_pairs*`, `docs/report.md`)
+kept the weights in bf16 with no fp32 master copy. Updates smaller than half a
+bf16 unit were rounded away, so 77--98% of the weights never changed and the
+measured "updates" were rounding artefacts. The paper reports only the second
+round. The first-round files stay in the repository because the paper quotes
+the unchanged-weight shares (`results/v1_unchanged.csv`), because the noise
+pairs and pretrained-weight spectra from that round are still the baselines,
+and as a record; nothing in `docs/report.md`, `docs/next-runs.md` or the
+first-round result files should be read as a current result. The scripts
+`lora_sweep.py`, `plot_lora_sweep.py`, `lora_overlap.py`, `plot_sft_vs_dpo.py`,
+`run_evals.py`, `error_bars.py`, `check_artifacts.py`, `prepare_data.py` and
+`released_pairs.py` belong to that round and are not used by the paper, as do
+`configs/eval.yaml`, `configs/lora_sweep.yaml`, `src/align_geometry/train/lora.py`
+and the lm-eval wrapper and style/capability scorers in `src/align_geometry/eval/`.
+`stable_rank.py` is also first-round, but its rows for the random-init pair in
+`results/stable_rank.csv` are the source of Table `tab:mp`, and the first-round
+rows of `results/timber_check/{sft,dpo,control_*,smollm2_*}.csv` are not in the
+paper. `docs/paper-review.md` is an internal review of the first-round draft,
+also superseded.
 
 ## Layout
 
 ```
-configs/        one yaml per run. the actual experimental settings live here
-docs/           plan, related work, and the results write-up
+configs/                 one yaml per run; v2_* are the runs in the paper
+scripts/                 everything you run (see above); run_v2.sh and run_review_queue.sh are the drivers
 src/align_geometry/
-  data/         loading: sft_dataset, dpo_dataset, lm_dataset (plain text, for controls)
-  train/        sft.py (also runs the controls), lora.py, dpo.py, common.py (manifests, resume)
-  analysis/     svd_delta.py (spectra, stable/entropy rank, LazyWeights), subspace_overlap.py
-  eval/         lm-eval wrapper, XSTest refusal scorer, gsm8k.py (answer scoring, pass@k)
-  hub.py        local checkpoint or Hub repo, one place
-scripts/        everything you actually run
-tests/          linear algebra, loaders, training helpers, GSM8K scoring
-.github/        CI: ruff and pytest on CPU torch
-paper/          the TMLR paper: LaTeX sources, figures, bibliography
-data/processed/ exact rows each run trained on
-results/        eval table, SVD summaries and spectra, plots
-checkpoints/    model weights, not in git (~66 GB); only each run's manifest.json is
+  analysis/svd_delta.py  LazyWeights (one tensor at a time from safetensors), the rank measures, bf16 rounding unit
+  analysis/subspace_overlap.py
+  data/                  sft_dataset, dpo_dataset (with the preference swap), lm_dataset (plain text, word shuffle)
+  train/                 sft.py, dpo.py, lora.py, common.py (manifests, resume, token budget, unchanged-weight check)
+  eval/                  gsm8k.py (answer scoring, pass@k); lm-eval wrapper and XSTest scorer (first round)
+  hub.py                 local checkpoint or Hub repo, one place
+tests/                   linear algebra, loaders, training helpers, GSM8K scoring
+checkpoints/             weights (not in git); each run's manifest.json is
+data/processed/          exact training rows of every run
+results/                 spectra, CSVs, per-problem logs; v2/ holds the current runs
+docs/                    plan, related work and the first-round write-up (superseded, kept as record)
+paper/                   TMLR sources, figures, bibliography
+.github/                 CI: ruff and pytest on CPU torch
 ```
 
-## Data and benchmarks
+## Tests and lint
 
-Training: 10k examples from Alpaca-cleaned for SFT, 10k preference pairs from
-UltraFeedback for DPO. The controls use wikitext-103 and CodeParrot, picked to
-hit the same 1,750,543 tokens the SFT run trained on.
+```bash
+uv run pytest -q
+uv run ruff check . && uv run ruff format --check .
+```
 
-Style: IFEval checks whether an answer obeys a literal instruction ("exactly
-three paragraphs", "no commas"), scored by rules rather than a judge model.
-XSTest counts refusals on 450 prompts, half that sound risky but are fine and
-half that are actually unsafe. The two refusal rates are kept separate, because
-averaging them hides whether a model refuses too much or too little. It only
-classifies refuse vs comply; nothing harmful is generated or graded.
+CI runs both on every push.
 
-Capability: GSM8K (grade school math, 5-shot, exact match) and ARC-Challenge
-(multiple choice science, scored by log-likelihood).
+## How to cite
 
-## Reproducibility
-
-Each training run writes a `manifest.json` next to its checkpoint: config hash,
-seeds, package versions, loss, runtime, and how many tokens it actually trained
-on. The exact rows each run used are in `data/processed/` rather than just a
-seed, so the data can be rebuilt even if `datasets` changes how it shuffles.
-
-Two caveats about those manifests. They were written before this repo had any
-commits, so `git_commit` is null in all of them. And their config hashes come
-from before I cleaned up the comments in `configs/`; only comments changed, the
-values are the same.
-
-## Things that went wrong
-
-In case any of these save you some time.
-
-- **NLTK crashes on Windows if a drive letter has no filesystem.** It looks for
-  `nltk_data` on `C:\`, `D:\`, `E:\` and so on, and `os.path.realpath` throws
-  WinError 1005 on an empty card reader. Downloading `punkt_tab` into the
-  default location beforehand avoids it.
-- **Windows sleep kills long runs.** The sleep timer only counts keyboard and
-  mouse activity, not GPU load, so a 12 hour job gets suspended after 20 idle
-  minutes. Run `powercfg /change standby-timeout-ac 0` first.
-- **A half-written checkpoint can't be resumed.** Hugging Face writes
-  `trainer_state.json` last, so killing a job mid-save leaves the 1GB model file
-  but no state file, and resuming crashes. `train/common.py` spots that and
-  deletes the broken checkpoint.
-- **DPO runs out of memory during eval, not training.** The eval step builds
-  full-vocabulary logits (151,936 wide) for an entropy stat while both models
-  are loaded, and the default eval batch is bigger than the training one. Set
-  `per_device_eval_batch_size` yourself.
-- **Two GPU jobs at once on 6GB is a bad idea.** VRAM hit 5980/6144 MiB and
-  each batch took about three times as long.
-- **Token budgets have to account for truncation.** Counting a document's full
-  length is wrong when the trainer cuts it at 1024 tokens. That was fine for
-  wikitext (no line went over) but would have overstated the code control's
-  budget by about 4x, since code files average ~776 tokens after truncation
-  against ~170 for wikitext.
-
-## References
-
-More detail on each paper and how it relates in
-[docs/related-work.md](docs/related-work.md).
-
-The hypothesis being tested
-- Zhou et al. 2023. LIMA: Less Is More for Alignment. <https://arxiv.org/abs/2305.11206>
-- Lin et al. 2023. The Unlocking Spell on Base LLMs (URIAL). <https://arxiv.org/pdf/2312.01552>
-
-Low-rank structure in fine-tuning
-- Aghajanyan et al. 2021. Intrinsic Dimensionality Explains the Effectiveness of Language Model Fine-Tuning. <https://aclanthology.org/2021.acl-long.568/>
-- Timber 2025. Training-free Instruct Model Refining with Base via Effective Rank. <https://arxiv.org/html/2509.23595> (closest to the SVD part; uses Roy & Vetterli's entropy effective rank, checked in `scripts/timber_check.py`)
-- Ryu, Seo & Yoo 2023. Efficient Storage of Fine-Tuned Models via Low-Rank Approximation of Weight Residuals. <https://arxiv.org/pdf/2305.18425>
-
-Where alignment sits in the network
-- Chaudhury 2025. Alignment is Localized: A Causal Probe into Preference Layers. <https://arxiv.org/abs/2510.16167>
-- Zhao et al. 2026. A Layer-wise Analysis of Supervised Fine-Tuning. <https://arxiv.org/abs/2604.11838>
-- 2025. Massive Supervised Fine-tuning Experiments Reveal How Data, Layer, and Training Factors Shape LLM Alignment Quality. <https://arxiv.org/pdf/2506.14681>
-- Qi et al. 2024. Safety Alignment Should Be Made More Than Just a Few Tokens Deep. <https://arxiv.org/pdf/2406.05946>
-
-LoRA rank and capacity
-- Biderman et al. 2024. LoRA Learns Less and Forgets Less. <https://arxiv.org/abs/2405.09673> (why the sweep tries three learning rates per rank; also measures ΔW's spectrum with a 90%-energy rank)
-- Shuttleworth et al. 2025. LoRA vs Full Fine-tuning: An Illusion of Equivalence. <https://arxiv.org/abs/2410.21228>
-- Ping et al. 2024. Delta-CoMe: Training-Free Delta-Compression with Mixed-Precision for Large Language Models. <https://arxiv.org/abs/2406.08903>
-- Paul 2026. Spectral Geometry of LoRA Adapters Encodes Training Objective and Predicts Harmful Compliance. <https://arxiv.org/abs/2604.08844>
-- Rudelson & Vershynin 2007. Sampling from Large Matrices (stable rank). <https://arxiv.org/abs/math/0503442>
-- Roy & Vetterli 2007. The Effective Rank: A Measure of Effective Dimensionality. EUSIPCO.
-- 2024. Planning vs Reasoning: Ablations to Test Capabilities of LoRA Layers. <https://arxiv.org/html/2412.00029>
-- 2025. How Much is Too Much? Exploring LoRA Rank Trade-offs. <https://aclanthology.org/2025.findings-ijcnlp.58.pdf>
-- Thinking Machines Lab. LoRA Without Regret. <https://thinkingmachines.ai/blog/lora/>
-
-Model and benchmarks
-- Qwen Team 2024. Qwen2.5 Technical Report. <https://arxiv.org/pdf/2412.15115>
-- Zhou et al. 2023. IFEval. <https://arxiv.org/abs/2311.07911>
-- Röttger et al. 2024. XSTest. <https://arxiv.org/abs/2308.01263>
-- Cobbe et al. 2021. GSM8K. <https://arxiv.org/abs/2110.14168>
-- Clark et al. 2018. ARC. <https://arxiv.org/abs/1803.05457>
-- EleutherAI. LM Evaluation Harness. <https://github.com/EleutherAI/lm-evaluation-harness>
-
-## Citing
-
-If this is useful to you, [CITATION.cff](CITATION.cff) has the details (GitHub
+The paper is under review; please cite the preprint once it is public, or the
+repository meanwhile. [CITATION.cff](CITATION.cff) has the metadata (GitHub
 shows a "Cite this repository" button for it).
+
+```bibtex
+@unpublished{altaf2026rank,
+  author = {Altaf, Muhammad Usman},
+  title  = {Rank Measures of Fine-Tuning Updates Need a Noise Baseline},
+  year   = {2026},
+  note   = {Under review at Transactions on Machine Learning Research}
+}
+```
 
 ## License
 
-MIT, see [LICENSE](LICENSE).
+Code: MIT, see [LICENSE](LICENSE). Paper text and figures in `paper/`: CC BY
+4.0. The TMLR style files carry their own license (`paper/TMLR-STYLE-LICENSE`).
