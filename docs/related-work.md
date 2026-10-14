@@ -1,5 +1,13 @@
 # Related work
 
+> **Note.** Written during the first round. The paragraph "What I think is new
+> here" and the claims that counting measures "can't tell a fine-tuning delta
+> from noise" and that stable rank is the right measure were softened in the
+> paper: every measure separates updates from noise, with intervals that
+> exclude zero; what differs is the size of the gap, and the paper recommends
+> no measure over the others. The LoRA material refers to first-round runs
+> that the paper does not report. `paper/sections/related.tex` is current.
+
 Notes on what was already out there when I started (September 2026), and where
 this project fits. Most of it is about whether alignment changes knowledge or
 just style, and whether fine-tuning updates are low-rank.

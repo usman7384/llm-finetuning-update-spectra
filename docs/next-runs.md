@@ -1,5 +1,11 @@
 # Follow-up runs for the paper
 
+> **Superseded (first-round commands, kept as a record).** These commands
+> belong to the bf16 runs that the paper does not report. The current runs are
+> driven by `scripts/run_v2.sh` and `scripts/run_review_queue.sh`; see the
+> top-level [README](../README.md) for the order of every step. The practical
+> notes (Windows sleep, disk, `HF_HUB_CACHE`, resuming) still apply.
+
 The runs added after the first write-up, to close the gaps a reviewer would
 point at. All of them have been run and the results are in
 [report.md](report.md); this page is kept as the exact commands used, with

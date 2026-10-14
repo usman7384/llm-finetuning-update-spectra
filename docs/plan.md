@@ -1,5 +1,11 @@
 # The plan
 
+> **Note.** The pre-registration for the first round of runs. Predictions (b)
+> and (d), the LoRA sweep and the evaluation suite were dropped from the paper
+> after that round turned out to be invalid (bf16 weights, see
+> `docs/report.md`); the paper's question became the measurement itself. Kept
+> as a record of what was predicted before training.
+
 This is what I wrote down before training anything: the question, what I
 expected, and what would count as being wrong. I've cleaned up the wording
 since, but the predictions and the falsification criteria are unchanged. What

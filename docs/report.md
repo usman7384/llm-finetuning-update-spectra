@@ -1,5 +1,14 @@
 # Does alignment training change behavior, or just style?
 
+> **Superseded (first-round write-up, kept as a record).** The fine-tunes this
+> report describes kept their weights in bf16 with no fp32 master copy, so
+> 77--98% of the weights never moved and the measured updates were rounding
+> artefacts (`results/v1_unchanged.csv`). The LoRA sweep, the evaluation table,
+> the DPO-on-bf16-SFT run and the behavioural results below are not in the
+> paper. The current results are those of the `v2_` runs, written up in
+> `paper/` and reproduced from the top-level [README](../README.md). Only the
+> noise pairs and the pretrained-weight spectra from this round are still used.
+
 Results write-up. Everything was run on a single RTX 3060 Laptop GPU with 6GB
 of VRAM. The main experiments are on Qwen2.5-0.5B (base); the weight-geometry
 result is then checked on SmolLM2-360M (section 5) and on seven publicly
