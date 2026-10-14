@@ -52,7 +52,7 @@ RUN_COLORS = {
 }
 MEASURE_LABELS = {
     "threshold": "threshold\ncount",
-    "erank": "entropy\neRank",
+    "erank": "eRank",
     "k90": "90%\nenergy",
     "participation": "participation\nratio",
     "stable": "stable\nrank",
@@ -75,7 +75,7 @@ def fig_gaps() -> None:
             yerr = [100 * (r["gap"] - r["lo"]), 100 * (r["hi"] - r["gap"])]
             ax.errorbar(x, 100 * r["gap"], yerr=yerr, marker="o", ms=3, capsize=2,
                         color=RUN_COLORS[run], ls="--" if run == "DPO swapped" else "-",
-                        label=run)  # fmt: skip
+                        label="swapped DPO" if run == "DPO swapped" else run)  # fmt: skip
         ax.set_xticks(range(len(order)))
         ax.set_xticklabels([MEASURE_LABELS[m] for m in order], fontsize=7)
         ax.set_title(model)
@@ -185,12 +185,12 @@ RELEASED = [
     ("qwen3-8b", "Qwen3-8B", "instruct release"),
     # measured from the final mid-training checkpoint, its real parent
     # (results/olmo_lineage.csv), not from the base repo's main revision
-    ("olmo2-1b-sft", "OLMo2-1B SFT", "OLMo 2 stage"),
-    ("olmo2-1b-dpo", "OLMo2-1B DPO", "OLMo 2 stage"),
-    ("olmo2-1b-rl", "OLMo2-1B RL", "OLMo 2 stage"),
-    ("qwen2.5-coder-0.5b", "Coder-0.5B", "code / math"),
-    ("qwen2.5-math-1.5b", "Math-1.5B", "code / math"),
-    ("qwen2.5-coder-1.5b", "Coder-1.5B", "code / math"),
+    ("olmo2-1b-sft", "OLMo 2 1B SFT", "OLMo 2 stage"),
+    ("olmo2-1b-dpo", "OLMo 2 1B DPO", "OLMo 2 stage"),
+    ("olmo2-1b-rl", "OLMo 2 1B RL", "OLMo 2 stage"),
+    ("qwen2.5-coder-0.5b", "Qwen2.5-Coder-0.5B", "code / math"),
+    ("qwen2.5-math-1.5b", "Qwen2.5-Math-1.5B", "code / math"),
+    ("qwen2.5-coder-1.5b", "Qwen2.5-Coder-1.5B", "code / math"),
 ]
 
 
