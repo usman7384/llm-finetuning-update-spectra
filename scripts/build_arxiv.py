@@ -116,17 +116,17 @@ class Tex:
         if mt_pdftex.exists() and mt_bibtex.exists():
             self.pdflatex = [str(mt_pdftex), "-undump=pdflatex"]
             self.bibtex = [str(mt_bibtex)]
-            for name, attr in (("miktex-pdftotext.exe", "pdftotext"),
-                               ("miktex-pdfinfo.exe", "pdfinfo")):
+            for name, attr in (
+                ("miktex-pdftotext.exe", "pdftotext"),
+                ("miktex-pdfinfo.exe", "pdfinfo"),
+            ):
                 if (miktex_bin / name).exists():
                     setattr(self, attr, [str(miktex_bin / name)])
         else:
             pdflatex = shutil.which("pdflatex")
             bibtex = shutil.which("bibtex")
             if not (pdflatex and bibtex):
-                raise BuildError(
-                    f"no TeX found: neither {mt_pdftex} nor pdflatex/bibtex on PATH"
-                )
+                raise BuildError(f"no TeX found: neither {mt_pdftex} nor pdflatex/bibtex on PATH")
             self.pdflatex = [pdflatex]
             self.bibtex = [bibtex]
         for name, attr in (("pdftotext", "pdftotext"), ("pdfinfo", "pdfinfo")):
@@ -135,8 +135,13 @@ class Tex:
 
     def _run(self, cmd: list[str], cwd: Path, log_name: str) -> subprocess.CompletedProcess:
         proc = subprocess.run(
-            cmd, cwd=cwd, capture_output=True, text=True,
-            encoding="utf-8", errors="replace", timeout=900,
+            cmd,
+            cwd=cwd,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            timeout=900,
         )
         (cwd / log_name).write_text(proc.stdout + proc.stderr, encoding="utf-8")
         return proc
@@ -157,17 +162,28 @@ class Tex:
         env["BIBINPUTS"] = str(cwd) + os.pathsep + env.get("BIBINPUTS", "")
         env["BSTINPUTS"] = str(cwd) + os.pathsep + env.get("BSTINPUTS", "")
         proc = subprocess.run(
-            self.bibtex + ["main"], cwd=cwd, capture_output=True, text=True,
-            encoding="utf-8", errors="replace", env=env, timeout=300,
+            self.bibtex + ["main"],
+            cwd=cwd,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            env=env,
+            timeout=300,
         )
         (cwd / "_bibtex.txt").write_text(proc.stdout + proc.stderr, encoding="utf-8")
-        blg = (cwd / "main.blg").read_text(encoding="utf-8", errors="replace") \
-            if (cwd / "main.blg").exists() else ""
+        blg = (
+            (cwd / "main.blg").read_text(encoding="utf-8", errors="replace")
+            if (cwd / "main.blg").exists()
+            else ""
+        )
         if proc.returncode != 0 or not (cwd / "main.bbl").exists():
             raise BuildError(f"bibtex failed in {cwd}:\n{proc.stdout}\n{blg[-2000:]}")
-        errors = [ln for ln in blg.splitlines()
-                  if ln.startswith("I couldn't") or "error message" in ln
-                  or ln.startswith("Warning--")]
+        errors = [
+            ln
+            for ln in blg.splitlines()
+            if ln.startswith("I couldn't") or "error message" in ln or ln.startswith("Warning--")
+        ]
         if errors:
             print("  bibtex notes:")
             for ln in errors:
@@ -182,15 +198,22 @@ class Tex:
         if last is not None:
             cmd += ["-l", str(last)]
         cmd += [str(pdf), "-"]
-        proc = subprocess.run(cmd, capture_output=True, text=True,
-                              encoding="utf-8", errors="replace", timeout=120)
+        proc = subprocess.run(
+            cmd, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=120
+        )
         return proc.stdout if proc.returncode == 0 else None
 
     def info(self, pdf: Path) -> dict[str, str]:
         if not self.pdfinfo:
             return {}
-        proc = subprocess.run(self.pdfinfo + [str(pdf)], capture_output=True,
-                              text=True, encoding="utf-8", errors="replace", timeout=60)
+        proc = subprocess.run(
+            self.pdfinfo + [str(pdf)],
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            timeout=60,
+        )
         out: dict[str, str] = {}
         for ln in proc.stdout.splitlines():
             if ":" in ln:
@@ -255,8 +278,9 @@ def substitute_once(path: Path, old: str, new: str, what: str) -> None:
     live = "\n".join(ln for ln in data.splitlines() if not ln.lstrip().startswith("%"))
     n = live.count(old)
     if n != 1:
-        raise BuildError(f"{what}: expected exactly one occurrence of {old!r} in "
-                         f"{path.name}, found {n}")
+        raise BuildError(
+            f"{what}: expected exactly one occurrence of {old!r} in {path.name}, found {n}"
+        )
     out_lines = []
     done = False
     for ln in data.splitlines(keepends=True):
@@ -287,8 +311,7 @@ def prepare_sources(src: Path, reword_reproducibility: bool, pdf_metadata: bool)
         substitute_once(src / REPRODUCIBILITY_FILE, old, new, "reproducibility rewording")
     if pdf_metadata:
         title, author = title_and_author(main_tex.read_text(encoding="utf-8"))
-        hypersetup = (f"{HYPERREF_LINE}\n"
-                      f"\\hypersetup{{pdftitle={{{title}}},pdfauthor={{{author}}}}}")
+        hypersetup = f"{HYPERREF_LINE}\n\\hypersetup{{pdftitle={{{title}}},pdfauthor={{{author}}}}}"
         substitute_once(main_tex, HYPERREF_LINE, hypersetup, "pdf metadata")
 
 
@@ -296,7 +319,8 @@ def prepare_sources(src: Path, reword_reproducibility: bool, pdf_metadata: bool)
 # Static checks on the package contents
 # ---------------------------------------------------------------------------
 ABS_PATH_RE = re.compile(
-    r"\\(?:input|include|includegraphics)(?:\[[^\]]*\])?\{\s*(?:[A-Za-z]:[\\/]|/|~)")
+    r"\\(?:input|include|includegraphics)(?:\[[^\]]*\])?\{\s*(?:[A-Za-z]:[\\/]|/|~)"
+)
 
 
 def static_checks(src: Path, files: list[Path]) -> list[str]:
@@ -337,25 +361,53 @@ def write_zip(zip_path: Path, src: Path, files: list[Path]) -> None:
 # Main
 # ---------------------------------------------------------------------------
 def main(argv: list[str] | None = None) -> int:
-    ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0],
-                                 formatter_class=argparse.RawDescriptionHelpFormatter,
-                                 epilog=__doc__)
-    ap.add_argument("--out", required=True, type=Path,
-                    help="directory that receives arxiv_source.zip and arxiv_preview.pdf")
-    ap.add_argument("--paper", type=Path, default=DEFAULT_PAPER_DIR,
-                    help=f"submission sources (default: {DEFAULT_PAPER_DIR})")
-    ap.add_argument("--miktex-bin", type=Path, default=DEFAULT_MIKTEX_BIN,
-                    help="MiKTeX bin directory holding miktex-pdftex.exe and miktex-bibtex.exe")
-    ap.add_argument("--work", type=Path, default=None,
-                    help="work directory (default: a fresh temp directory, removed afterwards)")
-    ap.add_argument("--keep-work", action="store_true",
-                    help="keep the work directory for inspection")
-    ap.add_argument("--no-bib", action="store_true",
-                    help="leave main.bib out of the package (arXiv ignores it when main.bbl exists)")
-    ap.add_argument("--reword-reproducibility", action="store_true",
-                    help="OPTIONAL EDIT, off by default: reword the 'anonymous submission' clause")
-    ap.add_argument("--pdf-metadata", action="store_true",
-                    help="OPTIONAL EDIT, off by default: set PDF Title/Author via \\hypersetup")
+    ap = argparse.ArgumentParser(
+        description=__doc__.split("\n\n")[0],
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog=__doc__,
+    )
+    ap.add_argument(
+        "--out",
+        required=True,
+        type=Path,
+        help="directory that receives arxiv_source.zip and arxiv_preview.pdf",
+    )
+    ap.add_argument(
+        "--paper",
+        type=Path,
+        default=DEFAULT_PAPER_DIR,
+        help=f"submission sources (default: {DEFAULT_PAPER_DIR})",
+    )
+    ap.add_argument(
+        "--miktex-bin",
+        type=Path,
+        default=DEFAULT_MIKTEX_BIN,
+        help="MiKTeX bin directory holding miktex-pdftex.exe and miktex-bibtex.exe",
+    )
+    ap.add_argument(
+        "--work",
+        type=Path,
+        default=None,
+        help="work directory (default: a fresh temp directory, removed afterwards)",
+    )
+    ap.add_argument(
+        "--keep-work", action="store_true", help="keep the work directory for inspection"
+    )
+    ap.add_argument(
+        "--no-bib",
+        action="store_true",
+        help="leave main.bib out of the package (arXiv ignores it when main.bbl exists)",
+    )
+    ap.add_argument(
+        "--reword-reproducibility",
+        action="store_true",
+        help="OPTIONAL EDIT, off by default: reword the 'anonymous submission' clause",
+    )
+    ap.add_argument(
+        "--pdf-metadata",
+        action="store_true",
+        help="OPTIONAL EDIT, off by default: set PDF Title/Author via \\hypersetup",
+    )
     args = ap.parse_args(argv)
 
     paper = args.paper.resolve()
@@ -379,9 +431,23 @@ def main(argv: list[str] | None = None) -> int:
     try:
         # 1. copy
         src = work / "src"
-        shutil.copytree(paper, src, ignore=shutil.ignore_patterns(
-            "*.aux", "*.bbl", "*.blg", "*.log", "*.out", "*.pdf.bak",
-            "*.synctex.gz", "*.fdb_latexmk", "*.fls", "main.pdf", "__pycache__"))
+        shutil.copytree(
+            paper,
+            src,
+            ignore=shutil.ignore_patterns(
+                "*.aux",
+                "*.bbl",
+                "*.blg",
+                "*.log",
+                "*.out",
+                "*.pdf.bak",
+                "*.synctex.gz",
+                "*.fdb_latexmk",
+                "*.fls",
+                "main.pdf",
+                "__pycache__",
+            ),
+        )
         print(f"copied {paper} -> {src}")
 
         # 2. edit the copy
@@ -430,10 +496,13 @@ def main(argv: list[str] | None = None) -> int:
         if bad:
             raise BuildError("pdflatex-only build has unresolved items:\n  " + "\n  ".join(bad))
         if check_pages != full_pages:
-            raise BuildError(f"page count differs: full build {full_pages}, "
-                             f"pdflatex-only build {check_pages}")
-        print(f"  ok, {check_pages} pages after {n_check} passes, "
-              "no undefined citations or references")
+            raise BuildError(
+                f"page count differs: full build {full_pages}, pdflatex-only build {check_pages}"
+            )
+        print(
+            f"  ok, {check_pages} pages after {n_check} passes, "
+            "no undefined citations or references"
+        )
 
         pdf = check / "main.pdf"
         text_all = tex.text(pdf)
@@ -460,8 +529,9 @@ def main(argv: list[str] | None = None) -> int:
             print("  (pdftotext not available; text checks skipped)")
         info = tex.info(pdf)
         if info:
-            print(f"  PDF metadata: Title={info.get('Title', '')!r} "
-                  f"Author={info.get('Author', '')!r}")
+            print(
+                f"  PDF metadata: Title={info.get('Title', '')!r} Author={info.get('Author', '')!r}"
+            )
 
         # 6. deliverables
         shutil.copy2(zip_path, out / ZIP_NAME)
