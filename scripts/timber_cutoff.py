@@ -26,7 +26,9 @@ Summary goes to results/timber_cutoff.csv.
 --task gpqa runs GPQA-Diamond instead, the benchmark where Timber reports its
 largest gain for Qwen3-0.6B (non-thinking mode), into
 results/timber_cutoff_gpqa/ and results/timber_cutoff_gpqa.csv. The dataset is
-gated on the Hub: accept its terms and log in first.
+gated on the Hub: accept its terms and log in first. GPQA logs keep the scores
+and extracted letters but no generated text, since its authors ask that the
+questions never be published in plain text.
 """
 
 from __future__ import annotations
@@ -245,8 +247,12 @@ def run_variant(name: str, problems, args, device: str) -> None:
                     "correct": correct,
                     # no final answer usually means it ran out of tokens
                     "boxed": answered,
-                    "first_sample": samples[0],
                 }
+                # GPQA's authors ask that its questions never appear in plain
+                # text online, and the answers often restate the question, so
+                # only GSM8K logs keep a sample answer.
+                if args.task != "gpqa":
+                    rec["first_sample"] = samples[0]
                 f.write(json.dumps(rec) + "\n")
             f.flush()
             n_done = start + len(idxs)
