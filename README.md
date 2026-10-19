@@ -44,6 +44,12 @@ Whole repository: about 94 MB in 11,400 files, of which 66 MB are the 11,000
 spectra (6 KB each on average). The largest file is 1.5 MB, so Git LFS is not
 needed.
 
+**Commit IDs in the manifests.** The history was rewritten on 2026-10-19 to
+remove generated text from the GPQA logs (see Gated data); no code changed.
+Five manifests (`checkpoints/v2/control_code_steps/` and four SmolLM2 runs)
+record commit `e4095005`, which is now `b42fcd8`. Every other recorded commit
+is unchanged. The first-round manifests predate commit recording.
+
 ## Requirements
 
 **Hardware.** Everything in the paper ran on one laptop: NVIDIA RTX 3060
