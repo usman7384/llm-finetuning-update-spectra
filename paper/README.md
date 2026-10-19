@@ -1,8 +1,10 @@
 # Paper
 
-TMLR submission source. The style files (`tmlr.sty`, `tmlr.bst`,
-`fancyhdr.sty`, `math_commands.tex`) are the official ones, unmodified; their
-license is in `TMLR-STYLE-LICENSE`.
+LaTeX source of the paper, posted as
+[arXiv:2610.22438](https://arxiv.org/abs/2610.22438). It uses the TMLR style;
+the style files (`tmlr.sty`, `tmlr.bst`, `fancyhdr.sty`, `math_commands.tex`)
+are the official ones, unmodified, and their license is in
+`TMLR-STYLE-LICENSE`.
 
 ## Building
 
@@ -12,20 +14,24 @@ until the labels are stable (this document needs three passes after bibtex).
 
 ## Versions
 
-`main.tex` loads `\usepackage{tmlr}`, the anonymous submission version: no
-author block, "Under review as submission to TMLR" header. Keep it that way
-for OpenReview, and never link the repository or the preprint from it.
+`main.tex` loads `\usepackage{tmlr}`, the anonymous version: no author block,
+and an "Under review as submission to TMLR" header.
 
-- **arXiv / preprint:** `uv run python scripts/build_arxiv.py --out <dir>`
-  builds the package from a copy of this folder with
-  `\usepackage[preprint]{tmlr}` (author block shown, header removed), includes
-  the generated `main.bbl`, and checks that it compiles with pdflatex alone, as
-  arXiv does. The `\author` block already carries the name, email and
-  affiliation. Two optional edits for the preprint are off by default; see the
-  script's `--help`.
-- **Camera-ready:** `\usepackage[accepted]{tmlr}`, then set `\month`, `\year`
-  and the OpenReview link in `main.tex`, and put the repository link in the
-  Reproducibility paragraph of `sections/discussion.tex`.
+The arXiv version is built with
+
+```bash
+uv run python scripts/build_arxiv.py --out <dir> --pdf-metadata --reword-reproducibility
+```
+
+It copies this folder, switches to `\usepackage[preprint]{tmlr}` (author block
+shown, header removed), includes the generated `main.bbl`, and checks that the
+package compiles with pdflatex alone, as arXiv does. The `\author` block
+already carries the name, email and affiliation. Upload the zip it writes as
+the source; for a new version, upload it as a replacement of 2610.22438.
+
+The Reproducibility paragraph at the end of `sections/discussion.tex` still
+says the code is withheld. Before the next arXiv version, replace that clause
+with a link to this repository and drop `--reword-reproducibility`.
 
 ## Layout
 
