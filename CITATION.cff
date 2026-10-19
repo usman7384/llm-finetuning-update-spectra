@@ -7,8 +7,8 @@ authors:
     given-names: Muhammad Usman
     affiliation: Independent Researcher
 license: MIT
-# set when the repository is made public
-date-released: 2026-10-14
+# the day the repository is made public; add repository-code with its URL then
+date-released: 2026-10-19
 keywords:
   - fine-tuning
   - weight updates
@@ -17,12 +17,13 @@ keywords:
   - noise baseline
   - alignment
 preferred-citation:
-  type: unpublished
+  type: article
   title: "Rank Measures of Fine-Tuning Updates Need a Noise Baseline"
   authors:
     - family-names: Altaf
       given-names: Muhammad Usman
       affiliation: Independent Researcher
   year: 2026
-  status: submitted
-  notes: "Under review at Transactions on Machine Learning Research (TMLR). No DOI yet."
+  journal: "arXiv preprint arXiv:2610.22438"
+  doi: "10.48550/arXiv.2610.22438"
+  url: "https://arxiv.org/abs/2610.22438"
