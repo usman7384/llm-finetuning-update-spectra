@@ -20,7 +20,7 @@ and an "Under review as submission to TMLR" header.
 The arXiv version is built with
 
 ```bash
-uv run python scripts/build_arxiv.py --out <dir> --pdf-metadata --reword-reproducibility
+uv run python scripts/build_arxiv.py --out <dir> --pdf-metadata
 ```
 
 It copies this folder, switches to `\usepackage[preprint]{tmlr}` (author block
@@ -29,9 +29,10 @@ package compiles with pdflatex alone, as arXiv does. The `\author` block
 already carries the name, email and affiliation. Upload the zip it writes as
 the source; for a new version, upload it as a replacement of 2610.22438.
 
-The Reproducibility paragraph at the end of `sections/discussion.tex` still
-says the code is withheld. Before the next arXiv version, replace that clause
-with a link to this repository and drop `--reword-reproducibility`.
+Version 1 on arXiv was built with `--reword-reproducibility`, which said the
+code was withheld. The Reproducibility paragraph at the end of
+`sections/discussion.tex` now links this repository, so that option no longer
+applies; the script stops with an error if it is passed.
 
 ## Layout
 
