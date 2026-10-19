@@ -1,13 +1,12 @@
 # Rank Measures of Fine-Tuning Updates Need a Noise Baseline
 
+[![arXiv](https://img.shields.io/badge/arXiv-2610.22438-b31b1b.svg)](https://arxiv.org/abs/2610.22438)
+
 Code, configurations, run manifests, exact training rows, saved singular-value
 spectra and evaluation logs for the paper *Rank Measures of Fine-Tuning Updates
-Need a Noise Baseline* (Muhammad Usman Altaf, Independent Researcher; under
-review at TMLR, 2026). The LaTeX sources are in [paper/](paper/).
-
-> **Status.** The paper is under double-blind review. This repository stays
-> private until a decision and must not be linked from the anonymous
-> submission.
+Need a Noise Baseline* by Muhammad Usman Altaf (Independent Researcher, 2026),
+[arXiv:2610.22438](https://arxiv.org/abs/2610.22438). The LaTeX sources are in
+[paper/](paper/).
 
 The paper measures the weight update ΔW of fine-tuning with five rank
 measures (threshold count, entropy effective rank, 90%-energy rank,
@@ -314,7 +313,7 @@ checkpoints/             weights (not in git); each run's manifest.json is
 data/processed/          exact training rows of every run
 results/                 spectra, CSVs, per-problem logs; v2/ holds the current runs
 docs/                    plan, related work and the first-round write-up (superseded, kept as record)
-paper/                   TMLR sources, figures, bibliography
+paper/                   LaTeX sources (TMLR style), figures, bibliography
 .github/                 CI: ruff and pytest on CPU torch
 ```
 
@@ -329,16 +328,20 @@ CI runs both on every push.
 
 ## How to cite
 
-The paper is under review; please cite the preprint once it is public, or the
-repository meanwhile. [CITATION.cff](CITATION.cff) has the metadata (GitHub
-shows a "Cite this repository" button for it).
+If you use this code or these results, please cite the paper.
+[CITATION.cff](CITATION.cff) has the same metadata, and GitHub shows a "Cite
+this repository" button for it.
 
 ```bibtex
-@unpublished{altaf2026rank,
-  author = {Altaf, Muhammad Usman},
-  title  = {Rank Measures of Fine-Tuning Updates Need a Noise Baseline},
-  year   = {2026},
-  note   = {Under review at Transactions on Machine Learning Research}
+@misc{altaf2026rank,
+  author        = {Altaf, Muhammad Usman},
+  title         = {Rank Measures of Fine-Tuning Updates Need a Noise Baseline},
+  year          = {2026},
+  eprint        = {2610.22438},
+  archivePrefix = {arXiv},
+  primaryClass  = {cs.LG},
+  doi           = {10.48550/arXiv.2610.22438},
+  url           = {https://arxiv.org/abs/2610.22438}
 }
 ```
 
