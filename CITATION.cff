@@ -7,7 +7,7 @@ authors:
     given-names: Muhammad Usman
     affiliation: Independent Researcher
 license: MIT
-# the day the repository is made public; add repository-code with its URL then
+repository-code: "https://github.com/usman7384/llm-finetuning-update-spectra"
 date-released: 2026-10-19
 keywords:
   - fine-tuning
