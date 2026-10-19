@@ -17,7 +17,7 @@ jobs:
       - name: Install
         run: |
           pip install torch --index-url https://download.pytorch.org/whl/cpu
-          pip install safetensors numpy huggingface_hub pytest ruff
+          pip install safetensors numpy huggingface_hub datasets pytest ruff
           pip install -e . --no-deps
       - name: Lint
         run: |
