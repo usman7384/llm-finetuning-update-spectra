@@ -62,9 +62,9 @@ Our findings:
   \item \textbf{The shape does not single out alignment training.} With the
   amount of training held fixed, the data does shape an update (code is the
   least concentrated, the more so with more training), but instruction SFT
-  does not stand out from Wikipedia or Python code. DPO gives the same shape,
-  and the same directions, whether it learns real preferences or randomly
-  swapped ones that teach nothing. Text with its word order scrambled gives
+  does not stand out from Wikipedia or Python code. DPO gives the same shape
+  whether it learns real preferences or randomly swapped ones that teach
+  nothing; a signed comparison of the updates does tell the two apart. Text with its word order scrambled gives
   the most concentrated update of all (\S\ref{sec:controls}).
   \item \textbf{It holds for released models}, thirteen base/instruct,
   post-training-stage and base/specialist pairs up to 8B parameters. On three
