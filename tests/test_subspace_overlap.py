@@ -5,6 +5,7 @@ from align_geometry.analysis.subspace_overlap import (
     orthonormal_basis,
     principal_angles,
     random_subspace_baseline,
+    signed_cosine,
     top_singular_directions,
 )
 
@@ -47,3 +48,13 @@ def test_top_singular_directions_recovers_planted_rank():
     # Recovered left/right subspaces should closely match the planted ones.
     assert mean_cosine_similarity(u_hat, u_true) > 0.99
     assert mean_cosine_similarity(v_hat, v_true) > 0.99
+
+
+def test_signed_cosine_sees_the_sign_that_subspace_overlap_misses():
+    torch.manual_seed(0)
+    a = torch.randn(12, 3) @ torch.randn(3, 9)
+    u_pos, _ = top_singular_directions(a, 3)
+    u_neg, _ = top_singular_directions(-a, 3)
+    assert mean_cosine_similarity(u_pos, u_neg) > 0.999
+    assert abs(signed_cosine(a, a) - 1) < 1e-5
+    assert abs(signed_cosine(a, -a) + 1) < 1e-5
