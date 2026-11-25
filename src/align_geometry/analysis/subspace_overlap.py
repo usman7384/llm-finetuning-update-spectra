@@ -57,3 +57,9 @@ def top_singular_directions(delta: torch.Tensor, rank: int) -> tuple[torch.Tenso
     """
     u, _, vh = torch.linalg.svd(delta.float(), full_matrices=False)
     return u[:, :rank], vh[:rank, :].T
+
+
+def signed_cosine(a: torch.Tensor, b: torch.Tensor) -> float:
+    """Cosine between two matrices as flat vectors. Unlike a subspace overlap
+    it is negative when they push the same directions in opposite ways."""
+    return float((a * b).sum() / (a.norm() * b.norm()))
