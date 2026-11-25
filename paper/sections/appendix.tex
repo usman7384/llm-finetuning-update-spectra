@@ -326,6 +326,49 @@ quarter of the overlap between seeds of the same run (0.34--0.51), while their
 stable ranks differ by at most 0.014. And wikitext and shuffled words, which
 share their words, overlap more than wikitext and code do.
 
+The overlap compares unsigned subspaces on one side of the update, so it is
+blind to sign, to how left and right directions pair up, and to how strong each
+one is. Table~\ref{tab:signed} gives the cosine between two updates as flat
+vectors, $\langle\dW_A,\dW_B\rangle / (\|\dW_A\|_F\,\|\dW_B\|_F)$, averaged
+over matrices. Runs on different data, whose subspaces overlap by 0.10--0.22,
+have cosines of 0.001--0.006, except wikitext and shuffled words, which are the
+same documents. So the overlaps between unrelated data reflect directions that
+fine-tuning uses in general, not agreement between the updates. The last column
+counts training rows in common. Shared rows can make two updates agree by
+themselves, but they need not: the two wikitext seeds share 1\% of their rows
+and still have a cosine of 0.08 on Qwen.
+
+\begin{table}[H]
+\caption{Signed cosine between two updates, mean over matrices, with 95\%
+layer-bootstrap intervals over layers, not over training runs. ``Shared'' is
+the share of the first run's training rows that the second run also uses, on
+Qwen2.5-0.5B.}
+\label{tab:signed}
+\begin{center}
+\small
+\begin{tabular}{lccc}
+\toprule
+pair & Qwen2.5-0.5B & SmolLM2-360M & shared \\
+\midrule
+SFT vs SFT, seed 2                & 0.189 (0.181, 0.198) & 0.420 (0.411, 0.430) & 19\% \\
+wikitext vs wikitext, seed 2      & 0.080 (0.070, 0.092) & 0.329 (0.302, 0.357) & 1\% \\
+code vs code, seed 2              & 0.083 (0.080, 0.086) & 0.337 (0.327, 0.348) & 6\% \\
+code vs code, steps matched       & 0.448 (0.433, 0.464) & 0.676 (0.670, 0.681) & 97\% \\
+\midrule
+SFT vs wikitext                   & 0.006 (0.005, 0.007) & 0.004 (0.003, 0.005) & -- \\
+SFT vs code                       & 0.003 (0.002, 0.004) & 0.004 (0.003, 0.005) & -- \\
+wikitext vs code                  & 0.004 (0.003, 0.005) & 0.003 (0.002, 0.004) & -- \\
+SFT vs shuffled words             & 0.002 (0.001, 0.003) & 0.001 (0.001, 0.002) & -- \\
+wikitext vs shuffled words        & 0.068 (0.051, 0.087) & 0.100 (0.084, 0.115) & 100\% \\
+\midrule
+DPO vs DPO, seed 2                & 0.084 (0.082, 0.087) & -- & 16\% \\
+DPO vs swapped DPO                & 0.040 (0.039, 0.042) & -- & 100\% \\
+DPO, seed 2 vs swapped DPO        & 0.001 ($-$0.000, 0.002) & -- & 16\% \\
+\bottomrule
+\end{tabular}
+\end{center}
+\end{table}
+
 \section{Random-update details}
 \label{app:damage}
 
