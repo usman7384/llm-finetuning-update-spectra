@@ -51,7 +51,11 @@ bits to the top singular vectors, finding that plain low-rank truncation hurts;
 BitDelta \citep{liu2024bitdelta} goes further and keeps only the sign of each
 entry of the update plus one scale per matrix, with little loss.
 \citet{paul2026spectral} uses stable rank among other features of LoRA updates
-to tell training objectives apart.
+to tell training objectives apart. Closest to our head and tail,
+\citet{zhang2026preference} describe a sharp head and a residual tail in the
+updates of DPO and GRPO runs with LoRA and study what each part does to the
+model's behaviour; we ask how such spectra compare with noise and with
+fine-tuning that has no preferences to learn.
 
 \paragraph{Editing updates.} Updates can be added, scaled and merged
 \citep{ilharco2023task}, and much of an update can be dropped or trimmed at
