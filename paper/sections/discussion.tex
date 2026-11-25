@@ -52,7 +52,9 @@ does, and costs nothing.
   we tested, alignment with token frequency, is shared by other runs.
   \item \textbf{Directions, measured coarsely.} The overlap of top-16
   subspaces shows that the data steers the directions of an update; it does
-  not say which directions, or what they do.
+  not say which directions, or what they do, and it ignores their sign. The
+  signed cosine separates real from swapped DPO, but with shared training pairs
+  and one swapped run it cannot say how much of that is preference learning.
   \item \textbf{The edit experiment is narrow:} one model, non-thinking mode
   only, and 198 GPQA questions, which leaves intervals of about $\pm3$
   points.
@@ -71,8 +73,8 @@ concentrated than noise, and more concentrated than the pretrained weights.
 Both are right: the updates have a few strong directions and a long tail that
 holds most of the energy. With the amount of training held fixed, the data
 shapes an update somewhat, but instruction tuning does not stand out from
-Wikipedia or code; DPO gives the same shape and directions with real or
-half-swapped preferences; and scrambled text gives the most concentrated
+Wikipedia or code; DPO gives the same shape with real or half-swapped
+preferences; and scrambled text gives the most concentrated
 update. The shape is a property of fine-tuning, not a mark of alignment. An
 unchanged effective rank of the weights after post-training is
 what a random update of the same size also produces, and an edit built on
