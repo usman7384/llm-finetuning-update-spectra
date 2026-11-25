@@ -192,12 +192,23 @@ control, against 0.436 for noise, and the two updates have the same size
 (Table~\ref{tab:runs}). The paired difference,
 $+0.002$, is larger than the gap between the two DPO seeds ($+0.001$) but
 under 4\% of the value and about $1/200$ of the distance to noise
-(Table~\ref{tab:paired}). The directions agree too: the real DPO update
-overlaps with the swapped control (0.27) almost exactly as much as with a
-second seed of itself (0.28). Like the SFT update, the DPO update is more
+(Table~\ref{tab:paired}). Like the SFT update, the DPO update is more
 concentrated than the pretrained weights and far more than noise, and at the
-strength of preference learning we reach, almost none of that, in shape or in
-direction, comes from having learned the preferences.
+strength of preference learning we reach, almost none of that shape comes from
+having learned the preferences.
+
+The directions are another matter. The subspace overlap cannot separate these
+runs: the real DPO update overlaps with the swapped control (0.27) almost
+exactly as much as with a second seed of itself (0.28). But that overlap is the
+same for an update and its negative, and swapping a pair reverses its preference
+signal. The plain cosine between updates keeps the sign
+(Appendix~\ref{app:overlap}). It is 0.084 (95\% interval 0.082, 0.087) between
+the two real DPO seeds, 0.040 (0.039, 0.042) between the real run and the swapped
+control, and 0.001 ($-$0.000, 0.002) between the second seed and the swapped
+control. So the real runs agree more with each other than with the control. We
+do not read this as a measurement of the preference signal alone: the two real
+runs share 16\% of their training pairs, the swapped run uses all the pairs of
+the first, and there is one swapped run on one model.
 
 The surprise is the shuffled-words control. Text with its word order
 scrambled, which has little to learn beyond word frequencies, gives the most
