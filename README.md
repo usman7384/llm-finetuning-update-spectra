@@ -123,7 +123,7 @@ uv run python scripts/paper_figures.py      # paper/figures/*.pdf
 `timber_cutoff.py` and `random_update_tasks.py` recompute their summary CSVs
 from the tracked `.jsonl` files when run with the same arguments and nothing
 left to generate (they load no model in that case). The other CSVs
-(`update_overlap`, `frequency_direction`, `timber_check`, `random_update_check`,
+(`update_overlap`, `signed_cosine`, `frequency_direction`, `timber_check`, `random_update_check`,
 `released_sizes`, `olmo_lineage`, `embedding_change`, `v1_unchanged`) are
 tracked too, but regenerating them needs the weights from steps 1, 2 or 4.
 
@@ -178,6 +178,7 @@ fine-tune, 3.6--8.6 h per DPO run (paper, Table `tab:runs`). A manifest's
 uv run python scripts/v2_analysis.py          # measures, gaps to noise and to W, paired differences, layer quarters
 uv run python scripts/renyi_grid.py           # gap to noise along the Renyi family
 uv run python scripts/update_overlap.py       # top-16 subspace overlap between updates; CPU, about 1 h, needs the weights from step 2
+uv run python scripts/signed_cosine.py        # signed cosine between updates; CPU, needs the weights
 uv run python scripts/frequency_direction.py  # top direction vs token frequency (shuffled-words appendix); CPU, needs the weights
 uv run python scripts/v1_unchanged.py         # share of unchanged weights in the first-round bf16 runs; needs those checkpoints
 ```
@@ -257,6 +258,7 @@ Labels are the LaTeX labels in `paper/sections/`. Figure rows go through
 | `fig:spectrum`, energy share and decay curves | (spectra) | `results/v2/svd_{sft,control_lm,control_code,control_shuffled}/spectra/`, `results/svd_control_random/spectra/`, `results/weights_base/spectra/` → `spectrum_head_tail.pdf` |
 | `tab:paired`, paired stable-rank differences, seeds, steps matched | `v2_analysis.py` | `results/v2/paired.csv` |
 | direction overlaps (controls section) and `tab:overlap` | `update_overlap.py` | `results/v2/update_overlap.csv` |
+| signed cosines (controls section) and `tab:signed` | `signed_cosine.py` | `results/v2/signed_cosine.csv` |
 | DPO held-out reward accuracy 65% / 74% / 51% | `train_dpo.py` | `checkpoints/v2/{dpo,dpo_seed43,dpo_swapped}/manifest.json`, key `observed_eval_reward_accuracy` |
 | `fig:released`, `tab:released`, `tab:released_more` | `released_spectra.py`, `released_measures.py`, `released_sizes.py` | `results/released_spectra/<pair>/`, `results/released_measures.csv`, `results/released_sizes.csv` → `released_pairs.pdf` |
 | lineage check (cosines, OLMo 2 parent) | `released_sizes.py`, `olmo_lineage.py` | `results/released_sizes.csv` (`base_cosine`), `results/olmo_lineage.csv` |
